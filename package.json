@@ -1,7 +1,7 @@
 {
   "name": "solmate",
   "version": "1.0.0",
-  "description": "A Solana  x Chess Dapp",
+  "description": "A Solana x Chess Dapp",
   "main": "index.js",
   "scripts": {
     "dev": "next dev",
