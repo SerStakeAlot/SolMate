@@ -1,30 +1,69 @@
-import Image from "next/image";
+"use client";
+
+import { useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { useWallet } from "@solana/wallet-adapter-react";
+
 import { WalletButton } from "@/components/WalletButton";
-import { ChessGame } from "@/components/ChessGame";
 
 export default function Home() {
+  const router = useRouter();
+  const { connected } = useWallet();
+
+  const continueHref = useMemo(() => "/play", []);
+  const continueGuestHref = useMemo(() => "/play?guest=1", []);
+
   return (
-    <main className="flex min-h-screen flex-col items-center p-8 bg-gradient-to-b from-gray-900 to-black">
-      <div className="z-10 max-w-7xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <h1 className="text-4xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
-          ♟️ SolMate
-        </h1>
+    <main className="mx-auto w-full max-w-6xl px-6 py-10">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-4xl font-bold tracking-tight">SolMate</h1>
+          <p className="mt-1 text-sm text-neutral-300">Solana chess, made simple.</p>
+        </div>
         <WalletButton />
-      </div>
+      </header>
 
-      <div className="mt-8 mb-4 text-center">
-        <h2 className="text-2xl font-semibold mb-2">Welcome to SolMate</h2>
-        <p className="text-gray-400">
-          Play chess, wager SOL, and place side bets on matches
-        </p>
-      </div>
+      <section className="mt-10">
+        <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur shadow-2xl p-6 md:p-8">
+          <h2 className="text-2xl font-semibold">Start playing</h2>
+          <p className="mt-2 text-sm text-neutral-300">
+            Connect a wallet to host/join wager matches, or continue as a guest.
+          </p>
 
-      <div className="mt-8 w-full max-w-4xl">
-        <ChessGame />
-      </div>
+          <div className="mt-6 flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              disabled={!connected}
+              onClick={() => router.push(continueHref)}
+              className={
+                "inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold transition-colors " +
+                (connected
+                  ? "bg-white/10 hover:bg-white/15 text-white"
+                  : "bg-white/5 text-neutral-400 cursor-not-allowed")
+              }
+            >
+              Continue
+            </button>
 
-      <footer className="mt-16 text-center text-gray-500 text-sm">
-        <p>Built on Solana • Powered by Anchor</p>
+            <button
+              type="button"
+              onClick={() => router.push(continueGuestHref)}
+              className="inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold bg-neutral-800 hover:bg-neutral-700 text-white transition-colors"
+            >
+              Continue without wallet
+            </button>
+          </div>
+
+          {!connected ? (
+            <p className="mt-4 text-xs text-neutral-400">
+              Tip: use the Connect Wallet button in the top right.
+            </p>
+          ) : null}
+        </div>
+      </section>
+
+      <footer className="mt-10 text-center text-neutral-500 text-sm">
+        Built on Solana • Powered by Anchor
       </footer>
     </main>
   );
