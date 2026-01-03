@@ -14,7 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
+      <body className="min-h-screen bg-gradient-to-b from-neutral-950 via-neutral-950 to-black text-neutral-100 antialiased">
         <WalletProvider>
           {children}
         </WalletProvider>

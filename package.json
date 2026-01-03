@@ -24,6 +24,7 @@
     "@solana/wallet-adapter-wallets": "^0.19.37",
     "@solana/web3.js": "^1.98.4",
     "@tailwindcss/postcss": "^4.1.18",
+    "chess.js": "^1.4.0",
     "next": "^16.1.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3"
