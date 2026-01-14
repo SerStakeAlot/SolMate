@@ -11,9 +11,9 @@ export default function Home() {
   const { connected } = useWallet();
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6">
+    <main className="mx-auto w-full max-w-6xl px-4 sm:px-6">
       {/* Hero Section */}
-      <section className="flex flex-col items-center text-center pt-20 pb-24">
+      <section className="flex flex-col items-center text-center pt-12 sm:pt-20 pb-16 sm:pb-24">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -41,13 +41,13 @@ export default function Home() {
             </motion.div>
           </div>
           
-          <h1 className="text-5xl md:text-6xl font-extrabold mb-6 tracking-tight">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold mb-4 sm:mb-6 tracking-tight">
             <span className="text-gradient">Stake.</span>{" "}
             <span className="text-white">Compete.</span>{" "}
             <span className="text-gradient">Conquer.</span>
           </h1>
           
-          <p className="text-xl text-neutral-400 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-base sm:text-xl text-neutral-400 max-w-2xl mx-auto leading-relaxed px-2">
             The premier chess battleground on Solana. Challenge opponents in tactical duels 
             with real stakes and instant payouts.
           </p>
@@ -57,7 +57,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-12 flex flex-col sm:flex-row gap-4"
+          className="mt-8 sm:mt-12 flex flex-col sm:flex-row gap-3 sm:gap-4 w-full sm:w-auto px-2 sm:px-0"
         >
           <motion.button
             type="button"
@@ -65,7 +65,7 @@ export default function Home() {
             onClick={() => router.push("/play")}
             whileHover={connected ? { scale: 1.03 } : {}}
             whileTap={connected ? { scale: 0.97 } : {}}
-            className={`group relative px-8 py-4 text-lg font-bold rounded-2xl transition-all ${
+            className={`group relative px-6 sm:px-8 py-3.5 sm:py-4 text-base sm:text-lg font-bold rounded-2xl transition-all w-full sm:w-auto ${
               connected
                 ? "btn-glow text-white shadow-glow"
                 : "bg-white/5 text-neutral-500 cursor-not-allowed border border-white/10"
@@ -88,7 +88,7 @@ export default function Home() {
             onClick={() => router.push("/game?mode=computer")}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
-            className="px-8 py-4 text-lg font-semibold bg-white/5 hover:bg-white/10 text-white rounded-2xl transition-all border border-white/10 hover:border-white/20"
+            className="px-6 sm:px-8 py-3.5 sm:py-4 text-base sm:text-lg font-semibold bg-white/5 hover:bg-white/10 text-white rounded-2xl transition-all border border-white/10 hover:border-white/20 w-full sm:w-auto"
           >
             Practice Mode
           </motion.button>
@@ -108,7 +108,7 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
+      <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mb-16 sm:mb-20 px-2 sm:px-0">
         {[
           {
             icon: Zap,

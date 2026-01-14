@@ -56,22 +56,22 @@ export default function PlayPage() {
   ];
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-12">
+    <main className="mx-auto w-full max-w-6xl px-4 sm:px-6 py-8 sm:py-12">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="mb-10">
-          <h1 className="text-4xl font-bold mb-3">
+        <div className="mb-6 sm:mb-10">
+          <h1 className="text-2xl sm:text-4xl font-bold mb-2 sm:mb-3">
             Select <span className="text-gradient">Mode</span>
           </h1>
-          <p className="text-lg text-neutral-400">
+          <p className="text-base sm:text-lg text-neutral-400">
             Choose your path to victory
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mb-8 sm:mb-10">
           {modeOptions.map((option, index) => (
             <motion.button
               key={option.id}
@@ -103,31 +103,31 @@ export default function PlayPage() {
               }`} />
               
               {/* Content */}
-              <div className="relative p-6">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 ${
+              <div className="relative p-4 sm:p-6">
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-3 sm:mb-4 transition-all duration-300 ${
                   option.featured
                     ? "bg-gradient-to-br from-solana-purple to-solana-green"
                     : mode === option.id
                     ? "bg-solana-purple/20"
                     : "bg-white/5 group-hover:bg-white/10"
                 }`}>
-                  <option.icon className={`h-6 w-6 ${
+                  <option.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${
                     option.featured || mode === option.id
                       ? "text-white"
                       : "text-neutral-400 group-hover:text-white"
                   }`} />
                 </div>
                 
-                <h3 className="text-xl font-bold mb-2 text-white">{option.title}</h3>
-                <p className={`text-sm ${
+                <h3 className="text-base sm:text-xl font-bold mb-1 sm:mb-2 text-white">{option.title}</h3>
+                <p className={`text-xs sm:text-sm ${
                   option.featured ? "text-neutral-300" : "text-neutral-500"
-                }`}>
+                } line-clamp-2`}>
                   {option.description}
                 </p>
 
                 {option.featured && (
-                  <div className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-solana-green bg-solana-green/10 px-2.5 py-1 rounded-full">
-                    <span className="w-1.5 h-1.5 rounded-full bg-solana-green animate-pulse" />
+                  <div className="mt-3 sm:mt-4 inline-flex items-center gap-1.5 text-[10px] sm:text-xs font-medium text-solana-green bg-solana-green/10 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full">
+                    <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-solana-green animate-pulse" />
                     Recommended
                   </div>
                 )}
