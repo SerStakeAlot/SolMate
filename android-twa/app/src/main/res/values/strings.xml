@@ -34,7 +34,7 @@
         \"relation\": [\"delegate_permission/common.handle_all_urls\"],
         \"target\": {
             \"namespace\": \"web\",
-            \"site\": \"https://shiny-chebakia-11939c.netlify.app\"
+            \"site\": \"https://playsolmate.fun\"
         }
     }]
     

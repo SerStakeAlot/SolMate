@@ -1,4 +1,4 @@
-#Wed Jan 14 18:06:21 UTC 2026
+#Wed Jan 14 21:37:54 UTC 2026
 base.0=/workspaces/SolMate/android-twa/app/build/intermediates/dex/release/minifyReleaseWithR8/classes.dex
 renamed.0=classes.dex
 path.0=classes.dex

@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "app.netlify.shiny_chebakia_11939c.twa.app-mergeReleaseResources-25:/values-el/values-el.xml",
+            "outputFile": "fun.playsolmate.app-mergeReleaseResources-25:/values-el/values-el.xml",
             "map": [
                 {
                     "source": "/home/codespace/.gradle/caches/8.11.1/transforms/02e37f92c71ffadabef41ae6f5feca22/transformed/play-services-base-18.1.0/res/values-el/values.xml",

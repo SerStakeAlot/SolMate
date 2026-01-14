@@ -1,4 +1,4 @@
-package app.netlify.shiny_chebakia_11939c.twa;
+package fun.playsolmate.app;
 
 
 import com.google.androidbrowserhelper.locationdelegation.LocationDelegationExtraCommandHandler;

@@ -17,7 +17,7 @@
         \"relation\": [\"delegate_permission/common.handle_all_urls\"],
         \"target\": {
             \"namespace\": \"web\",
-            \"site\": \"https://shiny-chebakia-11939c.netlify.app\"
+            \"site\": \"https://playsolmate.fun\"
         }
     }]
     
@@ -25,10 +25,10 @@
     <string name="fallbackType" translatable="false">customtabs</string>
     <string name="fullScopeUrl" translatable="false">https://shiny-chebakia-11939c.netlify.app/</string>
     <string name="generatorApp" translatable="false">bubblewrap-cli</string>
-    <string name="hostName" translatable="false">shiny-chebakia-11939c.netlify.app</string>
-    <string name="launchUrl" translatable="false">https://shiny-chebakia-11939c.netlify.app/</string>
+    <string name="hostName" translatable="false">playsolmate.fun</string>
+    <string name="launchUrl" translatable="false">https://playsolmate.fun/</string>
     <string name="launcherName" translatable="false">SolMate</string>
     <string name="orientation" translatable="false">portrait</string>
-    <string name="providerAuthority" translatable="false">app.netlify.shiny_chebakia_11939c.twa.fileprovider</string>
+    <string name="providerAuthority" translatable="false">fun.playsolmate.app.fileprovider</string>
     <string name="webManifestUrl" translatable="false">https://shiny-chebakia-11939c.netlify.app/manifest.json</string>
 </resources>
