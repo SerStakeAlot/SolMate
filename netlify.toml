@@ -28,19 +28,6 @@
     Content-Type = "application/json"
     Access-Control-Allow-Origin = "*"
 
-[[redirects]]
-  from = "/.well-known/assetlinks.json"
-  to = "/.well-known/assetlinks.json"
-  status = 200
-  force = true
-
-# Serve APK download directly
-[[redirects]]
-  from = "/SolMate.apk"
-  to = "/SolMate.apk"
-  status = 200
-  force = true
-
 [[headers]]
   for = "/SolMate.apk"
   [headers.values]
