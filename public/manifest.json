@@ -1,22 +1,44 @@
 {
   "name": "SolMate",
   "short_name": "SolMate",
-  "description": "Tactical chess duels on Solana. Stake. Compete. Conquer.",
+  "description": "Tactical chess duels on Solana. Stake SOL. Compete. Conquer.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
-  "theme_color": "#7c3aed",
+  "theme_color": "#9945FF",
   "orientation": "portrait",
+  "categories": ["games", "entertainment"],
   "icons": [
     {
-      "src": "/images/solmate-logo.png",
-      "sizes": "192x192",
-      "type": "image/png"
+      "src": "/images/solmate-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "/images/solmate-logo.png",
-      "sizes": "512x512",
+      "src": "/images/solmate-icon-192.png",
+      "sizes": "192x192",
       "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/images/screenshot-home.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Home Screen"
+    },
+    {
+      "src": "/images/screenshot-game.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Chess Game"
+    },
+    {
+      "src": "/images/screenshot-lobby.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Match Lobby"
     }
   ]
 }
