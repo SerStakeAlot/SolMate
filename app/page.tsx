@@ -169,6 +169,29 @@ export default function Home() {
           </div>
         </div>
       </motion.section>
+
+      {/* Footer */}
+      <footer className="border-t border-neutral-800 py-8 mb-8">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-neutral-500 text-sm">
+            © 2026 SolMate. All rights reserved.
+          </p>
+          <div className="flex items-center gap-6">
+            <a 
+              href="/privacy.html" 
+              className="text-neutral-400 hover:text-solana-purple transition-colors text-sm"
+            >
+              Privacy Policy
+            </a>
+            <a 
+              href="/terms.html" 
+              className="text-neutral-400 hover:text-solana-purple transition-colors text-sm"
+            >
+              Terms of Service
+            </a>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
