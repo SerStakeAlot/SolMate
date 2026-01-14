@@ -1,14 +1,14 @@
 [toolchain]
 
 [features]
-seeds = false
+resolution = true
 skip-lint = false
 
-[programs.localnet]
-sol_mate_escrow = "A85FMPZSYc4g4e4BeSN3rvhDARGaJLoNaUVYx3Bzi54s"
-
 [programs.devnet]
-sol_mate_escrow = "A85FMPZSYc4g4e4BeSN3rvhDARGaJLoNaUVYx3Bzi54s"
+sol_mate_escrow = "H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV"
+
+[programs.localnet]
+sol_mate_escrow = "H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV"
 
 [registry]
 url = "https://api.apr.dev"

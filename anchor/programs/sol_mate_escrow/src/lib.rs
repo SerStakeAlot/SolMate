@@ -7,7 +7,7 @@ pub mod errors;
 // Re-export everything from instructions for Anchor macros
 pub use instructions::*;
 
-declare_id!("A85FMPZSYc4g4e4BeSN3rvhDARGaJLoNaUVYx3Bzi54s");
+declare_id!("H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV");
 
 #[program]
 pub mod sol_mate_escrow {
