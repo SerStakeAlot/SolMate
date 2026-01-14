@@ -1,6 +1,7 @@
 import { GameRoom, ChessMove, TimeUpdate, GAME_DURATION_MS } from './types';
 import { Server as SocketServer } from 'socket.io';
 import { timeControl } from './timeControl';
+import { playerStore } from './playerStore';
 
 class GameRoomManager {
   private rooms: Map<string, GameRoom> = new Map();
@@ -28,6 +29,8 @@ class GameRoomManager {
         rank: 'Novice',
         gamesPlayed: 0,
         gamesWon: 0,
+        solProfit: 0,
+        totalWagered: 0,
       },
       playerBlack: {
         id: blackPlayerId,
@@ -37,6 +40,8 @@ class GameRoomManager {
         rank: 'Novice',
         gamesPlayed: 0,
         gamesWon: 0,
+        solProfit: 0,
+        totalWagered: 0,
       },
       whiteTimeMs: GAME_DURATION_MS,
       blackTimeMs: GAME_DURATION_MS,
@@ -161,6 +166,19 @@ class GameRoomManager {
     // Stop time control
     timeControl.stopRoom(roomId);
 
+    // Record game results for skill-based matchmaking
+    if (winner !== 'draw') {
+      const winnerId = winner === 'w' ? room.playerWhite.id : room.playerBlack.id;
+      const loserId = winner === 'w' ? room.playerBlack.id : room.playerWhite.id;
+      
+      playerStore.recordGameResult(winnerId, true, room.stakeTier);
+      playerStore.recordGameResult(loserId, false, room.stakeTier);
+    } else {
+      // Draw - no profit/loss, just record games played
+      playerStore.recordGameResult(room.playerWhite.id, false);
+      playerStore.recordGameResult(room.playerBlack.id, false);
+    }
+
     // Notify both players
     io.to(room.playerWhite.socketId).emit('game:end', {
       winner,
@@ -234,6 +252,64 @@ class GameRoomManager {
 
   getActiveRoomCount(): number {
     return Array.from(this.rooms.values()).filter(r => r.status === 'active').length;
+  }
+
+  // Create room from hosted match (already has colors assigned)
+  createRoomFromHosted(
+    roomId: string,
+    matchCode: string,
+    matchPubkey: string,
+    stakeTier: number,
+    white: { wallet: string; socketId: string },
+    black: { wallet: string; socketId: string },
+    io: SocketServer
+  ): GameRoom {
+    const room: GameRoom = {
+      id: roomId,
+      matchCode,
+      matchPubkey,
+      stakeTier,
+      playerWhite: {
+        id: white.wallet,
+        walletAddress: white.wallet,
+        socketId: white.socketId,
+        xp: 0,
+        rank: 'Novice',
+        gamesPlayed: 0,
+        gamesWon: 0,
+        solProfit: 0,
+        totalWagered: 0,
+      },
+      playerBlack: {
+        id: black.wallet,
+        walletAddress: black.wallet,
+        socketId: black.socketId,
+        xp: 0,
+        rank: 'Novice',
+        gamesPlayed: 0,
+        gamesWon: 0,
+        solProfit: 0,
+        totalWagered: 0,
+      },
+      whiteTimeMs: GAME_DURATION_MS,
+      blackTimeMs: GAME_DURATION_MS,
+      currentTurn: 'w',
+      startTime: Date.now(),
+      lastMoveTime: Date.now(),
+      moves: [],
+      status: 'active', // Start immediately since both players are ready
+    };
+
+    this.rooms.set(roomId, room);
+    this.playerToRoom.set(white.wallet, roomId);
+    this.playerToRoom.set(black.wallet, roomId);
+
+    console.log(`Hosted game room ${roomId} created from match ${matchCode}: ${white.wallet.slice(0, 8)}... (white) vs ${black.wallet.slice(0, 8)}... (black)`);
+
+    // Start the time control for this room
+    timeControl.startRoom(roomId, this, io);
+
+    return room;
   }
 }
 

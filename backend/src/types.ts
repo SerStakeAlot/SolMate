@@ -8,6 +8,54 @@ export interface Player {
   gamesPlayed: number;
   gamesWon: number;
   currentRoomId?: string;
+  // Skill-based matchmaking fields
+  solProfit: number; // Net SOL profit/loss (positive = winning, negative = losing)
+  totalWagered: number; // Total SOL wagered
+}
+
+// Skill tiers for matchmaking
+export type SkillTier = 'new' | 'negative' | 'neutral' | 'positive';
+
+// Get skill tier based on SOL profit
+export function getSkillTier(player: Player): SkillTier {
+  // New players (less than 2 games)
+  if (player.gamesPlayed < 2) {
+    return 'new';
+  }
+  
+  // Negative (lost more than 0.5 SOL)
+  if (player.solProfit < -0.5) {
+    return 'negative';
+  }
+  
+  // Positive (won more than 0.5 SOL)
+  if (player.solProfit > 0.5) {
+    return 'positive';
+  }
+  
+  // Neutral (between -0.5 and +0.5 SOL)
+  return 'neutral';
+}
+
+// Check if two players can be matched based on skill
+export function canMatchPlayers(player1: Player, player2: Player): boolean {
+  const tier1 = getSkillTier(player1);
+  const tier2 = getSkillTier(player2);
+  
+  // Define compatible tiers
+  // New players: match with new or negative
+  // Negative players: match with negative or new
+  // Neutral players: match with neutral or positive
+  // Positive players: match with positive or neutral
+  
+  const compatibilityMap: Record<SkillTier, SkillTier[]> = {
+    'new': ['new', 'negative'],
+    'negative': ['negative', 'new'],
+    'neutral': ['neutral', 'positive'],
+    'positive': ['positive', 'neutral'],
+  };
+  
+  return compatibilityMap[tier1].includes(tier2) || compatibilityMap[tier2].includes(tier1);
 }
 
 export interface MatchmakingRequest {
@@ -15,10 +63,28 @@ export interface MatchmakingRequest {
   stakeTier: number; // 0 = 0.5 SOL, 1 = 1 SOL
   walletAddress: string;
   timestamp: number;
+  skillTier: SkillTier; // For skill-based matching
+}
+
+// Hosted match (on-chain match registered with backend for real-time)
+export interface HostedMatch {
+  matchCode: string; // 4-letter code for easy search
+  matchPubkey: string; // On-chain match account address
+  hostWallet: string;
+  hostSocketId: string;
+  stakeTier: number;
+  createdAt: number;
+  joinDeadline: number;
+  status: 'waiting' | 'active' | 'finished' | 'cancelled';
+  guestWallet?: string;
+  guestSocketId?: string;
+  roomId?: string; // Game room ID once matched
 }
 
 export interface GameRoom {
   id: string;
+  matchCode?: string; // Link to hosted match
+  matchPubkey?: string; // On-chain match address
   stakeTier: number;
   playerWhite: Player;
   playerBlack: Player;

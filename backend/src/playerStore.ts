@@ -1,4 +1,7 @@
-import { Player, calculateRank } from './types';
+import { Player, calculateRank, getSkillTier } from './types';
+
+// Stake amounts in SOL for each tier
+const STAKE_AMOUNTS = [0.5, 1.0]; // tier 0 = 0.5 SOL, tier 1 = 1 SOL
 
 class PlayerStore {
   private players: Map<string, Player> = new Map();
@@ -27,6 +30,8 @@ class PlayerStore {
         rank: 'Novice',
         gamesPlayed: 0,
         gamesWon: 0,
+        solProfit: 0,
+        totalWagered: 0,
       };
       this.players.set(playerId, player);
     }
@@ -52,14 +57,41 @@ class PlayerStore {
     }
   }
 
-  recordGameResult(playerId: string, won: boolean): void {
+  recordGameResult(playerId: string, won: boolean, stakeTier?: number): void {
     const player = this.players.get(playerId);
     if (player) {
       player.gamesPlayed++;
       if (won) {
         player.gamesWon++;
       }
+      
+      // Update SOL profit if stake tier provided
+      if (stakeTier !== undefined) {
+        const stakeAmount = STAKE_AMOUNTS[stakeTier] || 0.5;
+        player.totalWagered += stakeAmount;
+        
+        if (won) {
+          // Winner gets 90% of pot (2 players), so profit is ~0.8x stake (after 10% fee)
+          player.solProfit += stakeAmount * 0.8;
+        } else {
+          // Loser loses their stake
+          player.solProfit -= stakeAmount;
+        }
+        
+        console.log(`Player ${playerId} ${won ? 'won' : 'lost'}. SOL Profit: ${player.solProfit.toFixed(2)}, Skill Tier: ${getSkillTier(player)}`);
+      }
     }
+  }
+
+  getPlayerStats(playerId: string): { solProfit: number; skillTier: string; gamesPlayed: number } | null {
+    const player = this.players.get(playerId);
+    if (!player) return null;
+    
+    return {
+      solProfit: player.solProfit,
+      skillTier: getSkillTier(player),
+      gamesPlayed: player.gamesPlayed,
+    };
   }
 
   setPlayerRoom(playerId: string, roomId: string | undefined): void {

@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import { playerStore } from './playerStore';
 import { matchmaking } from './matchmaking';
 import { gameRoomManager } from './gameRoom';
+import { hostedMatchManager } from './hostedMatch';
 import { ChessMove } from './types';
 
 dotenv.config();
@@ -32,7 +33,21 @@ app.get('/health', (req, res) => {
     activePlayers: playerStore.getAllPlayers().length,
     activeGames: gameRoomManager.getActiveRoomCount(),
     queues: matchmaking.getAllQueueStatus(),
+    hostedMatches: hostedMatchManager.getWaitingMatches().length,
   });
+});
+
+// Get lobby matches (REST API for initial load)
+app.get('/lobby', (req, res) => {
+  const matches = hostedMatchManager.getWaitingMatches().map(m => ({
+    matchCode: m.matchCode,
+    matchPubkey: m.matchPubkey,
+    hostWallet: m.hostWallet,
+    stakeTier: m.stakeTier,
+    createdAt: m.createdAt,
+    joinDeadline: m.joinDeadline,
+  }));
+  res.json({ matches });
 });
 
 // Socket.IO connection handling
@@ -179,6 +194,143 @@ io.on('connection', (socket) => {
     socket.emit('matchmaking:status', status);
   });
 
+  // ============ HOSTED MATCH EVENTS ============
+
+  // Host a new match
+  socket.on('match:host', ({ stakeTier, matchPubkey, joinDeadlineMinutes = 5 }) => {
+    const player = playerStore.getPlayerBySocket(socket.id);
+    if (!player) {
+      socket.emit('error', { message: 'Player not registered' });
+      return;
+    }
+
+    console.log(`Player ${player.walletAddress.slice(0, 8)}... hosting match (${stakeTier === 0 ? '0.5' : '1'} SOL)`);
+    
+    const match = hostedMatchManager.hostMatch(
+      player.walletAddress,
+      socket.id,
+      stakeTier,
+      matchPubkey,
+      joinDeadlineMinutes,
+      io
+    );
+
+    socket.emit('match:hosted', {
+      matchCode: match.matchCode,
+      matchPubkey: match.matchPubkey,
+      joinDeadline: match.joinDeadline,
+    });
+  });
+
+  // Join hosted match by code
+  socket.on('match:join', ({ matchCode, guestWallet }) => {
+    const player = playerStore.getPlayerBySocket(socket.id);
+    if (!player) {
+      socket.emit('error', { message: 'Player not registered' });
+      return;
+    }
+
+    const walletToUse = guestWallet || player.walletAddress;
+    console.log(`Player ${walletToUse.slice(0, 8)}... attempting to join match ${matchCode}`);
+
+    const result = hostedMatchManager.joinMatch(matchCode, walletToUse, socket.id, io);
+
+    if (!result.success) {
+      socket.emit('match:joinError', { error: result.error });
+      return;
+    }
+
+    const room = gameRoomManager.getRoom(result.roomId!);
+    if (!room) {
+      socket.emit('match:joinError', { error: 'Room creation failed' });
+      return;
+    }
+
+    // Join socket room
+    socket.join(result.roomId!);
+
+    // Determine player's color
+    const isWhite = room.playerWhite.walletAddress === walletToUse;
+
+    socket.emit('match:joined', {
+      matchCode: result.match!.matchCode,
+      roomId: result.roomId,
+      yourColor: isWhite ? 'w' : 'b',
+      opponent: {
+        walletAddress: isWhite ? room.playerBlack.walletAddress : room.playerWhite.walletAddress,
+      },
+      stakeTier: room.stakeTier,
+      matchPubkey: result.match!.matchPubkey,
+      whiteTimeMs: room.whiteTimeMs,
+      blackTimeMs: room.blackTimeMs,
+    });
+
+    // Notify the room to start the game (host needs to join socket room)
+    const hostSocketId = result.match!.hostSocketId;
+    const hostSocket = io.sockets.sockets.get(hostSocketId);
+    if (hostSocket) {
+      hostSocket.join(result.roomId!);
+    }
+
+    // Emit game start to both players
+    io.to(result.roomId!).emit('game:start', {
+      whiteTimeMs: room.whiteTimeMs,
+      blackTimeMs: room.blackTimeMs,
+    });
+  });
+
+  // Cancel hosted match
+  socket.on('match:cancel', ({ matchCode }) => {
+    const player = playerStore.getPlayerBySocket(socket.id);
+    if (!player) {
+      return;
+    }
+
+    const match = hostedMatchManager.searchByCode(matchCode);
+    if (match && match.hostWallet === player.walletAddress) {
+      hostedMatchManager.cancelMatch(matchCode, io);
+      socket.emit('match:cancelled', { matchCode });
+    } else {
+      socket.emit('error', { message: 'Cannot cancel this match' });
+    }
+  });
+
+  // Search match by code
+  socket.on('match:search', ({ matchCode }) => {
+    const match = hostedMatchManager.searchByCode(matchCode);
+    if (match && match.status === 'waiting') {
+      socket.emit('match:found', {
+        matchCode: match.matchCode,
+        matchPubkey: match.matchPubkey,
+        hostWallet: match.hostWallet,
+        stakeTier: match.stakeTier,
+        joinDeadline: match.joinDeadline,
+      });
+    } else {
+      socket.emit('match:notFound', { matchCode });
+    }
+  });
+
+  // Get lobby updates (subscribe)
+  socket.on('lobby:subscribe', () => {
+    socket.join('lobby');
+    const matches = hostedMatchManager.getWaitingMatches().map(m => ({
+      matchCode: m.matchCode,
+      matchPubkey: m.matchPubkey,
+      hostWallet: m.hostWallet,
+      stakeTier: m.stakeTier,
+      createdAt: m.createdAt,
+      joinDeadline: m.joinDeadline,
+    }));
+    socket.emit('lobby:matches', { matches });
+  });
+
+  socket.on('lobby:unsubscribe', () => {
+    socket.leave('lobby');
+  });
+
+  // ============ END HOSTED MATCH EVENTS ============
+
   // Disconnect handling
   socket.on('disconnect', () => {
     console.log(`Client disconnected: ${socket.id}`);
@@ -190,6 +342,9 @@ io.on('connection', (socket) => {
       
       // Handle game disconnect
       gameRoomManager.handleDisconnect(player.id, io);
+      
+      // Handle hosted match disconnect
+      hostedMatchManager.handleDisconnect(socket.id, io);
       
       // Clean up player store
       playerStore.removePlayerBySocket(socket.id);
