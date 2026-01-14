@@ -1,6 +1,6 @@
 {
-  "packageId": "app.netlify.shiny_chebakia_11939c.twa",
-  "host": "shiny-chebakia-11939c.netlify.app",
+  "packageId": "fun.playsolmate.app",
+  "host": "playsolmate.fun",
   "name": "SolMate",
   "launcherName": "SolMate",
   "display": "standalone",
@@ -20,8 +20,8 @@
     "path": "/workspaces/SolMate/android-twa/android.keystore",
     "alias": "android"
   },
-  "appVersionName": "3",
-  "appVersionCode": 3,
+  "appVersionName": "4",
+  "appVersionCode": 4,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://shiny-chebakia-11939c.netlify.app/manifest.json",
@@ -43,6 +43,9 @@
   "fingerprints": [
     {
       "value": "9F:76:60:71:C3:69:9C:57:95:C5:92:0C:0C:9F:8A:CE:BB:08:B1:0A:57:6C:55:C1:D9:49:E6:92:7E:7E:B8:B5"
+    },
+    {
+      "value": "9F:76:60:71:C3:69:9C:57:95:C5:92:0C:0C:9F:8A:CE:BB:08:B1:0A:57:6C:55:C1:D9:49:E6:92:7E:7E:B8:B5"
     }
   ],
   "additionalTrustedOrigins": [],
@@ -51,5 +54,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "3"
+  "appVersion": "4"
 }

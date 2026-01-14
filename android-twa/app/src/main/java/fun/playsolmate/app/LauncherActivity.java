@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package app.netlify.shiny_chebakia_11939c.twa;
+package fun.playsolmate.app;
 
 import android.content.pm.ActivityInfo;
 import android.net.Uri;

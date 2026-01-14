@@ -4,15 +4,15 @@
     "type": "PACKAGED_MANIFESTS",
     "kind": "Directory"
   },
-  "applicationId": "app.netlify.shiny_chebakia_11939c.twa",
+  "applicationId": "fun.playsolmate.app",
   "variantName": "release",
   "elements": [
     {
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 3,
-      "versionName": "3",
+      "versionCode": 4,
+      "versionName": "4",
       "outputFile": "AndroidManifest.xml"
     }
   ],

@@ -21,8 +21,8 @@ plugins {
 }
 
 def twaManifest = [
-    applicationId: 'app.netlify.shiny_chebakia_11939c.twa',
-    hostName: 'shiny-chebakia-11939c.netlify.app', // The domain being opened in the TWA.
+    applicationId: 'fun.playsolmate.app',
+    hostName: 'playsolmate.fun', // The domain being opened in the TWA.
     launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
     name: 'SolMate', // The application name.
     launcherName: 'SolMate', // The name shown on the Android Launcher.
@@ -52,13 +52,13 @@ def twaManifest = [
 
 android {
     compileSdkVersion 36
-    namespace "app.netlify.shiny_chebakia_11939c.twa"
+    namespace "fun.playsolmate.app"
     defaultConfig {
-        applicationId "app.netlify.shiny_chebakia_11939c.twa"
+        applicationId "fun.playsolmate.app"
         minSdkVersion 21
         targetSdkVersion 35
-        versionCode 3
-        versionName "3"
+        versionCode 4
+        versionName "4"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name

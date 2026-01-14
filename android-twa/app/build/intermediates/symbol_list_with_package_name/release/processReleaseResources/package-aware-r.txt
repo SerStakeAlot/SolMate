@@ -1,4 +1,4 @@
-app.netlify.shiny_chebakia_11939c.twa
+fun.playsolmate.app
 anim abc_fade_in
 anim abc_fade_out
 anim abc_grow_fade_in_from_bottom

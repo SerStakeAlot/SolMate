@@ -3,8 +3,8 @@
 # min_api: 21
 # common_typos_disable
 # {"id":"com.android.tools.r8.mapping","version":"2.2"}
-# pg_map_id: 3a51372
-# pg_map_hash: SHA-256 3a51372b56a707a291eed0278e15e02b0fac1ae7ab679cddce020e0faf925c3e
+# pg_map_id: 16eb74e
+# pg_map_hash: SHA-256 16eb74e4416a3e68106084022e31fbe38179c99a508ceb4511096c3f3b418cf7
 android.support.customtabs.ICustomTabsCallback -> a.a:
 # {"id":"sourceFile","fileName":"ICustomTabsCallback.java"}
     java.lang.String DESCRIPTOR -> a
@@ -28244,23 +28244,6 @@ androidx.versionedparcelable.VersionedParcelParcel -> androidx.versionedparcelab
     1:6:void writeBoolean(boolean):181:181 -> y
 androidx.versionedparcelable.VersionedParcelable -> L.a:
 # {"id":"sourceFile","fileName":"VersionedParcelable.java"}
-app.netlify.shiny_chebakia_11939c.twa.Application -> app.netlify.shiny_chebakia_11939c.twa.Application:
-# {"id":"sourceFile","fileName":"Application.java"}
-    1:4:void <init>():20:20 -> <init>
-    1:4:void onCreate():26:26 -> onCreate
-app.netlify.shiny_chebakia_11939c.twa.DelegationService -> app.netlify.shiny_chebakia_11939c.twa.DelegationService:
-# {"id":"sourceFile","fileName":"DelegationService.java"}
-    1:4:void <init>():7:7 -> <init>
-    1:3:void onCreate():11:11 -> onCreate
-    4:12:void onCreate():14:14 -> onCreate
-app.netlify.shiny_chebakia_11939c.twa.LauncherActivity -> app.netlify.shiny_chebakia_11939c.twa.LauncherActivity:
-# {"id":"sourceFile","fileName":"LauncherActivity.java"}
-    1:4:void <init>():25:25 -> <init>
-    1:5:android.net.Uri getLaunchingUrl():48:48 -> i
-    1:3:void onCreate(android.os.Bundle):33:33 -> onCreate
-    4:11:void onCreate(android.os.Bundle):38:38 -> onCreate
-    12:16:void onCreate(android.os.Bundle):39:39 -> onCreate
-    17:20:void onCreate(android.os.Bundle):41:41 -> onCreate
 com.google.android.gms.auth.api.signin.GoogleSignInAccount -> com.google.android.gms.auth.api.signin.GoogleSignInAccount:
 # {"id":"sourceFile","fileName":"com.google.android.gms:play-services-base@@18.1.0"}
     int zab -> a
@@ -36652,6 +36635,23 @@ com.google.common.collect.UnmodifiableListIterator -> m0.s:
     1:4:void <init>():34:34 -> <init>
     1:6:void add(java.lang.Object):46:46 -> add
     1:6:void set(java.lang.Object):59:59 -> set
+fun.playsolmate.app.Application -> fun.playsolmate.app.Application:
+# {"id":"sourceFile","fileName":"Application.java"}
+    1:4:void <init>():20:20 -> <init>
+    1:4:void onCreate():26:26 -> onCreate
+fun.playsolmate.app.DelegationService -> fun.playsolmate.app.DelegationService:
+# {"id":"sourceFile","fileName":"DelegationService.java"}
+    1:4:void <init>():7:7 -> <init>
+    1:3:void onCreate():11:11 -> onCreate
+    4:12:void onCreate():14:14 -> onCreate
+fun.playsolmate.app.LauncherActivity -> fun.playsolmate.app.LauncherActivity:
+# {"id":"sourceFile","fileName":"LauncherActivity.java"}
+    1:4:void <init>():25:25 -> <init>
+    1:5:android.net.Uri getLaunchingUrl():48:48 -> i
+    1:3:void onCreate(android.os.Bundle):33:33 -> onCreate
+    4:11:void onCreate(android.os.Bundle):38:38 -> onCreate
+    12:16:void onCreate(android.os.Bundle):39:39 -> onCreate
+    17:20:void onCreate(android.os.Bundle):41:41 -> onCreate
 kotlin.Lazy -> n0.a:
 # {"id":"sourceFile","fileName":"Lazy.kt"}
     java.lang.Object getValue() -> getValue
