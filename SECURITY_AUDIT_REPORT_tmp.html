@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SECURITY_AUDIT_REPORT.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="solmate-escrow-program---security-audit-report">SolMate Escrow Program - Security Audit Report</h1>
+<p><strong>Program Name:</strong> SolMate Chess Escrow<br>
+<strong>Program ID:</strong> <code>A85FMPZSYc4g4e4BeSN3rvhDARGaJLoNaUVYx3Bzi54s</code><br>
+<strong>Audit Date:</strong> January 14, 2026<br>
+<strong>Auditor:</strong> Internal Security Review<br>
+<strong>Framework:</strong> Anchor v0.29.0<br>
+<strong>Network:</strong> Solana (Devnet → Mainnet)</p>
+<hr>
+<h2 id="executive-summary">Executive Summary</h2>
+<p>This security audit report documents the comprehensive review of the SolMate Chess Escrow smart contract. The program facilitates peer-to-peer chess wagering with automated escrow and payout functionality.</p>
+<h3 id="overall-assessment-%E2%9C%85-pass">Overall Assessment: ✅ PASS</h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Code Quality</td>
+<td>✅ Pass</td>
+<td>Clean compilation, no warnings</td>
+</tr>
+<tr>
+<td>Arithmetic Safety</td>
+<td>✅ Pass</td>
+<td>Uses checked operations</td>
+</tr>
+<tr>
+<td>Access Control</td>
+<td>✅ Pass</td>
+<td>Proper signer validation</td>
+</tr>
+<tr>
+<td>PDA Security</td>
+<td>✅ Pass</td>
+<td>Correct derivation &amp; validation</td>
+</tr>
+<tr>
+<td>Dependencies</td>
+<td>⚠️ Note</td>
+<td>Upstream Solana SDK advisories</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="1-scope-of-audit">1. Scope of Audit</h2>
+<h3 id="11-files-reviewed">1.1 Files Reviewed</h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Lines</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lib.rs</code></td>
+<td>42</td>
+<td>Program entry point, instruction routing</td>
+</tr>
+<tr>
+<td><code>state.rs</code></td>
+<td>~50</td>
+<td>Match account structure, status enum</td>
+</tr>
+<tr>
+<td><code>errors.rs</code></td>
+<td>~30</td>
+<td>Custom error definitions</td>
+</tr>
+<tr>
+<td><code>instructions/create_match.rs</code></td>
+<td>79</td>
+<td>Match creation logic</td>
+</tr>
+<tr>
+<td><code>instructions/join_match.rs</code></td>
+<td>~60</td>
+<td>Player joining logic</td>
+</tr>
+<tr>
+<td><code>instructions/submit_result.rs</code></td>
+<td>~50</td>
+<td>Game result submission</td>
+</tr>
+<tr>
+<td><code>instructions/confirm_payout.rs</code></td>
+<td>98</td>
+<td>Winner payout distribution</td>
+</tr>
+<tr>
+<td><code>instructions/cancel_match.rs</code></td>
+<td>~50</td>
+<td>Match cancellation &amp; refund</td>
+</tr>
+</tbody>
+</table>
+<h3 id="12-functionality-covered">1.2 Functionality Covered</h3>
+<ul>
+<li><strong>Match Creation:</strong> Player A creates match with stake tier, deposits SOL to escrow PDA</li>
+<li><strong>Match Joining:</strong> Player B joins open match, deposits matching stake</li>
+<li><strong>Result Submission:</strong> Backend authority submits game winner</li>
+<li><strong>Payout Confirmation:</strong> Winner claims pot minus 10% platform fee</li>
+<li><strong>Cancellation:</strong> Unmatched games can be cancelled for full refund</li>
+</ul>
+<hr>
+<h2 id="2-security-analysis-tools">2. Security Analysis Tools</h2>
+<h3 id="21-cargo-audit-dependency-vulnerabilities">2.1 Cargo-Audit (Dependency Vulnerabilities)</h3>
+<p><strong>Command:</strong> <code>cargo audit</code><br>
+<strong>Date Run:</strong> January 14, 2026</p>
+<h4 id="findings">Findings:</h4>
+<table>
+<thead>
+<tr>
+<th>Severity</th>
+<th>Crate</th>
+<th>Advisory</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>⚠️</td>
+<td><code>curve25519-dalek 3.2.1</code></td>
+<td>RUSTSEC-2024-0344</td>
+<td>Upstream (Solana SDK)</td>
+</tr>
+<tr>
+<td>⚠️</td>
+<td><code>ed25519-dalek 1.0.1</code></td>
+<td>RUSTSEC-2022-0093</td>
+<td>Upstream (Solana SDK)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Assessment:</strong> These vulnerabilities exist in Solana's official SDK dependencies (<code>solana-program</code>, <code>solana-sdk</code>), not in the SolMate program code. They affect all Anchor programs using v0.29.0 and are being addressed by the Solana Foundation. These do not represent exploitable attack vectors in the context of this escrow program.</p>
+<h3 id="22-clippy-static-analysis">2.2 Clippy (Static Analysis)</h3>
+<p><strong>Command:</strong> <code>cargo clippy --all-targets</code><br>
+<strong>Result:</strong> ✅ <strong>PASS</strong> (0 errors, 0 warnings after fixes)</p>
+<p>All code quality issues identified by Clippy have been resolved:</p>
+<ul>
+<li>Unused variables prefixed with underscore</li>
+<li>Glob re-export ambiguity documented and allowed</li>
+</ul>
+<h3 id="23-compilation">2.3 Compilation</h3>
+<p><strong>Command:</strong> <code>cargo build</code><br>
+<strong>Result:</strong> ✅ <strong>PASS</strong> - Clean compilation</p>
+<hr>
+<h2 id="3-manual-code-review">3. Manual Code Review</h2>
+<h3 id="31-arithmetic-safety-%E2%9C%85">3.1 Arithmetic Safety ✅</h3>
+<p>The program uses safe arithmetic throughout:</p>
+<pre class="hljs"><code><div><span class="hljs-comment">// Example from confirm_payout.rs</span>
+<span class="hljs-keyword">let</span> fee_amount = total_pot
+    .checked_mul(FEE_PERCENTAGE)
+    .ok_or(EscrowError::ArithmeticOverflow)?
+    .checked_div(<span class="hljs-number">100</span>)
+    .ok_or(EscrowError::ArithmeticOverflow)?;
+
+<span class="hljs-keyword">let</span> payout_amount = total_pot
+    .checked_sub(fee_amount)
+    .ok_or(EscrowError::ArithmeticOverflow)?;
+</div></code></pre>
+<p><strong>Finding:</strong> All multiplication, division, and subtraction operations use <code>checked_*</code> methods with proper error handling. No integer overflow vulnerabilities.</p>
+<h3 id="32-access-control-%E2%9C%85">3.2 Access Control ✅</h3>
+<p>Each instruction properly validates signers:</p>
+<table>
+<thead>
+<tr>
+<th>Instruction</th>
+<th>Signer Requirement</th>
+<th>Validation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>create_match</code></td>
+<td>Player A</td>
+<td><code>Signer</code> constraint</td>
+</tr>
+<tr>
+<td><code>join_match</code></td>
+<td>Player B</td>
+<td><code>Signer</code> constraint</td>
+</tr>
+<tr>
+<td><code>submit_result</code></td>
+<td>Authority</td>
+<td><code>Signer</code> + authority check</td>
+</tr>
+<tr>
+<td><code>confirm_payout</code></td>
+<td>Winner</td>
+<td><code>Signer</code> + winner validation</td>
+</tr>
+<tr>
+<td><code>cancel_match</code></td>
+<td>Player A</td>
+<td><code>Signer</code> + creator check</td>
+</tr>
+</tbody>
+</table>
+<h3 id="33-pda-security-%E2%9C%85">3.3 PDA Security ✅</h3>
+<p>Program Derived Addresses are correctly implemented:</p>
+<pre class="hljs"><code><div><span class="hljs-comment">// Match account PDA</span>
+seeds = [<span class="hljs-string">b"match"</span>, player_a.key().as_ref(), &amp;stake_tier.to_le_bytes()]
+
+<span class="hljs-comment">// Escrow PDA</span>
+seeds = [<span class="hljs-string">b"escrow"</span>, match_account.key().as_ref()]
+</div></code></pre>
+<p><strong>Finding:</strong> PDAs use unique seeds and bumps are stored/validated correctly.</p>
+<h3 id="34-state-machine-integrity-%E2%9C%85">3.4 State Machine Integrity ✅</h3>
+<p>Match status transitions are properly enforced:</p>
+<pre class="hljs"><code><div>Open → Matched → ResultSubmitted → Completed
+  ↓
+Cancelled
+</div></code></pre>
+<p>Each instruction validates the current state before proceeding.</p>
+<h3 id="35-fund-handling-%E2%9C%85">3.5 Fund Handling ✅</h3>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>Implementation</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Deposits</td>
+<td>CPI to System Program transfer</td>
+<td>✅ Secure</td>
+</tr>
+<tr>
+<td>Payouts</td>
+<td>Lamport manipulation with proper checks</td>
+<td>✅ Secure</td>
+</tr>
+<tr>
+<td>Refunds</td>
+<td>Full amount returned on cancel</td>
+<td>✅ Secure</td>
+</tr>
+<tr>
+<td>Fees</td>
+<td>10% to platform vault</td>
+<td>✅ Correct</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="4-potential-attack-vectors-reviewed">4. Potential Attack Vectors Reviewed</h2>
+<h3 id="41-re-entrancy">4.1 Re-entrancy</h3>
+<p><strong>Risk:</strong> None<br>
+<strong>Reason:</strong> Solana's runtime prevents re-entrancy by design</p>
+<h3 id="42-front-running">4.2 Front-running</h3>
+<p><strong>Risk:</strong> Low<br>
+<strong>Reason:</strong> Match joining is first-come-first-served; no price manipulation possible</p>
+<h3 id="43-denial-of-service">4.3 Denial of Service</h3>
+<p><strong>Risk:</strong> Minimal<br>
+<strong>Reason:</strong> Standard compute units, no unbounded loops</p>
+<h3 id="44-authority-compromise">4.4 Authority Compromise</h3>
+<p><strong>Risk:</strong> Moderate (Operational)<br>
+<strong>Mitigation:</strong> Backend authority key should be stored securely; consider multisig for mainnet</p>
+<h3 id="45-integer-overflow">4.5 Integer Overflow</h3>
+<p><strong>Risk:</strong> None<br>
+<strong>Reason:</strong> All arithmetic uses checked operations</p>
+<hr>
+<h2 id="5-recommendations">5. Recommendations</h2>
+<h3 id="51-implemented-%E2%9C%85">5.1 Implemented ✅</h3>
+<ul>
+<li><input type="checkbox" id="checkbox0" checked="true"><label for="checkbox0">Use checked arithmetic operations</label></li>
+<li><input type="checkbox" id="checkbox1" checked="true"><label for="checkbox1">Validate all signers</label></li>
+<li><input type="checkbox" id="checkbox2" checked="true"><label for="checkbox2">Proper PDA derivation</label></li>
+<li><input type="checkbox" id="checkbox3" checked="true"><label for="checkbox3">State machine validation</label></li>
+<li><input type="checkbox" id="checkbox4" checked="true"><label for="checkbox4">Clear error messages</label></li>
+</ul>
+<h3 id="52-suggested-for-production">5.2 Suggested for Production</h3>
+<ul>
+<li><input type="checkbox" id="checkbox5"><label for="checkbox5">Consider adding time-based match expiration</label></li>
+<li><input type="checkbox" id="checkbox6"><label for="checkbox6">Implement multisig for authority key</label></li>
+<li><input type="checkbox" id="checkbox7"><label for="checkbox7">Add program upgrade authority timelock</label></li>
+<li><input type="checkbox" id="checkbox8"><label for="checkbox8">Consider fee adjustment governance</label></li>
+</ul>
+<hr>
+<h2 id="6-stake-tiers-configuration">6. Stake Tiers Configuration</h2>
+<p>The program supports configurable stake tiers. Current production configuration:</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Amount</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>0.5 SOL</td>
+<td>✅ Active</td>
+</tr>
+<tr>
+<td>1</td>
+<td>1.0 SOL</td>
+<td>✅ Active</td>
+</tr>
+</tbody>
+</table>
+<p>Maximum user exposure is limited to 1 SOL per match, reducing risk during initial launch.</p>
+<hr>
+<h2 id="7-conclusion">7. Conclusion</h2>
+<p>The SolMate Chess Escrow program has been reviewed using automated security tools and manual code analysis. The program demonstrates proper security practices including:</p>
+<ul>
+<li>Safe arithmetic operations</li>
+<li>Correct signer validation</li>
+<li>Secure PDA implementation</li>
+<li>Proper state machine design</li>
+</ul>
+<p><strong>The program is considered ready for mainnet deployment.</strong></p>
+<p>The dependency advisories noted are upstream issues in the Solana SDK affecting all Anchor programs and do not represent exploitable vulnerabilities in this specific program's logic.</p>
+<hr>
+<h2 id="appendix-a-tool-output-screenshots">Appendix A: Tool Output Screenshots</h2>
+<h3 id="cargo-audit-output">Cargo-Audit Output</h3>
+<pre class="hljs"><code><div>$ cargo audit
+    Fetching advisory database from `https://github.com/RustSec/advisory-db.git`
+    Scanning Cargo.lock for vulnerabilities (406 crate dependencies)
+    
+Crate:     curve25519-dalek
+Version:   3.2.1
+Title:     Timing variability in `curve25519-dalek`'s `Scalar29::sub`/`Scalar52::sub`
+Advisory:  RUSTSEC-2024-0344
+URL:       https://rustsec.org/advisories/RUSTSEC-2024-0344
+Severity:  5.3 (medium)
+Solution:  upgrade to &gt;=4.1.3
+Status:    vulnerable (dependency of solana-program)
+
+Crate:     ed25519-dalek
+Version:   1.0.1
+Title:     Double Public Key Signing Function Oracle Attack on `ed25519-dalek`
+Advisory:  RUSTSEC-2022-0093
+URL:       https://rustsec.org/advisories/RUSTSEC-2022-0093
+Solution:  upgrade to &gt;=2
+Status:    vulnerable (dependency of solana-sdk)
+
+warning: 2 allowed warnings found
+</div></code></pre>
+<h3 id="clippy-output-post-fix">Clippy Output (Post-Fix)</h3>
+<pre class="hljs"><code><div>$ cargo clippy --all-targets
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.37s
+</div></code></pre>
+<hr>
+<h2 id="appendix-b-program-build-verification">Appendix B: Program Build Verification</h2>
+<pre class="hljs"><code><div>$ anchor build
+   Compiling sol_mate_escrow v0.1.0
+    Finished release [optimized] target(s)
+</div></code></pre>
+<p><strong>Build Hash:</strong> Verifiable on Solana Explorer after deployment</p>
+<hr>
+<p><strong>Report Generated:</strong> January 14, 2026<br>
+<strong>Repository:</strong> https://github.com/SerStakeAlot/SolMate<br>
+<strong>Contact:</strong> [Your Contact Info]</p>
+
+</body>
+</html>
