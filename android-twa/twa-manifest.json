@@ -1,0 +1,55 @@
+{
+  "packageId": "app.netlify.shiny_chebakia_11939c.twa",
+  "host": "shiny-chebakia-11939c.netlify.app",
+  "name": "SolMate",
+  "launcherName": "SolMate",
+  "display": "standalone",
+  "themeColor": "#9945FF",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#000000",
+  "enableNotifications": true,
+  "startUrl": "https://shiny-chebakia-11939c.netlify.app/",
+  "iconUrl": "https://shiny-chebakia-11939c.netlify.app/images/solmate-icon-512.png",
+  "maskableIconUrl": "https://shiny-chebakia-11939c.netlify.app/images/solmate-icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "/workspaces/SolMate/android-twa/android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://shiny-chebakia-11939c.netlify.app/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": true
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://shiny-chebakia-11939c.netlify.app/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [
+    {
+      "value": "9F:76:60:71:C3:69:9C:57:95:C5:92:0C:0C:9F:8A:CE:BB:08:B1:0A:57:6C:55:C1:D9:49:E6:92:7E:7E:B8:B5"
+    }
+  ],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "1"
+}
