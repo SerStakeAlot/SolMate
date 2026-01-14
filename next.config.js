@@ -1,11 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'export',
+  trailingSlash: true,
+  images: { unoptimized: true },
   turbopack: {},
-  // Uncomment for GitHub Pages static export:
-  // output: 'export',
-  // basePath: '/SolMate',
-  // images: { unoptimized: true },
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
