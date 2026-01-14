@@ -2,125 +2,169 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { Users, Swords, Bot, Zap, ArrowLeft, ArrowRight } from "lucide-react";
 
-import { WalletButton } from "@/components/WalletButton";
+type PlayMode = "multiplayer" | "join" | "host" | "computer";
 
-type PlayMode = "join" | "host" | "computer";
-
-type PageProps = {
-  searchParams?: Record<string, string | string[] | undefined>;
-};
-
-export default function PlayPage({ searchParams }: PageProps) {
+export default function PlayPage() {
   const router = useRouter();
-  const isGuest = searchParams?.guest === "1";
-
   const [mode, setMode] = useState<PlayMode | null>(null);
 
   const gameHref = useMemo(() => {
+    if (mode === 'multiplayer') {
+      return '/multiplayer';
+    }
+    if (mode === 'join') {
+      return '/lobby';
+    }
     const params = new URLSearchParams();
     if (mode) params.set("mode", mode);
-    if (isGuest) params.set("guest", "1");
     return `/game?${params.toString()}`;
-  }, [mode, isGuest]);
+  }, [mode]);
+
+  const modeOptions = [
+    {
+      id: "multiplayer" as const,
+      title: "Multiplayer",
+      description: "Real-time matches with 10min timer",
+      icon: Zap,
+      featured: true,
+      gradient: "from-solana-purple via-violet-500 to-solana-green",
+    },
+    {
+      id: "join" as const,
+      title: "Join Match",
+      description: "Browse and join open staked matches",
+      icon: Users,
+      featured: false,
+    },
+    {
+      id: "host" as const,
+      title: "Host Match",
+      description: "Create a new staked match",
+      icon: Swords,
+      featured: false,
+    },
+    {
+      id: "computer" as const,
+      title: "Practice",
+      description: "Train against AI - no stakes",
+      icon: Bot,
+      featured: false,
+    },
+  ];
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-10">
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">SolMate</h1>
-          <p className="mt-1 text-sm text-neutral-300">
-            Choose how you want to play.
+    <main className="mx-auto w-full max-w-6xl px-6 py-12">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="mb-10">
+          <h1 className="text-4xl font-bold mb-3">
+            Select <span className="text-gradient">Mode</span>
+          </h1>
+          <p className="text-lg text-neutral-400">
+            Choose your path to victory
           </p>
         </div>
-        <WalletButton />
-      </header>
 
-      <section className="mt-10">
-        <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur shadow-2xl p-6 md:p-8">
-          <h2 className="text-xl font-semibold">Match type</h2>
-
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+          {modeOptions.map((option, index) => (
+            <motion.button
+              key={option.id}
               type="button"
-              onClick={() => setMode("join")}
-              className={
-                "rounded-xl border p-5 text-left transition-colors " +
-                (mode === "join"
-                  ? "border-white/30 bg-white/10"
-                  : "border-white/10 bg-neutral-900/40 hover:bg-neutral-900/55")
-              }
+              onClick={() => setMode(option.id)}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: index * 0.1 }}
+              whileHover={{ scale: 1.02, y: -4 }}
+              whileTap={{ scale: 0.98 }}
+              className={`relative group text-left transition-all duration-300 rounded-2xl overflow-hidden ${
+                option.featured
+                  ? "lg:col-span-1"
+                  : ""
+              }`}
             >
-              <div className="text-lg font-semibold">Join</div>
-              <div className="mt-1 text-sm text-neutral-300">
-                Join an existing match.
+              {/* Background */}
+              <div className={`absolute inset-0 ${
+                option.featured
+                  ? `bg-gradient-to-br ${option.gradient} opacity-20`
+                  : "bg-white/[0.03]"
+              }`} />
+              
+              {/* Border glow for selected */}
+              <div className={`absolute inset-0 rounded-2xl transition-all duration-300 ${
+                mode === option.id
+                  ? "ring-2 ring-solana-purple shadow-glow"
+                  : "ring-1 ring-white/10 group-hover:ring-white/20"
+              }`} />
+              
+              {/* Content */}
+              <div className="relative p-6">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-all duration-300 ${
+                  option.featured
+                    ? "bg-gradient-to-br from-solana-purple to-solana-green"
+                    : mode === option.id
+                    ? "bg-solana-purple/20"
+                    : "bg-white/5 group-hover:bg-white/10"
+                }`}>
+                  <option.icon className={`h-6 w-6 ${
+                    option.featured || mode === option.id
+                      ? "text-white"
+                      : "text-neutral-400 group-hover:text-white"
+                  }`} />
+                </div>
+                
+                <h3 className="text-xl font-bold mb-2 text-white">{option.title}</h3>
+                <p className={`text-sm ${
+                  option.featured ? "text-neutral-300" : "text-neutral-500"
+                }`}>
+                  {option.description}
+                </p>
+
+                {option.featured && (
+                  <div className="mt-4 inline-flex items-center gap-1.5 text-xs font-medium text-solana-green bg-solana-green/10 px-2.5 py-1 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-solana-green animate-pulse" />
+                    Recommended
+                  </div>
+                )}
               </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setMode("host")}
-              className={
-                "rounded-xl border p-5 text-left transition-colors " +
-                (mode === "host"
-                  ? "border-white/30 bg-white/10"
-                  : "border-white/10 bg-neutral-900/40 hover:bg-neutral-900/55")
-              }
-            >
-              <div className="text-lg font-semibold">Host</div>
-              <div className="mt-1 text-sm text-neutral-300">
-                Create your own match.
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setMode("computer")}
-              className={
-                "rounded-xl border p-5 text-left transition-colors " +
-                (mode === "computer"
-                  ? "border-white/30 bg-white/10"
-                  : "border-white/10 bg-neutral-900/40 hover:bg-neutral-900/55")
-              }
-            >
-              <div className="text-lg font-semibold">Computer</div>
-              <div className="mt-1 text-sm text-neutral-300">
-                Practice locally vs the computer.
-              </div>
-            </button>
-          </div>
-
-          <div className="mt-8 flex flex-col sm:flex-row gap-3">
-            <button
-              type="button"
-              onClick={() => router.push("/")}
-              className="inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold bg-neutral-800 hover:bg-neutral-700 text-white transition-colors"
-            >
-              Back
-            </button>
-
-            <button
-              type="button"
-              disabled={!mode}
-              onClick={() => router.push(gameHref)}
-              className={
-                "inline-flex items-center justify-center rounded-lg px-5 py-3 text-sm font-semibold transition-colors " +
-                (mode
-                  ? "bg-white/10 hover:bg-white/15 text-white"
-                  : "bg-white/5 text-neutral-400 cursor-not-allowed")
-              }
-            >
-              Start
-            </button>
-          </div>
-
-          {isGuest ? (
-            <p className="mt-4 text-xs text-neutral-400">
-              You’re continuing without a wallet.
-            </p>
-          ) : null}
+            </motion.button>
+          ))}
         </div>
-      </section>
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          <motion.button
+            type="button"
+            onClick={() => router.push("/")}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="flex items-center justify-center gap-2 px-6 py-3.5 text-base font-medium bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white rounded-xl transition-all border border-white/10"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </motion.button>
+
+          <motion.button
+            type="button"
+            disabled={!mode}
+            onClick={() => router.push(gameHref)}
+            whileHover={mode ? { scale: 1.02 } : {}}
+            whileTap={mode ? { scale: 0.98 } : {}}
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3.5 text-base font-bold rounded-xl transition-all ${
+              mode
+                ? "btn-glow text-white shadow-glow"
+                : "bg-white/5 text-neutral-600 cursor-not-allowed border border-white/5"
+            }`}
+          >
+            Continue
+            <ArrowRight className="w-4 h-4" />
+          </motion.button>
+        </div>
+      </motion.div>
     </main>
   );
 }

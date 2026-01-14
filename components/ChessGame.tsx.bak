@@ -1,0 +1,538 @@
+'use client';
+
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useWallet, useConnection } from '@solana/wallet-adapter-react';
+import { PublicKey } from '@solana/web3.js';
+import { motion } from 'framer-motion';
+import { Swords, Trophy, RefreshCw } from 'lucide-react';
+
+import { Chess } from 'chess.js';
+import { EscrowClient, STAKE_TIERS, getStakeTierInfo, lamportsToSol } from '@/utils/escrow';
+
+type Mode = 'practice' | 'wager';
+
+type ChessGameProps = {
+  initialMode?: Mode;
+  showModeSelector?: boolean;
+  matchPubkey?: string;
+};
+
+const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
+
+const pieceToUnicode = (piece: { type: string; color: string } | null): string => {
+  if (!piece) return '';
+  const isWhite = piece.color === 'w';
+  switch (piece.type) {
+    case 'k':
+      return isWhite ? '♔' : '♚';
+    case 'q':
+      return isWhite ? '♕' : '♛';
+    case 'r':
+      return isWhite ? '♖' : '♜';
+    case 'b':
+      return isWhite ? '♗' : '♝';
+    case 'n':
+      return isWhite ? '♘' : '♞';
+    case 'p':
+      return isWhite ? '♙' : '♟';
+    default:
+      return '';
+  }
+};
+
+const squareFromRowCol = (row: number, col: number) => {
+  const file = FILES[col];
+  const rank = 8 - row;
+  return `${file}${rank}`;
+};
+
+export const ChessGame: React.FC<ChessGameProps> = ({
+  initialMode = 'practice',
+  showModeSelector = true,
+  matchPubkey,
+}) => {
+  const wallet = useWallet();
+  const { connection } = useConnection();
+  const { connected, publicKey } = wallet;
+  
+  const [mode, setMode] = useState<Mode>(initialMode);
+  const [selectedStakeTier, setSelectedStakeTier] = useState(1); // Default 1 SOL
+  const [isCreatingMatch, setIsCreatingMatch] = useState(false);
+  const [isJoiningMatch, setIsJoiningMatch] = useState(false);
+  const [matchCreated, setMatchCreated] = useState(false);
+  const [currentMatchPubkey, setCurrentMatchPubkey] = useState<PublicKey | null>(
+    matchPubkey ? new PublicKey(matchPubkey) : null
+  );
+  const [gameWinner, setGameWinner] = useState<'w' | 'b' | null>(null);
+  const [isSubmittingResult, setIsSubmittingResult] = useState(false);
+  const [payoutComplete, setPayoutComplete] = useState(false);
+  const [txSignature, setTxSignature] = useState<string>('');
+  const [canJoinAt, setCanJoinAt] = useState<number>(0);
+
+  const chessRef = useRef<Chess | null>(null);
+  if (!chessRef.current) {
+    chessRef.current = new Chess();
+  }
+
+  const [fen, setFen] = useState(() => chessRef.current!.fen());
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+
+  const board = useMemo(() => {
+    // chess.js board() is always 8x8 from rank 8 -> 1
+    return chessRef.current!.board();
+  }, [fen]);
+
+  const legalDestinations = useMemo(() => {
+    if (!selectedSquare) return new Set<string>();
+    const moves = chessRef.current!.moves({ square: selectedSquare as any, verbose: true }) as Array<any>;
+    return new Set(moves.map((m) => m.to));
+  }, [selectedSquare, fen]);
+
+  const statusText = useMemo(() => {
+    const chess = chessRef.current!;
+    if (chess.isCheckmate()) {
+      const winner = chess.turn() === 'w' ? 'b' : 'w';
+      setGameWinner(winner);
+      return 'Checkmate';
+    }
+    if (chess.isStalemate()) return 'Stalemate';
+    if (chess.isDraw()) return 'Draw';
+    const side = chess.turn() === 'w' ? 'White' : 'Black';
+    return chess.isCheck() ? `Check — ${side} to move` : `${side} to move`;
+  }, [fen]);
+
+  const resetPractice = () => {
+    chessRef.current = new Chess();
+    setSelectedSquare(null);
+    setGameWinner(null);
+    setFen(chessRef.current.fen());
+  };
+
+  const handleCreateMatch = async () => {
+    if (!connected || !publicKey) {
+      alert('Please connect your wallet');
+      return;
+    }
+
+    setIsCreatingMatch(true);
+    try {
+      const client = new EscrowClient(connection, wallet);
+      const { signature, matchPubkey } = await client.createMatch(selectedStakeTier, 30);
+      
+      setTxSignature(signature);
+      setCurrentMatchPubkey(matchPubkey);
+      setMatchCreated(true);
+      setCanJoinAt(Date.now() + 3000); // 3 second delay
+      
+      alert(`Match created! Signature: ${signature.slice(0, 8)}...`);
+    } catch (error) {
+      console.error('Error creating match:', error);
+      alert(`Failed to create match: ${error}`);
+    } finally {
+      setIsCreatingMatch(false);
+    }
+  };
+
+  const handleJoinMatch = async () => {
+    if (!connected || !publicKey) {
+      alert('Please connect your wallet');
+      return;
+    }
+
+    if (!currentMatchPubkey) {
+      alert('No match selected');
+      return;
+    }
+
+    if (Date.now() < canJoinAt) {
+      const waitSeconds = Math.ceil((canJoinAt - Date.now()) / 1000);
+      alert(`Please wait ${waitSeconds} seconds before joining`);
+      return;
+    }
+
+    setIsJoiningMatch(true);
+    try {
+      const client = new EscrowClient(connection, wallet);
+      const signature = await client.joinMatch(currentMatchPubkey);
+      
+      setTxSignature(signature);
+      alert(`Joined match! Signature: ${signature.slice(0, 8)}...`);
+    } catch (error) {
+      console.error('Error joining match:', error);
+      alert(`Failed to join match: ${error}`);
+    } finally {
+      setIsJoiningMatch(false);
+    }
+  };
+
+  const handleSubmitResult = async () => {
+    if (!connected || !publicKey || !currentMatchPubkey || !gameWinner) {
+      return;
+    }
+
+    setIsSubmittingResult(true);
+    try {
+      const client = new EscrowClient(connection, wallet);
+      
+      // Fetch match to get player addresses
+      const matchData = await client.fetchMatch(currentMatchPubkey);
+      if (!matchData) {
+        alert('Could not fetch match data');
+        return;
+      }
+
+      // Determine winner's public key
+      const winnerPubkey = gameWinner === 'w' ? matchData.playerA : matchData.playerB!;
+      
+      const signature = await client.submitResult(currentMatchPubkey, winnerPubkey);
+      setTxSignature(signature);
+      
+      // Auto-trigger payout
+      await handleConfirmPayout(winnerPubkey, matchData.playerA);
+    } catch (error) {
+      console.error('Error submitting result:', error);
+      alert(`Failed to submit result: ${error}`);
+    } finally {
+      setIsSubmittingResult(false);
+    }
+  };
+
+  const handleConfirmPayout = async (winner: PublicKey, playerA: PublicKey) => {
+    if (!connected || !publicKey || !currentMatchPubkey) {
+      return;
+    }
+
+    try {
+      const client = new EscrowClient(connection, wallet);
+      const signature = await client.confirmPayout(currentMatchPubkey, winner, playerA);
+      
+      setTxSignature(signature);
+      setPayoutComplete(true);
+      
+      alert(`Payout complete! Winner received reward. Signature: ${signature.slice(0, 8)}...`);
+    } catch (error) {
+      console.error('Error confirming payout:', error);
+      alert(`Failed to confirm payout: ${error}`);
+    }
+  };
+
+  // Auto-submit result when game ends in wager mode
+  useEffect(() => {
+    if (mode === 'wager' && gameWinner && currentMatchPubkey && !payoutComplete && !isSubmittingResult) {
+      const timer = setTimeout(() => {
+        handleSubmitResult();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [gameWinner, mode, currentMatchPubkey, payoutComplete]);
+
+  const maybeAutoPromote = (from: string, to: string) => {
+    const chess = chessRef.current!;
+    const piece = chess.get(from as any) as any;
+    if (!piece || piece.type !== 'p') return undefined;
+    const toRank = Number(to[1]);
+    if (piece.color === 'w' && toRank === 8) return 'q';
+    if (piece.color === 'b' && toRank === 1) return 'q';
+    return undefined;
+  };
+
+  const playComputerMove = React.useCallback(() => {
+    const chess = chessRef.current!;
+    if (chess.isGameOver()) return;
+    if (chess.turn() !== 'b') return;
+
+    const moves = chess.moves({ verbose: true }) as Array<any>;
+    if (moves.length === 0) return;
+
+    const choice = moves[Math.floor(Math.random() * moves.length)];
+    chess.move({
+      from: choice.from,
+      to: choice.to,
+      promotion: choice.promotion ?? maybeAutoPromote(choice.from, choice.to),
+    } as any);
+    setFen(chess.fen());
+  }, []);
+
+  const onSquareClick = (square: string) => {
+    const chess = chessRef.current!;
+
+    if (chess.isGameOver()) return;
+
+    if (mode === 'practice') {
+      // Player is always White in practice mode.
+      if (chess.turn() !== 'w') return;
+    }
+
+    if (!selectedSquare) {
+      const piece = chess.get(square as any) as any;
+      if (!piece) return;
+      if (mode === 'practice' && piece.color !== 'w') return;
+      if (mode === 'wager' && piece.color !== chess.turn()) return;
+      setSelectedSquare(square);
+      return;
+    }
+
+    if (selectedSquare === square) {
+      setSelectedSquare(null);
+      return;
+    }
+
+    const promotion = maybeAutoPromote(selectedSquare, square);
+    const move = chess.move({
+      from: selectedSquare,
+      to: square,
+      promotion,
+    } as any);
+
+    if (!move) return;
+    setSelectedSquare(null);
+    setFen(chess.fen());
+  };
+
+  useEffect(() => {
+    if (mode !== 'practice') return;
+    const chess = chessRef.current!;
+    if (chess.turn() !== 'b') return;
+    if (chess.isGameOver()) return;
+
+    const t = setTimeout(() => {
+      playComputerMove();
+    }, 250);
+
+    return () => clearTimeout(t);
+  }, [fen, mode, playComputerMove]);
+
+  const getPieceClassName = (piece: { color: string } | null) => {
+    if (!piece) return '';
+    return piece.color === 'w'
+      ? 'text-slate-50 drop-shadow-md'
+      : 'text-slate-900 drop-shadow-md';
+  };
+
+  return (
+    <div className="flex flex-col lg:flex-row gap-8 max-w-6xl mx-auto">
+      {/* Chess Board */}
+      <div className="flex-1 flex flex-col items-center">
+        <div className="w-full max-w-[480px] p-4 bg-neutral-900/50 border border-white/10 rounded-xl shadow-2xl">
+          <div className="aspect-square w-full overflow-hidden rounded-lg">
+            <div className="grid h-full w-full grid-cols-8 grid-rows-8">
+              {Array.from({ length: 64 }).map((_, i) => {
+                const row = Math.floor(i / 8);
+                const col = i % 8;
+                const isLight = (row + col) % 2 === 0;
+                const square = squareFromRowCol(row, col);
+                const piece = board[row]?.[col] ?? null;
+                const symbol = pieceToUnicode(piece as any);
+
+                const isSelected = selectedSquare === square;
+                const isLegal = legalDestinations.has(square);
+
+                return (
+                  <motion.button
+                    type="button"
+                    key={i}
+                    onClick={() => onSquareClick(square)}
+                    whileHover={piece ? { scale: 1.05 } : {}}
+                    whileTap={{ scale: 0.95 }}
+                    className={`relative flex items-center justify-center select-none transition-all ${
+                      isLight ? 'bg-[#e8d5b7]' : 'bg-[#8b5a3c]'
+                    } ${
+                      isSelected ? 'ring-4 ring-inset ring-[#d4af37]' : ''
+                    }`}
+                    style={{ borderRadius: '2px' }}
+                    aria-label={symbol ? `${square} ${symbol}` : square}
+                  >
+                    {isLegal && !piece && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-3 h-3 rounded-full bg-[#d4af37] opacity-40" />
+                      </div>
+                    )}
+                    {isLegal && piece && (
+                      <div className="absolute inset-0 rounded-full ring-4 ring-inset ring-[#d4af37] opacity-40" />
+                    )}
+                    <motion.span
+                      initial={false}
+                      animate={{ scale: isSelected ? 1.1 : 1 }}
+                      className={
+                        piece
+                          ? `${getPieceClassName(piece as any)} text-[clamp(24px,5vw,48px)] transition-transform cursor-pointer`
+                          : ''
+                      }
+                      aria-hidden="true"
+                    >
+                      {symbol}
+                    </motion.span>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 text-center">
+          <p className="text-sm font-medium text-neutral-300">
+            {statusText}
+          </p>
+        </div>
+      </div>
+      {/* Game Controls */}
+      <div className="w-full lg:w-80 space-y-4">
+        <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-6 shadow-xl">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <Swords className="h-5 w-5 text-[#d4af37]" />
+              <h3 className="text-lg font-semibold">Mode</h3>
+            </div>
+            {showModeSelector && (
+              <div className="inline-flex rounded-lg border border-white/10 bg-black/40 p-1">
+                <button
+                  type="button"
+                  onClick={() => setMode('practice')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                    mode === 'practice'
+                      ? 'bg-[#d4af37] text-black'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  Practice
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMode('wager')}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                    mode === 'wager'
+                      ? 'bg-[#d4af37] text-black'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  Wager
+                </button>
+              </div>
+            )}
+          </div>
+
+          {mode === 'practice' ? (
+            <div className="space-y-4">
+              <p className="text-sm text-neutral-400">
+                Train against AI. No stakes required.
+              </p>
+              <motion.button
+                type="button"
+                onClick={resetPractice}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white font-semibold py-3 px-6 rounded-lg transition-all shadow-lg"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Reset Game
+              </motion.button>
+            </div>
+          ) : (
+            <>
+              <h4 className="text-base font-semibold mb-4">Stakes</h4>
+        
+              {connected ? (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2 text-neutral-300">
+                      Stake Amount
+                    </label>
+                    <select
+                      value={selectedStakeTier}
+                      onChange={(e) => setSelectedStakeTier(Number(e.target.value))}
+                      disabled={matchCreated}
+                      className="w-full px-4 py-2.5 bg-black/60 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#d4af37] text-white disabled:opacity-50 transition-all"
+                    >
+                      {STAKE_TIERS.map((tier) => (
+                        <option key={tier.tier} value={tier.tier}>
+                          {tier.label}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-neutral-500 mt-2">
+                      10% platform fee on payout
+                    </p>
+                  </div>
+
+                  {payoutComplete ? (
+                    <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Trophy className="h-4 w-4 text-emerald-400" />
+                        <p className="text-emerald-400 font-semibold">Payout Complete</p>
+                      </div>
+                      <p className="text-xs text-neutral-400 break-all font-mono">
+                        {txSignature.slice(0, 8)}...{txSignature.slice(-8)}
+                      </p>
+                    </div>
+                  ) : gameWinner ? (
+                    <div className="bg-amber-950/40 border border-amber-500/30 rounded-lg p-4">
+                      <p className="text-amber-400 font-semibold">
+                        {isSubmittingResult ? 'Finalizing...' : 'Processing...'}
+                      </p>
+                    </div>
+                  ) : matchCreated ? (
+                    <div className="bg-blue-950/40 border border-blue-500/30 rounded-lg p-4">
+                      <p className="text-blue-400 font-semibold mb-1">Match Active</p>
+                      <p className="text-xs text-neutral-400">
+                        {getStakeTierInfo(selectedStakeTier).label}
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <motion.button
+                        onClick={handleCreateMatch}
+                        disabled={isCreatingMatch}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full bg-[#d4af37] hover:bg-[#e5c158] text-black font-semibold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                      >
+                        {isCreatingMatch ? 'Creating...' : 'Create Match'}
+                      </motion.button>
+
+                      <motion.button
+                        onClick={handleJoinMatch}
+                        disabled={isJoiningMatch || !currentMatchPubkey}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full bg-neutral-700 hover:bg-neutral-600 text-white font-semibold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                      >
+                        {isJoiningMatch ? 'Joining...' : 'Join Match'}
+                      </motion.button>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-neutral-500 text-sm">
+                    Connect wallet to stake
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <div className="bg-neutral-900/50 border border-white/10 rounded-xl p-6 shadow-xl">
+          <h3 className="text-base font-semibold mb-4">Statistics</h3>
+          {connected ? (
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-neutral-400">Matches:</span>
+                <span className="font-semibold">0</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-400">Wins:</span>
+                <span className="font-semibold text-emerald-400">0</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-neutral-400">Staked:</span>
+                <span className="font-semibold">0 SOL</span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-neutral-500 text-sm">Connect to view</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};

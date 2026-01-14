@@ -7,7 +7,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "anchor:build": "cd anchor && anchor build",
+    "anchor:test": "cd anchor && anchor test",
+    "anchor:deploy": "cd anchor && anchor deploy --provider.cluster devnet"
   },
   "keywords": [
     "solana",
@@ -25,9 +28,12 @@
     "@solana/web3.js": "^1.98.4",
     "@tailwindcss/postcss": "^4.1.18",
     "chess.js": "^1.4.0",
+    "framer-motion": "^12.23.26",
+    "lucide-react": "^0.562.0",
     "next": "^16.1.0",
     "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react-dom": "^19.2.3",
+    "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
     "@types/node": "^25.0.3",
