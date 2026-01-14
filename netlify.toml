@@ -33,3 +33,16 @@
   to = "/.well-known/assetlinks.json"
   status = 200
   force = true
+
+# Serve APK download directly
+[[redirects]]
+  from = "/SolMate.apk"
+  to = "/SolMate.apk"
+  status = 200
+  force = true
+
+[[headers]]
+  for = "/SolMate.apk"
+  [headers.values]
+    Content-Type = "application/vnd.android.package-archive"
+    Content-Disposition = "attachment; filename=SolMate.apk"
