@@ -36,4 +36,8 @@ pub mod sol_mate_escrow {
     pub fn cancel_match(ctx: Context<CancelMatch>) -> Result<()> {
         crate::instructions::cancel_match::handler(ctx)
     }
+
+    pub fn withdraw_fees(ctx: Context<WithdrawFees>, amount: u64) -> Result<()> {
+        crate::instructions::withdraw_fees::handler(ctx, amount)
+    }
 }

@@ -31,14 +31,15 @@ This security audit report documents the comprehensive review of the SolMate Che
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `lib.rs` | 42 | Program entry point, instruction routing |
+| `lib.rs` | 47 | Program entry point, instruction routing |
 | `state.rs` | ~50 | Match account structure, status enum |
-| `errors.rs` | ~30 | Custom error definitions |
+| `errors.rs` | ~45 | Custom error definitions |
 | `instructions/create_match.rs` | 79 | Match creation logic |
 | `instructions/join_match.rs` | ~60 | Player joining logic |
 | `instructions/submit_result.rs` | ~50 | Game result submission |
 | `instructions/confirm_payout.rs` | 98 | Winner payout distribution |
 | `instructions/cancel_match.rs` | ~50 | Match cancellation & refund |
+| `instructions/withdraw_fees.rs` | 62 | Admin fee withdrawal |
 
 ### 1.2 Functionality Covered
 
@@ -47,6 +48,7 @@ This security audit report documents the comprehensive review of the SolMate Che
 - **Result Submission:** Backend authority submits game winner
 - **Payout Confirmation:** Winner claims pot minus 10% platform fee
 - **Cancellation:** Unmatched games can be cancelled for full refund
+- **Fee Withdrawal:** Admin can withdraw accumulated platform fees
 
 ---
 
@@ -114,6 +116,7 @@ Each instruction properly validates signers:
 | `submit_result` | Authority | `Signer` + authority check |
 | `confirm_payout` | Winner | `Signer` + winner validation |
 | `cancel_match` | Player A | `Signer` + creator check |
+| `withdraw_fees` | Admin | `Signer` + hardcoded admin pubkey |
 
 ### 3.3 PDA Security ✅
 
@@ -149,6 +152,7 @@ Each instruction validates the current state before proceeding.
 | Payouts | Lamport manipulation with proper checks | ✅ Secure |
 | Refunds | Full amount returned on cancel | ✅ Secure |
 | Fees | 10% to platform vault | ✅ Correct |
+| Fee Withdrawal | Admin-only, rent-exempt protected | ✅ Secure |
 
 ---
 
@@ -173,6 +177,10 @@ Each instruction validates the current state before proceeding.
 ### 4.5 Integer Overflow
 **Risk:** None  
 **Reason:** All arithmetic uses checked operations
+
+### 4.6 Fee Vault Draining
+**Risk:** None  
+**Reason:** Withdrawal requires signature from hardcoded admin pubkey (`7BKqimAdco1XsknW88N38qf4PgXGieWN8USPgKxcf87B`); rent-exempt minimum is protected
 
 ---
 
@@ -206,7 +214,47 @@ Maximum user exposure is limited to 1 SOL per match, reducing risk during initia
 
 ---
 
-## 7. Conclusion
+## 8. Fee Withdrawal Instruction
+
+### 8.1 Implementation Details
+
+The `withdraw_fees` instruction allows the platform admin to withdraw accumulated fees from the fee vault PDA.
+
+**Authorized Admin Wallet:**
+```
+7BKqimAdco1XsknW88N38qf4PgXGieWN8USPgKxcf87B
+```
+
+**Security Features:**
+- Hardcoded admin pubkey check
+- Preserves rent-exempt minimum balance
+- Supports partial or full withdrawal (pass `0` for full withdrawal)
+
+**Code Example:**
+```rust
+pub fn handler(ctx: Context<WithdrawFees>, amount: u64) -> Result<()> {
+    // Verify admin is the authorized wallet
+    let admin_pubkey = get_admin_pubkey();
+    require!(ctx.accounts.admin.key() == admin_pubkey, EscrowError::Unauthorized);
+    
+    // Protect rent-exempt minimum
+    let rent = Rent::get()?;
+    let min_balance = rent.minimum_balance(FeeVault::LEN);
+    let available_balance = fee_vault_info.lamports()
+        .checked_sub(min_balance)
+        .ok_or(EscrowError::InsufficientFunds)?;
+    
+    // Transfer to admin
+    **fee_vault_info.try_borrow_mut_lamports()? -= withdraw_amount;
+    **ctx.accounts.admin.try_borrow_mut_lamports()? += withdraw_amount;
+    
+    Ok(())
+}
+```
+
+---
+
+## 9. Conclusion
 
 The SolMate Chess Escrow program has been reviewed using automated security tools and manual code analysis. The program demonstrates proper security practices including:
 
@@ -271,4 +319,4 @@ $ anchor build
 
 **Report Generated:** January 14, 2026  
 **Repository:** https://github.com/SerStakeAlot/SolMate  
-**Contact:** [Your Contact Info]
+**Contact:** Telegram: @hotdogewketchup

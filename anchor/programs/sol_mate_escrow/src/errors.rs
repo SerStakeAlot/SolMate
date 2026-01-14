@@ -37,4 +37,10 @@ pub enum EscrowError {
     
     #[msg("Match already has a winner")]
     MatchAlreadyFinished,
+    
+    #[msg("Unauthorized: only admin can perform this action")]
+    Unauthorized,
+    
+    #[msg("Insufficient funds in fee vault")]
+    InsufficientFunds,
 }
