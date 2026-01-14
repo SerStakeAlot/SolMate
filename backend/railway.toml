@@ -1,0 +1,8 @@
+# Railway/Render/Fly.io deployment config
+[build]
+  command = "npm run build"
+
+[deploy]
+  startCommand = "npm start"
+  healthCheckPath = "/health"
+  healthCheckTimeout = 30
