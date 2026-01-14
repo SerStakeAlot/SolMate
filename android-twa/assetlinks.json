@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.netlify.shiny_chebakia_11939c.twa",
+        "sha256_cert_fingerprints": ["9F:76:60:71:C3:69:9C:57:95:C5:92:0C:0C:9F:8A:CE:BB:08:B1:0A:57:6C:55:C1:D9:49:E6:92:7E:7E:B8:B5"]
+      }
+    }]
