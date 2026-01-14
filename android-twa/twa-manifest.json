@@ -12,7 +12,7 @@
   "navigationDividerColorDark": "#000000",
   "backgroundColor": "#000000",
   "enableNotifications": true,
-  "startUrl": "https://shiny-chebakia-11939c.netlify.app/",
+  "startUrl": "/",
   "iconUrl": "https://shiny-chebakia-11939c.netlify.app/images/solmate-icon-512.png",
   "maskableIconUrl": "https://shiny-chebakia-11939c.netlify.app/images/solmate-icon-512.png",
   "splashScreenFadeOutDuration": 300,
@@ -20,8 +20,8 @@
     "path": "/workspaces/SolMate/android-twa/android.keystore",
     "alias": "android"
   },
-  "appVersionName": "1",
-  "appVersionCode": 1,
+  "appVersionName": "3",
+  "appVersionCode": 3,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://shiny-chebakia-11939c.netlify.app/manifest.json",
@@ -51,5 +51,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "1"
+  "appVersion": "3"
 }

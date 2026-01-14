@@ -26,7 +26,7 @@
     <string name="fullScopeUrl" translatable="false">https://shiny-chebakia-11939c.netlify.app/</string>
     <string name="generatorApp" translatable="false">bubblewrap-cli</string>
     <string name="hostName" translatable="false">shiny-chebakia-11939c.netlify.app</string>
-    <string name="launchUrl" translatable="false">https://shiny-chebakia-11939c.netlify.apphttps://shiny-chebakia-11939c.netlify.app/</string>
+    <string name="launchUrl" translatable="false">https://shiny-chebakia-11939c.netlify.app/</string>
     <string name="launcherName" translatable="false">SolMate</string>
     <string name="orientation" translatable="false">portrait</string>
     <string name="providerAuthority" translatable="false">app.netlify.shiny_chebakia_11939c.twa.fileprovider</string>

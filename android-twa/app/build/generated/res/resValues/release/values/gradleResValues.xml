@@ -34,7 +34,7 @@
     <!-- Value from default config. -->
     <string name="hostName" translatable="false">shiny-chebakia-11939c.netlify.app</string>
     <!-- Value from default config. -->
-    <string name="launchUrl" translatable="false">https://shiny-chebakia-11939c.netlify.apphttps://shiny-chebakia-11939c.netlify.app/</string>
+    <string name="launchUrl" translatable="false">https://shiny-chebakia-11939c.netlify.app/</string>
     <!-- Value from default config. -->
     <string name="launcherName" translatable="false">SolMate</string>
     <!-- Value from default config. -->
