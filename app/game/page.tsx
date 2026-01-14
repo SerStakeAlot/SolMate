@@ -1,22 +1,22 @@
-import { ChessGame } from "@/components/ChessGame";
+"use client";
 
-type PageProps = {
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-};
+import { ChessGame } from "@/components/ChessGame";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 type PlayMode = "join" | "host" | "computer";
 
 type ChessMode = "practice" | "wager";
 
-const normalizeMode = (value: unknown): PlayMode | null => {
-  if (typeof value !== "string") return null;
+const normalizeMode = (value: string | null): PlayMode | null => {
   if (value === "join" || value === "host" || value === "computer") return value;
   return null;
 };
 
-export default async function GamePage({ searchParams }: PageProps) {
-  const params = (await searchParams) ?? {};
-  const playMode = normalizeMode(params.mode);
+function GameContent() {
+  const searchParams = useSearchParams();
+  const playMode = normalizeMode(searchParams.get("mode"));
+  const matchParam = searchParams.get("match");
 
   const initialMode: ChessMode = playMode === "computer" ? "practice" : "wager";
   const title =
@@ -40,8 +40,16 @@ export default async function GamePage({ searchParams }: PageProps) {
       <ChessGame
         initialMode={initialMode}
         showModeSelector={playMode === "computer"}
-        matchPubkey={typeof params.match === "string" ? params.match : undefined}
+        matchPubkey={matchParam || undefined}
       />
     </main>
+  );
+}
+
+export default function GamePage() {
+  return (
+    <Suspense fallback={<div className="mx-auto w-full max-w-7xl px-4 py-8">Loading...</div>}>
+      <GameContent />
+    </Suspense>
   );
 }
