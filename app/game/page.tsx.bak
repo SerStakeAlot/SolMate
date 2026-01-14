@@ -1,0 +1,70 @@
+import Link from "next/link";
+
+import { WalletButton } from "@/components/WalletButton";
+import { ChessGame } from "@/components/ChessGame";
+
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+type PlayMode = "join" | "host" | "computer";
+
+type ChessMode = "practice" | "wager";
+
+const normalizeMode = (value: unknown): PlayMode | null => {
+  if (typeof value !== "string") return null;
+  if (value === "join" || value === "host" || value === "computer") return value;
+  return null;
+};
+
+export default async function GamePage({ searchParams }: PageProps) {
+  const params = (await searchParams) ?? {};
+  const playMode = normalizeMode(params.mode);
+  const isGuest = params.guest === "1";
+
+  const initialMode: ChessMode = playMode === "computer" ? "practice" : "wager";
+  const title =
+    playMode === "join"
+      ? "Active Match"
+      : playMode === "host"
+        ? "Staked Match"
+        : "Practice Arena";
+
+  return (
+    <main className="mx-auto w-full max-w-6xl px-6 py-10">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">SolMate</h1>
+          <p className="mt-1 text-sm text-neutral-300">{title}</p>
+        </div>
+        <WalletButton />
+      </header>
+
+      <div className="mt-6 flex items-center justify-between gap-4">
+        <Link
+          href={isGuest ? "/play?guest=1" : "/play"}
+          className="text-sm text-neutral-300 hover:text-white"
+        >
+          ← Back
+        </Link>
+        {isGuest ? (
+          <span className="text-xs text-neutral-400">Guest session</span>
+        ) : null}
+      </div>
+
+      <section className="mt-6">
+        <ChessGame 
+          initialMode={initialMode} 
+          showModeSelector={false}
+          matchPubkey={typeof params.match === 'string' ? params.match : undefined}
+        />
+      </section>
+
+      {!playMode ? (
+        <p className="mt-4 text-xs text-neutral-400">
+          No mode selected. Return to lobby and select a match type.
+        </p>
+      ) : null}
+    </main>
+  );
+}
