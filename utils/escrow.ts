@@ -33,7 +33,7 @@ class BN {
 }
 
 // Program ID
-export const PROGRAM_ID = new PublicKey('A85FMPZSYc4g4e4BeSN3rvhDARGaJLoNaUVYx3Bzi54s');
+export const PROGRAM_ID = new PublicKey('H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV');
 
 // Stake tier configuration (limited to 0.5 and 1 SOL for audit/launch)
 export const STAKE_TIERS = [
