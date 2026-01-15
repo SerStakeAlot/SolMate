@@ -171,8 +171,8 @@ export default function LobbyPage() {
         });
       }
 
-      // Redirect to game
-      router.push(`/game?mode=join&match=${match.matchPubkey}&code=${match.matchCode}`);
+      // Redirect to game as joiner (black)
+      router.push(`/game?mode=join&match=${match.matchPubkey}&code=${match.matchCode}&tier=${match.stakeTier}`);
     } catch (error) {
       console.error("Error joining match:", error);
       alert(`Failed to join match: ${error}`);
@@ -181,7 +181,7 @@ export default function LobbyPage() {
     }
   };
 
-  const handleJoinMatch = async (matchPubkey: PublicKey) => {
+  const handleJoinMatch = async (matchPubkey: PublicKey, stakeTier: number) => {
     if (!connected || !publicKey) {
       alert("Please connect your wallet");
       return;
@@ -191,9 +191,10 @@ export default function LobbyPage() {
     try {
       const client = new EscrowClient(connection, wallet);
       const signature = await client.joinMatch(matchPubkey);
+      const code = matchPubkey.toString().slice(0, 4).toUpperCase();
 
       alert(`Joined match! Redirecting to game...`);
-      router.push(`/game?mode=host&match=${matchPubkey.toString()}`);
+      router.push(`/game?mode=join&match=${matchPubkey.toString()}&code=${code}&tier=${stakeTier}`);
     } catch (error) {
       console.error("Error joining match:", error);
       alert(`Failed to join match: ${error}`);
@@ -600,7 +601,7 @@ export default function LobbyPage() {
                             </button>
                           ) : (
                             <button
-                              onClick={() => handleJoinMatch(match.pubkey)}
+                              onClick={() => handleJoinMatch(match.pubkey, match.account.stakeTier)}
                               disabled={isJoining}
                               className="btn-glow px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >

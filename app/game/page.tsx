@@ -17,14 +17,20 @@ function GameContent() {
   const searchParams = useSearchParams();
   const playMode = normalizeMode(searchParams.get("mode"));
   const matchParam = searchParams.get("match");
+  const codeParam = searchParams.get("code");
+  const tierParam = searchParams.get("tier");
 
   const initialMode: ChessMode = playMode === "computer" ? "practice" : "wager";
+  const stakeTier = tierParam ? parseInt(tierParam, 10) : 4; // Default to test tier
   const title =
     playMode === "join"
-      ? "Active Match"
+      ? "Active Match (Black)"
       : playMode === "host"
-        ? "Staked Match"
+        ? "Staked Match (White)"
         : "Practice Mode";
+  
+  // Determine player role for multiplayer
+  const playerRole = playMode === "host" ? "host" : playMode === "join" ? "join" : undefined;
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-8">
@@ -33,7 +39,13 @@ function GameContent() {
           <span className="text-gradient">{title}</span>
         </h1>
         <p className="text-neutral-500 text-sm mt-2">
-          {playMode === "computer" ? "Train your tactics against AI" : "May the best strategist win"}
+          {playMode === "computer" 
+            ? "Train your tactics against AI" 
+            : playMode === "join" 
+              ? "You are playing as Black" 
+              : playMode === "host"
+                ? "You are playing as White - waiting for opponent"
+                : "May the best strategist win"}
         </p>
       </div>
 
@@ -41,6 +53,9 @@ function GameContent() {
         initialMode={initialMode}
         showModeSelector={playMode === "computer"}
         matchPubkey={matchParam || undefined}
+        playerRole={playerRole as "host" | "join" | undefined}
+        matchCode={codeParam || undefined}
+        initialStakeTier={stakeTier}
       />
     </main>
   );
