@@ -48,6 +48,7 @@ export const PROGRAM_ID = new PublicKey('H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2
 
 // Stake tier configuration (limited to 0.5 and 1 SOL for audit/launch)
 export const STAKE_TIERS = [
+  { tier: 4, label: '0.05 SOL (Test)', lamports: 0.05 * LAMPORTS_PER_SOL, stake: 0.05 },
   { tier: 0, label: '0.5 SOL', lamports: 0.5 * LAMPORTS_PER_SOL, stake: 0.5 },
   { tier: 1, label: '1 SOL', lamports: 1 * LAMPORTS_PER_SOL, stake: 1 },
 ];
@@ -409,9 +410,9 @@ export class EscrowClient {
 
     // Build instruction data manually
     const instructionData = Buffer.alloc(8);
-    // Instruction discriminator for cancel_match
+    // Instruction discriminator for cancel_match: sha256("global:cancel_match")[0..8]
     const discriminator = Buffer.from([
-      0xc1, 0x5d, 0x8e, 0x2a, 0x7f, 0x9b, 0x3c, 0x4d,
+      0x8e, 0x88, 0xf7, 0x2d, 0x5c, 0x70, 0xb4, 0x53,
     ]);
     discriminator.copy(instructionData, 0);
 
@@ -419,6 +420,7 @@ export class EscrowClient {
       { pubkey: matchPubkey, isSigner: false, isWritable: true },
       { pubkey: escrowPDA, isSigner: false, isWritable: true },
       { pubkey: this.wallet.publicKey, isSigner: true, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ];
 
     const instruction = {
