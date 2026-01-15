@@ -143,7 +143,7 @@ export class EscrowClient {
     const instructionData = Buffer.alloc(17);
     // Instruction discriminator for create_match (8 bytes - hash of "global:create_match")
     const discriminator = Buffer.from([
-      0x8a, 0x3e, 0x3e, 0x64, 0x9f, 0x4a, 0x3c, 0x8e,
+      0x6b, 0x02, 0xb8, 0x91, 0x46, 0x8e, 0x11, 0xa5,
     ]);
     discriminator.copy(instructionData, 0);
     instructionData.writeUInt8(stakeTier, 8);
@@ -220,7 +220,7 @@ export class EscrowClient {
     const instructionData = Buffer.alloc(8);
     // Instruction discriminator for join_match
     const discriminator = Buffer.from([
-      0xd4, 0xa0, 0x8f, 0x3c, 0x6e, 0x7b, 0x5a, 0x9c,
+      0xf4, 0x08, 0x2f, 0x82, 0xc0, 0x3b, 0xb3, 0x2c,
     ]);
     discriminator.copy(instructionData, 0);
 
@@ -268,7 +268,7 @@ export class EscrowClient {
     const instructionData = Buffer.alloc(40);
     // Instruction discriminator for submit_result
     const discriminator = Buffer.from([
-      0xf2, 0x3a, 0x1d, 0x9e, 0x4c, 0x7b, 0x8a, 0x5f,
+      0xf0, 0x2a, 0x59, 0xb4, 0x0a, 0xef, 0x09, 0xd6,
     ]);
     discriminator.copy(instructionData, 0);
     winner.toBuffer().copy(instructionData, 8);
