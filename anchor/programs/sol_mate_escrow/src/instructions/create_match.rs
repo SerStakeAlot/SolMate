@@ -4,7 +4,7 @@ use crate::state::*;
 use crate::errors::*;
 
 #[derive(Accounts)]
-#[instruction(stake_tier: u8)]
+#[instruction(stake_tier: u8, seed: u64)]
 pub struct CreateMatch<'info> {
     #[account(
         init,
@@ -13,7 +13,7 @@ pub struct CreateMatch<'info> {
         seeds = [
             b"match",
             player_a.key().as_ref(),
-            &Clock::get()?.unix_timestamp.to_le_bytes()
+            &seed.to_le_bytes()
         ],
         bump
     )]
@@ -36,13 +36,13 @@ pub struct CreateMatch<'info> {
 pub fn handler(
     ctx: Context<CreateMatch>,
     stake_tier: u8,
+    seed: u64,
     join_deadline: i64,
 ) -> Result<()> {
     // Validate stake tier
     require!(stake_tier <= 3, EscrowError::InvalidStakeTier);
     
     let match_account = &mut ctx.accounts.match_account;
-    let _clock = Clock::get()?;
     
     // Initialize match
     match_account.player_a = ctx.accounts.player_a.key();
