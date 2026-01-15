@@ -164,24 +164,49 @@ export class EscrowClient {
 
     const transaction = new Transaction().add(instruction);
     transaction.feePayer = this.wallet.publicKey;
-    transaction.recentBlockhash = (
-      await this.connection.getLatestBlockhash()
-    ).blockhash;
-
-    const signed = await this.wallet.signTransaction(transaction);
     
-    try {
-      const signature = await this.connection.sendRawTransaction(signed.serialize());
-      await this.connection.confirmTransaction(signature);
-      return { signature, matchPubkey: matchPDA };
-    } catch (error: any) {
-      if (error.message?.includes('Attempt to debit an account')) {
-        throw new Error(
-          'Insufficient SOL balance. Please fund your wallet from the Solana devnet faucet: https://faucet.solana.com/'
-        );
+    // Retry logic for getting recent blockhash
+    let retries = 3;
+    let lastError;
+    
+    while (retries > 0) {
+      try {
+        const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('finalized');
+        transaction.recentBlockhash = blockhash;
+        transaction.lastValidBlockHeight = lastValidBlockHeight;
+        
+        const signed = await this.wallet.signTransaction(transaction);
+        
+        const signature = await this.connection.sendRawTransaction(signed.serialize(), {
+          skipPreflight: false,
+          preflightCommitment: 'confirmed',
+        });
+        
+        await this.connection.confirmTransaction({
+          signature,
+          blockhash,
+          lastValidBlockHeight,
+        }, 'confirmed');
+        
+        return { signature, matchPubkey: matchPDA };
+      } catch (error: any) {
+        lastError = error;
+        if (error.message?.includes('Attempt to debit an account')) {
+          throw new Error(
+            'Insufficient SOL balance. Please add more SOL to your wallet.'
+          );
+        }
+        if (error.message?.includes('blockhash') && retries > 1) {
+          console.log(`Retrying due to blockhash error, ${retries - 1} retries left...`);
+          retries--;
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue;
+        }
+        throw error;
       }
-      throw error;
     }
+    
+    throw new Error(`Failed after retries: ${lastError?.message || 'Unknown error'}`);
   }
 
   async joinMatch(matchPubkey: PublicKey): Promise<string> {
