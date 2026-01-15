@@ -5,6 +5,9 @@ pub enum EscrowError {
     #[msg("Invalid stake tier. Must be 0 (0.5 SOL), 1 (1 SOL), 2 (5 SOL), or 3 (10 SOL)")]
     InvalidStakeTier,
     
+    #[msg("Invalid timestamp: must be within 30 seconds of current time")]
+    InvalidTimestamp,
+    
     #[msg("Match is not in Open status")]
     MatchNotOpen,
     
