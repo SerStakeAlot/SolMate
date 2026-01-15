@@ -1,0 +1,73 @@
+{
+  "version": "0.1.0",
+  "name": "sol_mate_escrow",
+  "instructions": [
+    {
+      "name": "createMatch",
+      "accounts": [
+        { "name": "match", "isMut": true, "isSigner": false },
+        { "name": "escrow", "isMut": true, "isSigner": false },
+        { "name": "playerA", "isMut": true, "isSigner": true },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": [
+        { "name": "stakeTier", "type": "u8" },
+        { "name": "joinDeadline", "type": "i64" }
+      ]
+    },
+    {
+      "name": "joinMatch",
+      "accounts": [
+        { "name": "match", "isMut": true, "isSigner": false },
+        { "name": "escrow", "isMut": true, "isSigner": false },
+        { "name": "playerB", "isMut": true, "isSigner": true },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "submitResult",
+      "accounts": [
+        { "name": "match", "isMut": true, "isSigner": false },
+        { "name": "authority", "isMut": false, "isSigner": true }
+      ],
+      "args": [
+        { "name": "winner", "type": "publicKey" }
+      ]
+    },
+    {
+      "name": "confirmPayout",
+      "accounts": [
+        { "name": "match", "isMut": true, "isSigner": false },
+        { "name": "escrow", "isMut": true, "isSigner": false },
+        { "name": "winner", "isMut": true, "isSigner": false },
+        { "name": "playerA", "isMut": false, "isSigner": false },
+        { "name": "feeVault", "isMut": true, "isSigner": false },
+        { "name": "authority", "isMut": false, "isSigner": true },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "cancelMatch",
+      "accounts": [
+        { "name": "match", "isMut": true, "isSigner": false },
+        { "name": "escrow", "isMut": true, "isSigner": false },
+        { "name": "playerA", "isMut": true, "isSigner": true },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "withdrawFees",
+      "accounts": [
+        { "name": "feeVault", "isMut": true, "isSigner": false },
+        { "name": "admin", "isMut": true, "isSigner": true },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": [
+        { "name": "amount", "type": "u64" }
+      ]
+    }
+  ]
+}
