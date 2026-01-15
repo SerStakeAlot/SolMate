@@ -39,6 +39,9 @@ pub fn handler(
     seed: u64,
     join_deadline: i64,
 ) -> Result<()> {
+    // Log the seed used for PDA derivation (this also silences unused warning)
+    msg!("Creating match with seed: {}", seed);
+    
     // Validate stake tier
     require!(stake_tier <= 3, EscrowError::InvalidStakeTier);
     
