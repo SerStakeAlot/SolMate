@@ -211,12 +211,35 @@ export class EscrowClient {
         console.log('Transaction sent, signature:', signature);
         console.log('Waiting for confirmation...');
         
-        await this.connection.confirmTransaction({
+        const confirmation = await this.connection.confirmTransaction({
           signature,
           blockhash,
           lastValidBlockHeight,
         }, 'confirmed');
-        console.log('Transaction confirmed!');
+        
+        // Check if the transaction actually succeeded
+        if (confirmation.value.err) {
+          console.error('Transaction failed:', confirmation.value.err);
+          throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+        }
+        
+        // Double-check by fetching the transaction
+        const txResult = await this.connection.getTransaction(signature, { 
+          maxSupportedTransactionVersion: 0,
+          commitment: 'confirmed'
+        });
+        
+        if (!txResult) {
+          console.error('Transaction not found after confirmation');
+          throw new Error('Transaction not found on-chain after confirmation. Please try again.');
+        }
+        
+        if (txResult.meta?.err) {
+          console.error('Transaction execution failed:', txResult.meta.err);
+          throw new Error(`Transaction execution failed: ${JSON.stringify(txResult.meta.err)}`);
+        }
+        
+        console.log('Transaction confirmed and verified!');
         
         return { signature, matchPubkey: matchPDA };
       } catch (error: any) {
