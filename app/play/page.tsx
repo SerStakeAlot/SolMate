@@ -33,6 +33,13 @@ export default function PlayPage() {
       gradient: "from-solana-purple via-violet-500 to-solana-green",
     },
     {
+      id: "computer" as const,
+      title: "Practice",
+      description: "Train against AI - no stakes",
+      icon: Bot,
+      featured: false,
+    },
+    {
       id: "join" as const,
       title: "Join Match",
       description: "Browse and join open staked matches",
@@ -44,13 +51,6 @@ export default function PlayPage() {
       title: "Host Match",
       description: "Create a new staked match",
       icon: Swords,
-      featured: false,
-    },
-    {
-      id: "computer" as const,
-      title: "Practice",
-      description: "Train against AI - no stakes",
-      icon: Bot,
       featured: false,
     },
   ];
