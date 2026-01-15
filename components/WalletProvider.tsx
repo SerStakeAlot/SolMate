@@ -12,17 +12,18 @@ import '@solana/wallet-adapter-react-ui/styles.css';
 
 export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
   // The network can be set to 'devnet', 'testnet', or 'mainnet-beta'.
-  const network = WalletAdapterNetwork.Devnet;
+  const network = WalletAdapterNetwork.Mainnet;
 
-  // Use devnet for testing
+  // Use a reliable RPC endpoint for mainnet
   const endpoint = useMemo(() => {
     if (process.env.NEXT_PUBLIC_RPC_ENDPOINT) {
       return process.env.NEXT_PUBLIC_RPC_ENDPOINT;
     }
     
-    // Use devnet RPC
-    return clusterApiUrl(network);
-  }, [network]);
+    // Use Helius free tier for reliable mainnet RPC
+    // This avoids stale validator cache issues with public endpoints
+    return 'https://mainnet.helius-rpc.com/?api-key=REDACTED_HELIUS_API_KEY_2';
+  }, []);
 
   const wallets = useMemo(
     () => [
