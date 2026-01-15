@@ -436,17 +436,17 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-neutral-400">Lobby Code:</span>
                     <div className="flex items-center gap-2">
-                      <code className="text-sm font-mono text-solana-green bg-black/30 px-2 py-1 rounded">
-                        {currentMatchPubkey.toBase58().slice(0, 8)}
+                      <code className="text-lg font-mono font-bold text-solana-green bg-black/30 px-3 py-1 rounded tracking-widest">
+                        {currentMatchPubkey.toBase58().slice(0, 4).toUpperCase()}
                       </code>
                       <button
                         onClick={() => {
-                          navigator.clipboard.writeText(currentMatchPubkey.toBase58());
-                          alert('Match code copied! Share the full URL with your opponent.');
+                          navigator.clipboard.writeText(currentMatchPubkey.toBase58().slice(0, 4).toUpperCase());
+                          alert('Lobby code copied!');
                         }}
                         className="text-xs text-solana-purple hover:text-solana-green transition-colors"
                       >
-                        Copy Full
+                        Copy
                       </button>
                     </div>
                   </div>
