@@ -16,10 +16,13 @@ export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
   // Use a more reliable RPC endpoint for mainnet
   const endpoint = useMemo(() => {
-    // Try using Helius free tier or fallback to public RPC
-    return process.env.NEXT_PUBLIC_RPC_ENDPOINT || 
-           'https://mainnet.helius-rpc.com/?api-key=public' ||
-           'https://api.mainnet-beta.solana.com';
+    // Use custom RPC or fallback to multiple public endpoints
+    if (process.env.NEXT_PUBLIC_RPC_ENDPOINT) {
+      return process.env.NEXT_PUBLIC_RPC_ENDPOINT;
+    }
+    
+    // Use official Solana mainnet RPC
+    return 'https://api.mainnet-beta.solana.com';
   }, []);
 
   const wallets = useMemo(
