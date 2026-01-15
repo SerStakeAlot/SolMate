@@ -201,8 +201,10 @@ export class EscrowClient {
         
         const signed = await this.wallet.signTransaction(transaction);
         
+        // Skip preflight simulation because Phantom wallet uses its own RPC
+        // which may have cached/stale program code. Send directly to network.
         const signature = await this.connection.sendRawTransaction(signed.serialize(), {
-          skipPreflight: false,
+          skipPreflight: true,
           preflightCommitment: 'confirmed',
         });
         
@@ -271,7 +273,7 @@ export class EscrowClient {
     const signed = await this.wallet.signTransaction(transaction);
     
     try {
-      const signature = await this.connection.sendRawTransaction(signed.serialize());
+      const signature = await this.connection.sendRawTransaction(signed.serialize(), { skipPreflight: true });
       await this.connection.confirmTransaction(signature);
       return signature;
     } catch (error: any) {
@@ -316,7 +318,7 @@ export class EscrowClient {
     ).blockhash;
 
     const signed = await this.wallet.signTransaction(transaction);
-    const signature = await this.connection.sendRawTransaction(signed.serialize());
+    const signature = await this.connection.sendRawTransaction(signed.serialize(), { skipPreflight: true });
     await this.connection.confirmTransaction(signature);
 
     return signature;
@@ -365,7 +367,7 @@ export class EscrowClient {
     ).blockhash;
 
     const signed = await this.wallet.signTransaction(transaction);
-    const signature = await this.connection.sendRawTransaction(signed.serialize());
+    const signature = await this.connection.sendRawTransaction(signed.serialize(), { skipPreflight: true });
     await this.connection.confirmTransaction(signature);
 
     return signature;
@@ -405,7 +407,7 @@ export class EscrowClient {
     ).blockhash;
 
     const signed = await this.wallet.signTransaction(transaction);
-    const signature = await this.connection.sendRawTransaction(signed.serialize());
+    const signature = await this.connection.sendRawTransaction(signed.serialize(), { skipPreflight: true });
     await this.connection.confirmTransaction(signature);
 
     return signature;
