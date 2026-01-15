@@ -131,82 +131,102 @@ export class EscrowClient {
       throw new Error('Wallet not connected');
     }
 
-    const timestamp = new BN(Math.floor(Date.now() / 1000));
-    const [matchPDA] = deriveMatchPDA(this.wallet.publicKey, timestamp);
-    const [escrowPDA] = deriveEscrowPDA(matchPDA);
-
-    const joinDeadline = new BN(
-      Math.floor(Date.now() / 1000) + joinDeadlineMinutes * 60
-    );
-
-    // Build instruction data manually
-    const instructionData = Buffer.alloc(17);
-    // Instruction discriminator for create_match (8 bytes - hash of "global:create_match")
-    const discriminator = Buffer.from([
-      0x6b, 0x02, 0xb8, 0x91, 0x46, 0x8e, 0x11, 0xa5,
-    ]);
-    discriminator.copy(instructionData, 0);
-    instructionData.writeUInt8(stakeTier, 8);
-    joinDeadline.toArrayLike(Buffer, 'le', 8).copy(instructionData, 9);
-
-    const keys = [
-      { pubkey: matchPDA, isSigner: false, isWritable: true },
-      { pubkey: escrowPDA, isSigner: false, isWritable: true },
-      { pubkey: this.wallet.publicKey, isSigner: true, isWritable: true },
-      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-    ];
-
-    const instruction = {
-      keys,
-      programId: PROGRAM_ID,
-      data: instructionData,
-    };
-
-    const transaction = new Transaction().add(instruction);
-    transaction.feePayer = this.wallet.publicKey;
+    // The program generates its own timestamp using Clock::get()
+    // We need to try the current second (and maybe +1 if there's clock drift)
+    const currentTimestamp = Math.floor(Date.now() / 1000);
     
-    // Retry logic for getting recent blockhash
-    let retries = 3;
-    let lastError;
-    
-    while (retries > 0) {
-      try {
-        const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('finalized');
-        transaction.recentBlockhash = blockhash;
-        transaction.lastValidBlockHeight = lastValidBlockHeight;
-        
-        const signed = await this.wallet.signTransaction(transaction);
-        
-        const signature = await this.connection.sendRawTransaction(signed.serialize(), {
-          skipPreflight: false,
-          preflightCommitment: 'confirmed',
-        });
-        
-        await this.connection.confirmTransaction({
-          signature,
-          blockhash,
-          lastValidBlockHeight,
-        }, 'confirmed');
-        
-        return { signature, matchPubkey: matchPDA };
-      } catch (error: any) {
-        lastError = error;
-        if (error.message?.includes('Attempt to debit an account')) {
-          throw new Error(
-            'Insufficient SOL balance. Please add more SOL to your wallet.'
-          );
+    for (let offset = 0; offset <= 2; offset++) {
+      const timestamp = new BN(currentTimestamp + offset);
+      const [matchPDA] = deriveMatchPDA(this.wallet.publicKey, timestamp);
+      const [escrowPDA] = deriveEscrowPDA(matchPDA);
+
+      const joinDeadline = new BN(
+        currentTimestamp + joinDeadlineMinutes * 60
+      );
+
+      // Build instruction data manually
+      const instructionData = Buffer.alloc(17); // Back to 17 bytes (no timestamp param)
+      // Instruction discriminator for create_match (8 bytes - hash of "global:create_match")
+      const discriminator = Buffer.from([
+        0x6b, 0x02, 0xb8, 0x91, 0x46, 0x8e, 0x11, 0xa5,
+      ]);
+      discriminator.copy(instructionData, 0);
+      instructionData.writeUInt8(stakeTier, 8);
+      joinDeadline.toArrayLike(Buffer, 'le', 8).copy(instructionData, 9);
+
+      const keys = [
+        { pubkey: matchPDA, isSigner: false, isWritable: true },
+        { pubkey: escrowPDA, isSigner: false, isWritable: true },
+        { pubkey: this.wallet.publicKey, isSigner: true, isWritable: true },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      ];
+
+      const instruction = {
+        keys,
+        programId: PROGRAM_ID,
+        data: instructionData,
+      };
+
+      const transaction = new Transaction().add(instruction);
+      transaction.feePayer = this.wallet.publicKey;
+      
+      // Retry logic for getting recent blockhash
+      let retries = 3;
+      let lastError;
+      
+      while (retries > 0) {
+        try {
+          const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('finalized');
+          transaction.recentBlockhash = blockhash;
+          transaction.lastValidBlockHeight = lastValidBlockHeight;
+          
+          const signed = await this.wallet.signTransaction(transaction);
+          
+          const signature = await this.connection.sendRawTransaction(signed.serialize(), {
+            skipPreflight: false,
+            preflightCommitment: 'confirmed',
+          });
+          
+          await this.connection.confirmTransaction({
+            signature,
+            blockhash,
+            lastValidBlockHeight,
+          }, 'confirmed');
+          
+          return { signature, matchPubkey: matchPDA };
+        } catch (error: any) {
+          lastError = error;
+          
+          // If it's a seeds constraint error and we haven't tried all offsets yet, try the next one
+          if (error.message?.includes('ConstraintSeeds') || error.message?.includes('0x7d6')) {
+            if (offset < 2) {
+              console.log(`Timestamp mismatch, trying offset ${offset + 1}...`);
+              break; // Break inner retry loop to try next offset
+            }
+          }
+          
+          if (error.message?.includes('Attempt to debit an account')) {
+            throw new Error(
+              'Insufficient SOL balance. Please add more SOL to your wallet.'
+            );
+          }
+          if (error.message?.includes('blockhash') && retries > 1) {
+            console.log(`Retrying due to blockhash error, ${retries - 1} retries left...`);
+            retries--;
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            continue;
+          }
+          
+          // If this is the last offset and last retry, throw the error
+          if (offset === 2) {
+            throw error;
+          }
+          break; // Try next offset
         }
-        if (error.message?.includes('blockhash') && retries > 1) {
-          console.log(`Retrying due to blockhash error, ${retries - 1} retries left...`);
-          retries--;
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          continue;
-        }
-        throw error;
       }
     }
     
-    throw new Error(`Failed after retries: ${lastError?.message || 'Unknown error'}`);
+    throw new Error(`Failed to create match after trying multiple timestamps`);
   }
 
   async joinMatch(matchPubkey: PublicKey): Promise<string> {
