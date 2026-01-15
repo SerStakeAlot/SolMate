@@ -150,6 +150,49 @@ export default function Home() {
         ))}
       </section>
 
+      {/* Token Banner Section */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.35 }}
+        className="relative mb-8 overflow-hidden"
+      >
+        <a 
+          href="https://pump.fun/coin/5CJN2E6dDU9XxDJnz3ZEELxPP8HsGTKPbsNVB2djpump"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block group"
+        >
+          <div className="glass-card glass-card-hover rounded-2xl p-6 sm:p-8 border-2 border-solana-purple/30 hover:border-solana-purple/60 transition-all">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-solana-purple to-solana-green flex items-center justify-center flex-shrink-0">
+                  <Sparkles className="w-6 h-6 text-white" />
+                </div>
+                <div className="text-center sm:text-left">
+                  <h3 className="text-lg sm:text-xl font-bold text-white mb-1 flex items-center gap-2 justify-center sm:justify-start">
+                    $SOLMATE Token
+                    <span className="px-2 py-0.5 text-xs bg-solana-green/20 text-solana-green rounded-full border border-solana-green/30">
+                      LIVE
+                    </span>
+                  </h3>
+                  <p className="text-sm text-neutral-400">
+                    Trade the official SolMate token on Pump.fun
+                  </p>
+                </div>
+              </div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="btn-glow px-6 py-2.5 text-sm font-semibold rounded-xl text-white whitespace-nowrap"
+              >
+                Trade Now →
+              </motion.div>
+            </div>
+          </div>
+        </a>
+      </motion.section>
+
       {/* CTA Section */}
       <motion.section
         initial={{ opacity: 0, y: 20 }}
