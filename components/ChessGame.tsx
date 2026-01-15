@@ -107,17 +107,29 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     setIsCreatingMatch(true);
     try {
       const client = new EscrowClient(connection, wallet);
+      console.log('Creating match with stake tier:', selectedStakeTier);
+      
       const { signature, matchPubkey } = await client.createMatch(selectedStakeTier, 30);
+      
+      console.log('Match created successfully!');
+      console.log('Signature:', signature);
+      console.log('Match PDA:', matchPubkey.toBase58());
+      console.log('Lobby Code:', matchPubkey.toBase58().slice(0, 4).toUpperCase());
       
       setTxSignature(signature);
       setCurrentMatchPubkey(matchPubkey);
       setMatchCreated(true);
       setCanJoinAt(Date.now() + 3000);
       
-      alert(`Match created! Signature: ${signature.slice(0, 8)}...`);
-    } catch (error) {
+      alert(`Match created!\nLobby Code: ${matchPubkey.toBase58().slice(0, 4).toUpperCase()}\nSignature: ${signature.slice(0, 8)}...`);
+    } catch (error: any) {
       console.error('Error creating match:', error);
-      alert(`Failed to create match: ${error}`);
+      // Check for user rejection
+      if (error.message?.includes('User rejected') || error.message?.includes('rejected')) {
+        alert('Transaction was cancelled');
+      } else {
+        alert(`Failed to create match: ${error.message || error}`);
+      }
     } finally {
       setIsCreatingMatch(false);
     }

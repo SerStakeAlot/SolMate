@@ -200,6 +200,7 @@ export class EscrowClient {
         transaction.lastValidBlockHeight = lastValidBlockHeight;
         
         const signed = await this.wallet.signTransaction(transaction);
+        console.log('Transaction signed, sending to network...');
         
         // Skip preflight simulation because Phantom wallet uses its own RPC
         // which may have cached/stale program code. Send directly to network.
@@ -207,12 +208,15 @@ export class EscrowClient {
           skipPreflight: true,
           preflightCommitment: 'confirmed',
         });
+        console.log('Transaction sent, signature:', signature);
+        console.log('Waiting for confirmation...');
         
         await this.connection.confirmTransaction({
           signature,
           blockhash,
           lastValidBlockHeight,
         }, 'confirmed');
+        console.log('Transaction confirmed!');
         
         return { signature, matchPubkey: matchPDA };
       } catch (error: any) {
