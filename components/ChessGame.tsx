@@ -222,6 +222,97 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     return undefined;
   };
 
+  // Minimax evaluation function for AI
+  const evaluateBoard = (chess: Chess): number => {
+    const board = chess.board();
+    let score = 0;
+    
+    const pieceValues: Record<string, number> = {
+      p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000
+    };
+    
+    // Position bonuses for better play
+    const pawnTable = [
+      [0,  0,  0,  0,  0,  0,  0,  0],
+      [50, 50, 50, 50, 50, 50, 50, 50],
+      [10, 10, 20, 30, 30, 20, 10, 10],
+      [5,  5, 10, 25, 25, 10,  5,  5],
+      [0,  0,  0, 20, 20,  0,  0,  0],
+      [5, -5,-10,  0,  0,-10, -5,  5],
+      [5, 10, 10,-20,-20, 10, 10,  5],
+      [0,  0,  0,  0,  0,  0,  0,  0]
+    ];
+    
+    const knightTable = [
+      [-50,-40,-30,-30,-30,-30,-40,-50],
+      [-40,-20,  0,  0,  0,  0,-20,-40],
+      [-30,  0, 10, 15, 15, 10,  0,-30],
+      [-30,  5, 15, 20, 20, 15,  5,-30],
+      [-30,  0, 15, 20, 20, 15,  0,-30],
+      [-30,  5, 10, 15, 15, 10,  5,-30],
+      [-40,-20,  0,  5,  5,  0,-20,-40],
+      [-50,-40,-30,-30,-30,-30,-40,-50]
+    ];
+
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const piece = board[row][col];
+        if (!piece) continue;
+        
+        let value = pieceValues[piece.type] || 0;
+        
+        // Add positional bonuses
+        if (piece.type === 'p') {
+          value += piece.color === 'w' ? pawnTable[row][col] : pawnTable[7-row][col];
+        } else if (piece.type === 'n') {
+          value += piece.color === 'w' ? knightTable[row][col] : knightTable[7-row][col];
+        }
+        
+        score += piece.color === 'w' ? value : -value;
+      }
+    }
+    
+    // Bonus for checkmate
+    if (chess.isCheckmate()) {
+      return chess.turn() === 'w' ? -100000 : 100000;
+    }
+    
+    return score;
+  };
+
+  // Minimax algorithm with alpha-beta pruning
+  const minimax = (chess: Chess, depth: number, alpha: number, beta: number, maximizing: boolean): number => {
+    if (depth === 0 || chess.isGameOver()) {
+      return evaluateBoard(chess);
+    }
+    
+    const moves = chess.moves({ verbose: true });
+    
+    if (maximizing) {
+      let maxEval = -Infinity;
+      for (const move of moves) {
+        chess.move(move);
+        const evaluation = minimax(chess, depth - 1, alpha, beta, false);
+        chess.undo();
+        maxEval = Math.max(maxEval, evaluation);
+        alpha = Math.max(alpha, evaluation);
+        if (beta <= alpha) break;
+      }
+      return maxEval;
+    } else {
+      let minEval = Infinity;
+      for (const move of moves) {
+        chess.move(move);
+        const evaluation = minimax(chess, depth - 1, alpha, beta, true);
+        chess.undo();
+        minEval = Math.min(minEval, evaluation);
+        beta = Math.min(beta, evaluation);
+        if (beta <= alpha) break;
+      }
+      return minEval;
+    }
+  };
+
   const playComputerMove = React.useCallback(() => {
     const chess = chessRef.current!;
     if (chess.isGameOver()) return;
@@ -230,12 +321,22 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     const moves = chess.moves({ verbose: true }) as Array<any>;
     if (moves.length === 0) return;
 
-    const choice = moves[Math.floor(Math.random() * moves.length)];
-    chess.move({
-      from: choice.from,
-      to: choice.to,
-      promotion: choice.promotion ?? maybeAutoPromote(choice.from, choice.to),
-    } as any);
+    // Use minimax with depth 3 for ~1600-1800 ELO
+    let bestMove = moves[0];
+    let bestValue = Infinity;
+    
+    for (const move of moves) {
+      chess.move(move);
+      const value = minimax(chess, 3, -Infinity, Infinity, true);
+      chess.undo();
+      
+      if (value < bestValue) {
+        bestValue = value;
+        bestMove = move;
+      }
+    }
+
+    chess.move(bestMove);
     setFen(chess.fen());
   }, []);
 
@@ -262,16 +363,28 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       return;
     }
 
+    // Try to make the move - chess.js will handle en passant, castling, etc.
     const promotion = maybeAutoPromote(selectedSquare, square);
-    const move = chess.move({
+    
+    // Build move object - only include promotion if needed
+    const moveOptions: any = {
       from: selectedSquare,
       to: square,
-      promotion,
-    } as any);
+    };
+    
+    if (promotion) {
+      moveOptions.promotion = promotion;
+    }
 
-    if (!move) return;
-    setSelectedSquare(null);
-    setFen(chess.fen());
+    try {
+      const move = chess.move(moveOptions);
+      if (!move) return;
+      setSelectedSquare(null);
+      setFen(chess.fen());
+    } catch (error) {
+      // Invalid move, deselect
+      setSelectedSquare(null);
+    }
   };
 
   useEffect(() => {
