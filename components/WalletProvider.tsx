@@ -14,8 +14,13 @@ export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
   // The network can be set to 'devnet', 'testnet', or 'mainnet-beta'.
   const network = WalletAdapterNetwork.Mainnet;
 
-  // You can also provide a custom RPC endpoint.
-  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+  // Use a more reliable RPC endpoint for mainnet
+  const endpoint = useMemo(() => {
+    // Try using Helius free tier or fallback to public RPC
+    return process.env.NEXT_PUBLIC_RPC_ENDPOINT || 
+           'https://mainnet.helius-rpc.com/?api-key=public' ||
+           'https://api.mainnet-beta.solana.com';
+  }, []);
 
   const wallets = useMemo(
     () => [
