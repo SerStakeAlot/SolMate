@@ -84,7 +84,7 @@ pub fn handler(ctx: Context<ConfirmPayout>) -> Result<()> {
     // Update fee vault stats
     let fee_vault = &mut ctx.accounts.fee_vault;
     if fee_vault.total_collected == 0 {
-        fee_vault.bump = ctx.bumps.fee_vault;
+        fee_vault.bump = *ctx.bumps.get("fee_vault").unwrap();
     }
     fee_vault.total_collected = fee_vault
         .total_collected

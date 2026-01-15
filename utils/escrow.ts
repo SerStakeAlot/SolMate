@@ -9,24 +9,35 @@ import { WalletContextState } from '@solana/wallet-adapter-react';
 
 // BN implementation for timestamp handling
 class BN {
-  private value: number;
+  private value: bigint;
 
-  constructor(value: number) {
-    this.value = value;
+  constructor(value: number | bigint) {
+    this.value = BigInt(value);
   }
 
   toNumber(): number {
-    return this.value;
+    return Number(this.value);
   }
 
-  toArrayLike(buffer: typeof Buffer, endian: 'le' | 'be', length: number): Buffer {
+  toArrayLike(_buffer: typeof Buffer, endian: 'le' | 'be', length: number): Buffer {
     const buf = Buffer.alloc(length);
+    let val = this.value;
+    
+    // Handle negative values by converting to unsigned representation
+    if (val < 0n) {
+      val = (1n << BigInt(length * 8)) + val;
+    }
+    
     if (endian === 'le') {
-      buf.writeUInt32LE(this.value & 0xffffffff, 0);
-      buf.writeUInt32LE(Math.floor(this.value / 0x100000000), 4);
+      for (let i = 0; i < length; i++) {
+        buf[i] = Number(val & 0xffn);
+        val = val >> 8n;
+      }
     } else {
-      buf.writeUInt32BE(Math.floor(this.value / 0x100000000), 0);
-      buf.writeUInt32BE(this.value & 0xffffffff, 4);
+      for (let i = length - 1; i >= 0; i--) {
+        buf[i] = Number(val & 0xffn);
+        val = val >> 8n;
+      }
     }
     return buf;
   }

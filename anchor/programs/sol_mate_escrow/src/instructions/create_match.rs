@@ -51,8 +51,8 @@ pub fn handler(
     match_account.join_deadline = join_deadline;
     match_account.status = MatchStatus::Open;
     match_account.winner = None;
-    match_account.bump = ctx.bumps.match_account;
-    match_account.escrow_bump = ctx.bumps.escrow;
+    match_account.bump = *ctx.bumps.get("match_account").unwrap();
+    match_account.escrow_bump = *ctx.bumps.get("escrow").unwrap();
     
     // Calculate stake amount
     let stake_amount = match_account.stake_amount_lamports();

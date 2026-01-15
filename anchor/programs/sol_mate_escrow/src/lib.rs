@@ -16,9 +16,10 @@ pub mod sol_mate_escrow {
     pub fn create_match(
         ctx: Context<CreateMatch>,
         stake_tier: u8,
+        seed: u64,
         join_deadline: i64,
     ) -> Result<()> {
-        crate::instructions::create_match::handler(ctx, stake_tier, join_deadline)
+        crate::instructions::create_match::handler(ctx, stake_tier, seed, join_deadline)
     }
 
     pub fn join_match(ctx: Context<JoinMatch>) -> Result<()> {
