@@ -106,12 +106,11 @@ class HostedMatchManager {
     const roomId = uuidv4();
     match.roomId = roomId;
 
-    // Randomly assign colors
-    const hostIsWhite = Math.random() < 0.5;
-    const whiteWallet = hostIsWhite ? match.hostWallet : guestWallet;
-    const blackWallet = hostIsWhite ? guestWallet : match.hostWallet;
-    const whiteSocketId = hostIsWhite ? match.hostSocketId : guestSocketId;
-    const blackSocketId = hostIsWhite ? guestSocketId : match.hostSocketId;
+    // Host is always white, joiner is always black (consistent with escrow)
+    const whiteWallet = match.hostWallet;
+    const blackWallet = guestWallet;
+    const whiteSocketId = match.hostSocketId;
+    const blackSocketId = guestSocketId;
 
     const room = gameRoomManager.createRoomFromHosted(
       roomId,
@@ -125,12 +124,12 @@ class HostedMatchManager {
 
     console.log(`Match ${matchCode} joined by ${guestWallet.slice(0, 8)}... Room: ${roomId}`);
 
-    // Notify host that someone joined
+    // Notify host that someone joined (host is always white)
     io.to(match.hostSocketId).emit('match:playerJoined', {
       matchCode,
       roomId,
       guestWallet,
-      yourColor: hostIsWhite ? 'w' : 'b',
+      yourColor: 'w',
     });
 
     // Broadcast match removal from lobby

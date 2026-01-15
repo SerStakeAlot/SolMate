@@ -1,21 +1,28 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Trophy, RefreshCw, X, CheckCircle2 } from 'lucide-react';
+import { Swords, Trophy, RefreshCw, X, CheckCircle2, Wifi, WifiOff, Users } from 'lucide-react';
+import { io, Socket } from 'socket.io-client';
 
 import { Chess } from 'chess.js';
 import { EscrowClient, STAKE_TIERS, getStakeTierInfo, lamportsToSol } from '@/utils/escrow';
 
 type Mode = 'practice' | 'wager';
+type PlayerColor = 'w' | 'b' | null;
 
 type ChessGameProps = {
   initialMode?: Mode;
   showModeSelector?: boolean;
   matchPubkey?: string;
+  playerRole?: 'host' | 'join'; // host = white, join = black
+  matchCode?: string;
+  initialStakeTier?: number;
 };
+
+const BACKEND_URL = 'https://solmate-production.up.railway.app';
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] as const;
 
@@ -36,13 +43,16 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   initialMode = 'practice',
   showModeSelector = true,
   matchPubkey,
+  playerRole,
+  matchCode,
+  initialStakeTier = 4,
 }) => {
   const wallet = useWallet();
   const { connection } = useConnection();
   const { connected, publicKey } = wallet;
   
   const [mode, setMode] = useState<Mode>(initialMode);
-  const [selectedStakeTier, setSelectedStakeTier] = useState(4); // Default to 0.05 SOL test tier
+  const [selectedStakeTier, setSelectedStakeTier] = useState(initialStakeTier);
   const [isCreatingMatch, setIsCreatingMatch] = useState(false);
   const [isJoiningMatch, setIsJoiningMatch] = useState(false);
   const [isCancellingMatch, setIsCancellingMatch] = useState(false);
@@ -57,6 +67,15 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [txSignature, setTxSignature] = useState<string>('');
   const [canJoinAt, setCanJoinAt] = useState<number>(0);
   const [showResultModal, setShowResultModal] = useState(false);
+  
+  // Multiplayer state
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [isMultiplayer, setIsMultiplayer] = useState(!!playerRole);
+  const [playerColor, setPlayerColor] = useState<PlayerColor>(playerRole === 'host' ? 'w' : playerRole === 'join' ? 'b' : null);
+  const [opponentConnected, setOpponentConnected] = useState(false);
+  const [gameRoomId, setGameRoomId] = useState<string | null>(null); // This is the backend roomId, not matchCode
+  const [dynamicPlayerRole, setDynamicPlayerRole] = useState<'host' | 'join' | undefined>(playerRole);
+  const actualPlayerRole = dynamicPlayerRole || playerRole;
 
   const chessRef = useRef<Chess | null>(null);
   if (!chessRef.current) {
@@ -65,6 +84,135 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
   const [fen, setFen] = useState(() => chessRef.current!.fen());
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+
+  // WebSocket connection for multiplayer
+  useEffect(() => {
+    if (!isMultiplayer || !publicKey) return;
+    
+    // For host, we need matchPubkey; for joiner, we need matchCode
+    if (actualPlayerRole === 'host' && !currentMatchPubkey) {
+      console.log('Host waiting for matchPubkey...');
+      return;
+    }
+    if (actualPlayerRole === 'join' && !matchCode) {
+      console.log('Joiner waiting for matchCode...');
+      return;
+    }
+    
+    console.log('Connecting to game server:', actualPlayerRole === 'host' ? `pubkey=${currentMatchPubkey?.toBase58()}` : `code=${matchCode}`);
+    
+    const newSocket = io(BACKEND_URL, {
+      transports: ['websocket', 'polling'],
+    });
+    
+    newSocket.on('connect', () => {
+      console.log('Connected to game server, socket id:', newSocket.id);
+      
+      // Register player first
+      newSocket.emit('player:register', { walletAddress: publicKey.toString() });
+    });
+    
+    // After registration, join or host the match
+    newSocket.on('player:registered', () => {
+      console.log('Player registered');
+      
+      if (actualPlayerRole === 'host') {
+        // Host registers their match with the backend
+        console.log('Hosting match with pubkey:', currentMatchPubkey?.toBase58());
+        newSocket.emit('match:host', {
+          stakeTier: selectedStakeTier,
+          matchPubkey: currentMatchPubkey?.toBase58(),
+          joinDeadlineMinutes: 30,
+        });
+      } else {
+        // Joiner joins by match code
+        console.log('Joining match with code:', matchCode);
+        newSocket.emit('match:join', { 
+          matchCode: matchCode,
+          guestWallet: publicKey.toString(),
+        });
+      }
+    });
+    
+    // Host receives hosted confirmation
+    newSocket.on('match:hosted', ({ matchCode: code }) => {
+      console.log('Match hosted with code:', code);
+      // Host waits for opponent to join
+    });
+    
+    // Host receives notification when guest joins
+    newSocket.on('match:playerJoined', ({ roomId, guestWallet, yourColor }) => {
+      console.log('Opponent joined! Room:', roomId, 'My color:', yourColor);
+      setGameRoomId(roomId);
+      setPlayerColor(yourColor);
+      setOpponentConnected(true);
+    });
+    
+    // Guest receives join confirmation
+    newSocket.on('match:joined', ({ roomId, yourColor, opponent }) => {
+      console.log('Joined match! Room:', roomId, 'My color:', yourColor, 'Opponent:', opponent);
+      setGameRoomId(roomId);
+      setPlayerColor(yourColor);
+      setOpponentConnected(true);
+    });
+    
+    // Join error
+    newSocket.on('match:joinError', ({ error }) => {
+      console.error('Failed to join match:', error);
+      alert(`Failed to join match: ${error}`);
+    });
+    
+    // Game start notification
+    newSocket.on('game:start', ({ whiteTimeMs, blackTimeMs }) => {
+      console.log('Game started! White time:', whiteTimeMs, 'Black time:', blackTimeMs);
+      setOpponentConnected(true);
+    });
+    
+    // Receive opponent's move
+    newSocket.on('game:move', ({ move, timeUpdate }) => {
+      console.log('Received move from opponent:', move);
+      const chess = chessRef.current!;
+      try {
+        // The move object has { from, to, san, promotion }
+        chess.move({ from: move.from, to: move.to, promotion: move.promotion });
+        setFen(chess.fen());
+      } catch (e) {
+        console.error('Invalid move received:', e);
+      }
+    });
+    
+    // Game end notification
+    newSocket.on('game:end', ({ winner, reason, yourColor }) => {
+      console.log('Game over:', winner, reason, 'My color:', yourColor);
+      setGameWinner(winner);
+      setShowResultModal(true);
+    });
+    
+    newSocket.on('disconnect', () => {
+      console.log('Disconnected from game server');
+    });
+    
+    newSocket.on('error', ({ message }) => {
+      console.error('Socket error:', message);
+    });
+    
+    setSocket(newSocket);
+    
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [isMultiplayer, publicKey, matchCode, actualPlayerRole, currentMatchPubkey, selectedStakeTier]);
+  
+  // Send move to opponent
+  const sendMove = useCallback((from: string, to: string, san: string, promotion?: string) => {
+    if (socket && isMultiplayer && gameRoomId) {
+      console.log('Sending move to server:', { roomId: gameRoomId, from, to, san });
+      socket.emit('game:makeMove', { 
+        roomId: gameRoomId,
+        move: { from, to, san, promotion }
+      });
+    }
+  }, [socket, isMultiplayer, gameRoomId]);
 
   const board = useMemo(() => {
     return chessRef.current!.board();
@@ -123,6 +271,11 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setCurrentMatchPubkey(matchPubkey);
       setMatchCreated(true);
       setCanJoinAt(Date.now() + 3000);
+      
+      // Enable multiplayer mode as host
+      setIsMultiplayer(true);
+      setPlayerColor('w'); // Host is always white
+      setDynamicPlayerRole('host');
       
       // Register the match with the WebSocket server for lobby discovery
       try {
@@ -450,6 +603,14 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
     if (chess.isGameOver()) return;
 
+    // In multiplayer, only allow moves on your turn with your color
+    if (isMultiplayer && playerColor) {
+      if (chess.turn() !== playerColor) {
+        console.log('Not your turn! You are', playerColor, 'but it is', chess.turn(), 'to move');
+        return;
+      }
+    }
+
     if (mode === 'practice') {
       if (chess.turn() !== 'w') return;
     }
@@ -457,8 +618,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     if (!selectedSquare) {
       const piece = chess.get(square as any) as any;
       if (!piece) return;
+      
+      // In multiplayer, only select your own pieces
+      if (isMultiplayer && playerColor && piece.color !== playerColor) return;
+      
       if (mode === 'practice' && piece.color !== 'w') return;
-      if (mode === 'wager' && piece.color !== chess.turn()) return;
+      if (mode === 'wager' && !isMultiplayer && piece.color !== chess.turn()) return;
       setSelectedSquare(square);
       return;
     }
@@ -486,6 +651,11 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       if (!move) return;
       setSelectedSquare(null);
       setFen(chess.fen());
+      
+      // Send move to opponent in multiplayer
+      if (isMultiplayer) {
+        sendMove(selectedSquare, square, move.san, promotion);
+      }
     } catch (error) {
       // Invalid move, deselect
       setSelectedSquare(null);
@@ -535,6 +705,32 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                   <span>Pot: <span className="text-solana-green font-semibold">{matchInfo.pot}</span></span>
                 </div>
               </div>
+              {/* Multiplayer Status */}
+              {isMultiplayer && (
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      {socket?.connected ? (
+                        <Wifi className="h-3 w-3 text-green-400" />
+                      ) : (
+                        <WifiOff className="h-3 w-3 text-red-400" />
+                      )}
+                      <span className={socket?.connected ? 'text-green-400' : 'text-red-400'}>
+                        {socket?.connected ? 'Connected' : 'Connecting...'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Users className={`h-3 w-3 ${opponentConnected ? 'text-green-400' : 'text-yellow-400'}`} />
+                      <span className={opponentConnected ? 'text-green-400' : 'text-yellow-400'}>
+                        {opponentConnected ? 'Opponent ready' : 'Waiting for opponent...'}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-neutral-500 mt-2">
+                    You are playing as <span className="font-bold text-white">{playerColor === 'w' ? 'White' : 'Black'}</span>
+                  </p>
+                </div>
+              )}
               {/* Lobby Code for sharing */}
               {currentMatchPubkey && (
                 <div className="mt-3 pt-3 border-t border-white/10">
