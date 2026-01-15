@@ -114,14 +114,36 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       console.log('Match created successfully!');
       console.log('Signature:', signature);
       console.log('Match PDA:', matchPubkey.toBase58());
-      console.log('Lobby Code:', matchPubkey.toBase58().slice(0, 4).toUpperCase());
+      const lobbyCode = matchPubkey.toBase58().slice(0, 4).toUpperCase();
+      console.log('Lobby Code:', lobbyCode);
       
       setTxSignature(signature);
       setCurrentMatchPubkey(matchPubkey);
       setMatchCreated(true);
       setCanJoinAt(Date.now() + 3000);
       
-      alert(`Match created!\nLobby Code: ${matchPubkey.toBase58().slice(0, 4).toUpperCase()}\nSignature: ${signature.slice(0, 8)}...`);
+      // Register the match with the WebSocket server for lobby discovery
+      try {
+        const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+        const response = await fetch(`${BACKEND_URL}/api/matches`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            matchCode: lobbyCode,
+            matchPubkey: matchPubkey.toBase58(),
+            hostWallet: publicKey.toBase58(),
+            stakeTier: selectedStakeTier,
+            joinDeadline: Date.now() + 30 * 60 * 1000, // 30 min deadline
+          }),
+        });
+        if (response.ok) {
+          console.log('Match registered with lobby server');
+        }
+      } catch (e) {
+        console.log('Could not register match with lobby server (offline mode)');
+      }
+      
+      alert(`Match created!\nLobby Code: ${lobbyCode}\nSignature: ${signature.slice(0, 8)}...`);
     } catch (error: any) {
       console.error('Error creating match:', error);
       // Check for user rejection
