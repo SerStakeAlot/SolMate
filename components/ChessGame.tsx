@@ -430,6 +430,29 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                   <span>Pot: <span className="text-solana-green font-semibold">{matchInfo.pot}</span></span>
                 </div>
               </div>
+              {/* Lobby Code for sharing */}
+              {currentMatchPubkey && (
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-neutral-400">Lobby Code:</span>
+                    <div className="flex items-center gap-2">
+                      <code className="text-sm font-mono text-solana-green bg-black/30 px-2 py-1 rounded">
+                        {currentMatchPubkey.toBase58().slice(0, 8)}
+                      </code>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(currentMatchPubkey.toBase58());
+                          alert('Match code copied! Share the full URL with your opponent.');
+                        }}
+                        className="text-xs text-solana-purple hover:text-solana-green transition-colors"
+                      >
+                        Copy Full
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-neutral-500 mt-1">Share this code with your opponent to join</p>
+                </div>
+              )}
             </div>
           )}
 
