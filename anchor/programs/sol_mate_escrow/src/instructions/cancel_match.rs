@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program::{transfer, Transfer};
 use crate::state::*;
 use crate::errors::*;
 
@@ -25,19 +26,36 @@ pub struct CancelMatch<'info> {
         constraint = player_a.key() == match_account.player_a @ EscrowError::OnlyCreatorCanCancel
     )]
     pub player_a: Signer<'info>,
+    
+    pub system_program: Program<'info, System>,
 }
 
 pub fn handler(ctx: Context<CancelMatch>) -> Result<()> {
-    let match_account = &mut ctx.accounts.match_account;
+    let match_account = &ctx.accounts.match_account;
     
-    // Refund player A's stake
+    // Get stake amount before we modify anything
     let stake_amount = match_account.stake_amount_lamports();
     
-    **ctx.accounts.escrow.try_borrow_mut_lamports()? -= stake_amount;
-    **ctx.accounts.player_a.try_borrow_mut_lamports()? += stake_amount;
+    // Transfer stake back to player A using PDA signer seeds
+    let match_key = match_account.key();
+    let escrow_bump = match_account.escrow_bump;
+    let escrow_seeds: &[&[u8]] = &[
+        b"escrow",
+        match_key.as_ref(),
+        &[escrow_bump],
+    ];
     
-    // Update status
-    match_account.status = MatchStatus::Cancelled;
+    transfer(
+        CpiContext::new_with_signer(
+            ctx.accounts.system_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.escrow.to_account_info(),
+                to: ctx.accounts.player_a.to_account_info(),
+            },
+            &[escrow_seeds],
+        ),
+        stake_amount,
+    )?;
     
     msg!("Match cancelled. Stake refunded to player A.");
     

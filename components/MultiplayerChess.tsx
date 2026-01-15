@@ -7,7 +7,7 @@ import { Chess } from 'chess.js';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Trophy, Swords, LogOut, Users } from 'lucide-react';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+const BACKEND_URL = 'https://solmate-production.up.railway.app';
 
 interface MatchmakingProps {
   onCancel: () => void;

@@ -42,9 +42,11 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const { connected, publicKey } = wallet;
   
   const [mode, setMode] = useState<Mode>(initialMode);
-  const [selectedStakeTier, setSelectedStakeTier] = useState(1);
+  const [selectedStakeTier, setSelectedStakeTier] = useState(4); // Default to 0.05 SOL test tier
   const [isCreatingMatch, setIsCreatingMatch] = useState(false);
   const [isJoiningMatch, setIsJoiningMatch] = useState(false);
+  const [isCancellingMatch, setIsCancellingMatch] = useState(false);
+  const [pendingMatchPubkey, setPendingMatchPubkey] = useState<string>('');
   const [matchCreated, setMatchCreated] = useState(false);
   const [currentMatchPubkey, setCurrentMatchPubkey] = useState<PublicKey | null>(
     matchPubkey ? new PublicKey(matchPubkey) : null
@@ -124,7 +126,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       
       // Register the match with the WebSocket server for lobby discovery
       try {
-        const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+        const BACKEND_URL = 'https://solmate-production.up.railway.app';
         const response = await fetch(`${BACKEND_URL}/api/matches`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -154,6 +156,75 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       }
     } finally {
       setIsCreatingMatch(false);
+    }
+  };
+
+  const handleRecoverMatch = async () => {
+    if (!connected || !publicKey) {
+      alert('Please connect your wallet');
+      return;
+    }
+
+    if (!pendingMatchPubkey) {
+      alert('Please enter a match PDA');
+      return;
+    }
+
+    try {
+      const matchPda = new PublicKey(pendingMatchPubkey);
+      const client = new EscrowClient(connection, wallet);
+      const matchData = await client.fetchMatch(matchPda);
+      
+      if (!matchData) {
+        alert('Match not found on chain');
+        return;
+      }
+
+      if (matchData.playerA.toBase58() !== publicKey.toBase58()) {
+        alert('You are not the creator of this match');
+        return;
+      }
+
+      setCurrentMatchPubkey(matchPda);
+      setSelectedStakeTier(matchData.stakeTier);
+      setMatchCreated(true);
+      alert('Match recovered! You can now cancel it to get your SOL back.');
+    } catch (error: any) {
+      console.error('Error recovering match:', error);
+      alert('Invalid match address or error fetching match');
+    }
+  };
+
+  const handleCancelMatch = async () => {
+    if (!connected || !publicKey) {
+      alert('Please connect your wallet');
+      return;
+    }
+
+    if (!currentMatchPubkey) {
+      alert('No match to cancel');
+      return;
+    }
+
+    setIsCancellingMatch(true);
+    try {
+      const client = new EscrowClient(connection, wallet);
+      const signature = await client.cancelMatch(currentMatchPubkey);
+      
+      console.log('Match cancelled! Signature:', signature);
+      setTxSignature(signature);
+      setMatchCreated(false);
+      setCurrentMatchPubkey(null);
+      alert(`Match cancelled! Your SOL has been refunded.\nSignature: ${signature.slice(0, 8)}...`);
+    } catch (error: any) {
+      console.error('Error cancelling match:', error);
+      if (error.message?.includes('User rejected') || error.message?.includes('rejected')) {
+        alert('Transaction was cancelled');
+      } else {
+        alert(`Failed to cancel match: ${error.message || error}`);
+      }
+    } finally {
+      setIsCancellingMatch(false);
     }
   };
 
@@ -439,7 +510,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     const tier = getStakeTierInfo(selectedStakeTier);
     return {
       stake: tier.label,
-      pot: `${tier.tier * 1.8} SOL`,
+      pot: `${(tier.stake * 2 * 0.9).toFixed(2)} SOL`, // 2 players, minus 10% fee
     };
   };
 
@@ -485,6 +556,13 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     </div>
                   </div>
                   <p className="text-[10px] text-neutral-500 mt-1">Share this code with your opponent to join</p>
+                  <button
+                    onClick={handleCancelMatch}
+                    disabled={isCancellingMatch}
+                    className="mt-3 w-full py-2 px-4 bg-red-600/20 border border-red-500/30 text-red-400 hover:bg-red-600/30 hover:text-red-300 rounded-lg text-sm font-medium transition-all disabled:opacity-50"
+                  >
+                    {isCancellingMatch ? 'Cancelling...' : 'Cancel Match & Refund SOL'}
+                  </button>
                 </div>
               )}
             </div>
@@ -674,6 +752,25 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                         >
                           {isJoiningMatch ? 'Joining...' : 'Join Match'}
                         </motion.button>
+
+                        {/* Recover Match Section */}
+                        <div className="mt-4 pt-4 border-t border-white/10">
+                          <p className="text-xs text-neutral-500 mb-2">Have an existing match?</p>
+                          <input
+                            type="text"
+                            value={pendingMatchPubkey}
+                            onChange={(e) => setPendingMatchPubkey(e.target.value)}
+                            placeholder="Enter Match PDA"
+                            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs font-mono text-white placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-solana-purple"
+                          />
+                          <button
+                            onClick={handleRecoverMatch}
+                            disabled={!pendingMatchPubkey}
+                            className="mt-2 w-full py-2 px-4 bg-yellow-600/20 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-600/30 rounded-lg text-xs font-medium transition-all disabled:opacity-50"
+                          >
+                            Recover Match
+                          </button>
+                        </div>
                       </>
                     )}
                   </div>

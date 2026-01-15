@@ -42,8 +42,8 @@ pub fn handler(
     // Log the seed used for PDA derivation (this also silences unused warning)
     msg!("Creating match with seed: {}", seed);
     
-    // Validate stake tier
-    require!(stake_tier <= 3, EscrowError::InvalidStakeTier);
+    // Validate stake tier (0-3 are normal tiers, 4 is test tier)
+    require!(stake_tier <= 4, EscrowError::InvalidStakeTier);
     
     let match_account = &mut ctx.accounts.match_account;
     

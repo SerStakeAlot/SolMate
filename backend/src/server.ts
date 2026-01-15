@@ -50,6 +50,22 @@ app.get('/lobby', (req, res) => {
   res.json({ matches });
 });
 
+// Register a new match (POST /api/matches)
+app.post('/api/matches', (req, res) => {
+  const { matchCode, matchPubkey, hostWallet, stakeTier, joinDeadline } = req.body;
+  
+  if (!matchCode || !matchPubkey || !hostWallet) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  console.log(`Registering match via REST: ${matchCode} from ${hostWallet}`);
+  
+  // Use hostMatch with empty socketId for REST-based registration
+  hostedMatchManager.hostMatch(hostWallet, '', stakeTier, matchPubkey, 30, io);
+  
+  res.json({ success: true, matchCode });
+});
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);

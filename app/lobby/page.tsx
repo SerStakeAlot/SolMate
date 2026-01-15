@@ -30,7 +30,7 @@ interface HostedMatch {
   joinDeadline: number;
 }
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+const BACKEND_URL = 'https://solmate-production.up.railway.app';
 
 export default function LobbyPage() {
   const router = useRouter();

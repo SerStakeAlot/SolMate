@@ -23,7 +23,11 @@ export function WalletBalanceWarning() {
 
     const checkBalance = async () => {
       try {
+        console.log('Checking balance for:', publicKey.toBase58());
+        console.log('Using connection endpoint:', connection.rpcEndpoint);
         const bal = await connection.getBalance(publicKey);
+        console.log('Raw balance (lamports):', bal);
+        console.log('Balance in SOL:', bal / LAMPORTS_PER_SOL);
         setBalance(bal / LAMPORTS_PER_SOL);
       } catch (error) {
         console.error('Error checking balance:', error);
@@ -43,8 +47,8 @@ export function WalletBalanceWarning() {
     return null;
   }
 
-  // Show warning if balance is low (less than 1 SOL on devnet)
-  if (balance !== null && balance < 1) {
+  // Show warning if balance is low (less than 0.6 SOL for a match)
+  if (balance !== null && balance < 0.6) {
     return (
       <AnimatePresence>
         <motion.div
@@ -69,15 +73,6 @@ export function WalletBalanceWarning() {
                 <p className="text-sm text-neutral-400 mb-3">
                   Your wallet has <span className="text-yellow-400 font-mono">{balance.toFixed(4)} SOL</span>. You need at least 0.5 SOL to play.
                 </p>
-                <a
-                  href="https://faucet.solana.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-medium text-solana-green hover:text-white transition-colors"
-                >
-                  Get Devnet SOL
-                  <ExternalLink className="h-3 w-3" />
-                </a>
               </div>
             </div>
           </div>
