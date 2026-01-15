@@ -151,6 +151,15 @@ export class EscrowClient {
       Math.floor(Date.now() / 1000) + joinDeadlineMinutes * 60
     );
 
+    // Debug logging
+    console.log('=== CREATE MATCH DEBUG (v2) ===');
+    console.log('Seed (BigInt):', seed.toNumber());
+    console.log('Seed bytes:', seed.toArrayLike(Buffer, 'le', 8).toString('hex'));
+    console.log('Player:', this.wallet.publicKey.toBase58());
+    console.log('Match PDA:', matchPDA.toBase58());
+    console.log('Escrow PDA:', escrowPDA.toBase58());
+    console.log('Program ID:', PROGRAM_ID.toBase58());
+
     // Build instruction data manually
     const instructionData = Buffer.alloc(25); // 8 (discriminator) + 1 (stake_tier) + 8 (seed) + 8 (join_deadline)
     // Instruction discriminator for create_match (8 bytes - hash of "global:create_match")
@@ -161,6 +170,8 @@ export class EscrowClient {
     instructionData.writeUInt8(stakeTier, 8);
     seed.toArrayLike(Buffer, 'le', 8).copy(instructionData, 9);
     joinDeadline.toArrayLike(Buffer, 'le', 8).copy(instructionData, 17);
+
+    console.log('Instruction data:', instructionData.toString('hex'));
 
     const keys = [
       { pubkey: matchPDA, isSigner: false, isWritable: true },
