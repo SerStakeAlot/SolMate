@@ -46,4 +46,13 @@ pub enum EscrowError {
     
     #[msg("Insufficient funds in fee vault")]
     InsufficientFunds,
+    
+    #[msg("Match already has a winner declared")]
+    MatchAlreadyHasWinner,
+    
+    #[msg("Invalid Player B address")]
+    InvalidPlayerB,
+    
+    #[msg("Caller is not a player in this match")]
+    NotAPlayer,
 }

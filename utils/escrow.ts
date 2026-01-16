@@ -9,24 +9,35 @@ import { WalletContextState } from '@solana/wallet-adapter-react';
 
 // BN implementation for timestamp handling
 class BN {
-  private value: number;
+  private value: bigint;
 
-  constructor(value: number) {
-    this.value = value;
+  constructor(value: number | bigint) {
+    this.value = BigInt(value);
   }
 
   toNumber(): number {
-    return this.value;
+    return Number(this.value);
   }
 
-  toArrayLike(buffer: typeof Buffer, endian: 'le' | 'be', length: number): Buffer {
+  toArrayLike(_buffer: typeof Buffer, endian: 'le' | 'be', length: number): Buffer {
     const buf = Buffer.alloc(length);
+    let val = this.value;
+    
+    // Handle negative values by converting to unsigned representation
+    if (val < 0n) {
+      val = (1n << BigInt(length * 8)) + val;
+    }
+    
     if (endian === 'le') {
-      buf.writeUInt32LE(this.value & 0xffffffff, 0);
-      buf.writeUInt32LE(Math.floor(this.value / 0x100000000), 4);
+      for (let i = 0; i < length; i++) {
+        buf[i] = Number(val & 0xffn);
+        val = val >> 8n;
+      }
     } else {
-      buf.writeUInt32BE(Math.floor(this.value / 0x100000000), 0);
-      buf.writeUInt32BE(this.value & 0xffffffff, 4);
+      for (let i = length - 1; i >= 0; i--) {
+        buf[i] = Number(val & 0xffn);
+        val = val >> 8n;
+      }
     }
     return buf;
   }
@@ -141,6 +152,15 @@ export class EscrowClient {
       Math.floor(Date.now() / 1000) + joinDeadlineMinutes * 60
     );
 
+    // Debug logging
+    console.log('=== CREATE MATCH DEBUG (v2) ===');
+    console.log('Seed (BigInt):', seed.toNumber());
+    console.log('Seed bytes:', seed.toArrayLike(Buffer, 'le', 8).toString('hex'));
+    console.log('Player:', this.wallet.publicKey.toBase58());
+    console.log('Match PDA:', matchPDA.toBase58());
+    console.log('Escrow PDA:', escrowPDA.toBase58());
+    console.log('Program ID:', PROGRAM_ID.toBase58());
+
     // Build instruction data manually
     const instructionData = Buffer.alloc(25); // 8 (discriminator) + 1 (stake_tier) + 8 (seed) + 8 (join_deadline)
     // Instruction discriminator for create_match (8 bytes - hash of "global:create_match")
@@ -151,6 +171,8 @@ export class EscrowClient {
     instructionData.writeUInt8(stakeTier, 8);
     seed.toArrayLike(Buffer, 'le', 8).copy(instructionData, 9);
     joinDeadline.toArrayLike(Buffer, 'le', 8).copy(instructionData, 17);
+
+    console.log('Instruction data:', instructionData.toString('hex'));
 
     const keys = [
       { pubkey: matchPDA, isSigner: false, isWritable: true },
@@ -179,17 +201,46 @@ export class EscrowClient {
         transaction.lastValidBlockHeight = lastValidBlockHeight;
         
         const signed = await this.wallet.signTransaction(transaction);
+        console.log('Transaction signed, sending to network...');
         
+        // Skip preflight simulation because Phantom wallet uses its own RPC
+        // which may have cached/stale program code. Send directly to network.
         const signature = await this.connection.sendRawTransaction(signed.serialize(), {
-          skipPreflight: false,
+          skipPreflight: true,
           preflightCommitment: 'confirmed',
         });
+        console.log('Transaction sent, signature:', signature);
+        console.log('Waiting for confirmation...');
         
-        await this.connection.confirmTransaction({
+        const confirmation = await this.connection.confirmTransaction({
           signature,
           blockhash,
           lastValidBlockHeight,
         }, 'confirmed');
+        
+        // Check if the transaction actually succeeded
+        if (confirmation.value.err) {
+          console.error('Transaction failed:', confirmation.value.err);
+          throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+        }
+        
+        // Double-check by fetching the transaction
+        const txResult = await this.connection.getTransaction(signature, { 
+          maxSupportedTransactionVersion: 0,
+          commitment: 'confirmed'
+        });
+        
+        if (!txResult) {
+          console.error('Transaction not found after confirmation');
+          throw new Error('Transaction not found on-chain after confirmation. Please try again.');
+        }
+        
+        if (txResult.meta?.err) {
+          console.error('Transaction execution failed:', txResult.meta.err);
+          throw new Error(`Transaction execution failed: ${JSON.stringify(txResult.meta.err)}`);
+        }
+        
+        console.log('Transaction confirmed and verified!');
         
         return { signature, matchPubkey: matchPDA };
       } catch (error: any) {
@@ -250,7 +301,7 @@ export class EscrowClient {
     const signed = await this.wallet.signTransaction(transaction);
     
     try {
-      const signature = await this.connection.sendRawTransaction(signed.serialize());
+      const signature = await this.connection.sendRawTransaction(signed.serialize(), { skipPreflight: true });
       await this.connection.confirmTransaction(signature);
       return signature;
     } catch (error: any) {
@@ -295,7 +346,7 @@ export class EscrowClient {
     ).blockhash;
 
     const signed = await this.wallet.signTransaction(transaction);
-    const signature = await this.connection.sendRawTransaction(signed.serialize());
+    const signature = await this.connection.sendRawTransaction(signed.serialize(), { skipPreflight: true });
     await this.connection.confirmTransaction(signature);
 
     return signature;
@@ -344,7 +395,7 @@ export class EscrowClient {
     ).blockhash;
 
     const signed = await this.wallet.signTransaction(transaction);
-    const signature = await this.connection.sendRawTransaction(signed.serialize());
+    const signature = await this.connection.sendRawTransaction(signed.serialize(), { skipPreflight: true });
     await this.connection.confirmTransaction(signature);
 
     return signature;
@@ -359,61 +410,15 @@ export class EscrowClient {
 
     // Build instruction data manually
     const instructionData = Buffer.alloc(8);
-    // Instruction discriminator for cancel_match
+    // Instruction discriminator for cancel_match: sha256("global:cancel_match")[0..8]
     const discriminator = Buffer.from([
-      0xc1, 0x5d, 0x8e, 0x2a, 0x7f, 0x9b, 0x3c, 0x4d,
+      0x8e, 0x88, 0xf7, 0x2d, 0x5c, 0x70, 0xb4, 0x53,
     ]);
     discriminator.copy(instructionData, 0);
 
     const keys = [
       { pubkey: matchPubkey, isSigner: false, isWritable: true },
       { pubkey: escrowPDA, isSigner: false, isWritable: true },
-      { pubkey: this.wallet.publicKey, isSigner: true, isWritable: true },
-    ];
-
-    const instruction = {
-      keys,
-      programId: PROGRAM_ID,
-      data: instructionData,
-    };
-
-    const transaction = new Transaction().add(instruction);
-    transaction.feePayer = this.wallet.publicKey;
-    transaction.recentBlockhash = (
-      await this.connection.getLatestBlockhash()
-    ).blockhash;
-
-    const signed = await this.wallet.signTransaction(transaction);
-    const signature = await this.connection.sendRawTransaction(signed.serialize());
-    await this.connection.confirmTransaction(signature);
-
-    return signature;
-  }
-
-  async abandonMatch(
-    matchPubkey: PublicKey,
-    playerA: PublicKey,
-    playerB: PublicKey
-  ): Promise<string> {
-    if (!this.wallet.publicKey || !this.wallet.signTransaction) {
-      throw new Error('Wallet not connected');
-    }
-
-    const [escrowPDA] = deriveEscrowPDA(matchPubkey);
-
-    // Build instruction data manually
-    const instructionData = Buffer.alloc(8);
-    // Instruction discriminator for abandon_match (SHA256("global:abandon_match") first 8 bytes)
-    const discriminator = Buffer.from([
-      0xb1, 0x2e, 0x7a, 0x4d, 0x9f, 0x5c, 0x8b, 0x3a,
-    ]);
-    discriminator.copy(instructionData, 0);
-
-    const keys = [
-      { pubkey: matchPubkey, isSigner: false, isWritable: true },
-      { pubkey: escrowPDA, isSigner: false, isWritable: true },
-      { pubkey: playerA, isSigner: false, isWritable: true },
-      { pubkey: playerB, isSigner: false, isWritable: true },
       { pubkey: this.wallet.publicKey, isSigner: true, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ];
@@ -431,17 +436,17 @@ export class EscrowClient {
     ).blockhash;
 
     const signed = await this.wallet.signTransaction(transaction);
-    const signature = await this.connection.sendRawTransaction(signed.serialize());
+    const signature = await this.connection.sendRawTransaction(signed.serialize(), { skipPreflight: true });
     await this.connection.confirmTransaction(signature);
 
     return signature;
   }
 
-  async forceRefund(
-    matchPubkey: PublicKey,
-    playerA: PublicKey,
-    playerB: PublicKey
-  ): Promise<string> {
+  /**
+   * Abandon an active match and refund both players.
+   * Can be called by either player when the match has no winner.
+   */
+  async abandonMatch(matchPubkey: PublicKey, playerA: PublicKey, playerB: PublicKey): Promise<string> {
     if (!this.wallet.publicKey || !this.wallet.signTransaction) {
       throw new Error('Wallet not connected');
     }
@@ -450,10 +455,9 @@ export class EscrowClient {
 
     // Build instruction data manually
     const instructionData = Buffer.alloc(8);
-    // Instruction discriminator for force_refund (SHA256("global:force_refund") first 8 bytes)
-    const discriminator = Buffer.from([
-      0xe8, 0x1c, 0x3d, 0x9a, 0x6b, 0x2f, 0x7e, 0x5c,
-    ]);
+    // Instruction discriminator for abandon_match: sha256("global:abandon_match")[0..8]
+    // [150,220,114,43,193,29,117,253]
+    const discriminator = Buffer.from([150, 220, 114, 43, 193, 29, 117, 253]);
     discriminator.copy(instructionData, 0);
 
     const keys = [
@@ -461,7 +465,7 @@ export class EscrowClient {
       { pubkey: escrowPDA, isSigner: false, isWritable: true },
       { pubkey: playerA, isSigner: false, isWritable: true },
       { pubkey: playerB, isSigner: false, isWritable: true },
-      { pubkey: this.wallet.publicKey, isSigner: true, isWritable: true },
+      { pubkey: this.wallet.publicKey, isSigner: true, isWritable: false },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ];
 
@@ -478,7 +482,52 @@ export class EscrowClient {
     ).blockhash;
 
     const signed = await this.wallet.signTransaction(transaction);
-    const signature = await this.connection.sendRawTransaction(signed.serialize());
+    const signature = await this.connection.sendRawTransaction(signed.serialize(), { skipPreflight: true });
+    await this.connection.confirmTransaction(signature);
+
+    return signature;
+  }
+
+  /**
+   * Force refund for a Finished match where payout failed.
+   * Splits remaining escrow balance between both players.
+   */
+  async forceRefund(matchPubkey: PublicKey, playerA: PublicKey, playerB: PublicKey): Promise<string> {
+    if (!this.wallet.publicKey || !this.wallet.signTransaction) {
+      throw new Error('Wallet not connected');
+    }
+
+    const [escrowPDA] = deriveEscrowPDA(matchPubkey);
+
+    // Build instruction data manually
+    const instructionData = Buffer.alloc(8);
+    // Instruction discriminator for force_refund: sha256("global:force_refund")[0..8]
+    const discriminator = Buffer.from([127, 173, 30, 92, 164, 123, 109, 177]);
+    discriminator.copy(instructionData, 0);
+
+    const keys = [
+      { pubkey: matchPubkey, isSigner: false, isWritable: true },
+      { pubkey: escrowPDA, isSigner: false, isWritable: true },
+      { pubkey: playerA, isSigner: false, isWritable: true },
+      { pubkey: playerB, isSigner: false, isWritable: true },
+      { pubkey: this.wallet.publicKey, isSigner: true, isWritable: false },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    ];
+
+    const instruction = {
+      keys,
+      programId: PROGRAM_ID,
+      data: instructionData,
+    };
+
+    const transaction = new Transaction().add(instruction);
+    transaction.feePayer = this.wallet.publicKey;
+    transaction.recentBlockhash = (
+      await this.connection.getLatestBlockhash()
+    ).blockhash;
+
+    const signed = await this.wallet.signTransaction(transaction);
+    const signature = await this.connection.sendRawTransaction(signed.serialize(), { skipPreflight: true });
     await this.connection.confirmTransaction(signature);
 
     return signature;
@@ -577,4 +626,42 @@ export class EscrowClient {
       return [];
     }
   }
+
+  /**
+   * Find active matches where the connected wallet is a player (either A or B).
+   * Useful for finding stuck matches to abandon.
+   */
+  async findMyActiveMatches(): Promise<Array<{ pubkey: PublicKey; account: MatchAccount; isPlayerA: boolean }>> {
+    if (!this.wallet.publicKey) {
+      return [];
+    }
+
+    try {
+      // Get all program accounts
+      const accounts = await this.connection.getProgramAccounts(PROGRAM_ID);
+      const myMatches: Array<{ pubkey: PublicKey; account: MatchAccount; isPlayerA: boolean }> = [];
+
+      for (const { pubkey } of accounts) {
+        const matchAccount = await this.fetchMatch(pubkey);
+        if (!matchAccount) continue;
+        
+        // Only look at Active matches (status = 1)
+        if (matchAccount.status !== MatchStatus.Active) continue;
+        
+        // Check if we're a player
+        const isPlayerA = matchAccount.playerA.equals(this.wallet.publicKey);
+        const isPlayerB = matchAccount.playerB?.equals(this.wallet.publicKey) ?? false;
+        
+        if (isPlayerA || isPlayerB) {
+          myMatches.push({ pubkey, account: matchAccount, isPlayerA });
+        }
+      }
+
+      return myMatches;
+    } catch (error) {
+      console.error('Error finding active matches:', error);
+      return [];
+    }
+  }
 }
+// Build trigger: 1768469499
