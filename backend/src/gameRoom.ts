@@ -113,8 +113,16 @@ class GameRoomManager {
       return false;
     }
 
-    // Update time
+    // Start time control on first move
     const now = Date.now();
+    if (!room.gameStarted) {
+      room.gameStarted = true;
+      room.lastMoveTime = now;
+      timeControl.startRoom(roomId, this, io);
+      console.log(`Time control started for room ${roomId} (first move)`);
+    }
+
+    // Update time
     const timeDiff = now - room.lastMoveTime;
 
     if (room.currentTurn === 'w') {
@@ -297,7 +305,8 @@ class GameRoomManager {
       startTime: Date.now(),
       lastMoveTime: Date.now(),
       moves: [],
-      status: 'active', // Start immediately since both players are ready
+      status: 'active', // Game is active but time doesn't start until first move
+      gameStarted: false, // Track if clock has started
     };
 
     this.rooms.set(roomId, room);
@@ -306,8 +315,7 @@ class GameRoomManager {
 
     console.log(`Hosted game room ${roomId} created from match ${matchCode}: ${white.wallet.slice(0, 8)}... (white) vs ${black.wallet.slice(0, 8)}... (black)`);
 
-    // Start the time control for this room
-    timeControl.startRoom(roomId, this, io);
+    // Don't start time control yet - it starts on first move
 
     return room;
   }

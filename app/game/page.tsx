@@ -33,14 +33,14 @@ function GameContent() {
   const playerRole = playMode === "host" ? "host" : playMode === "join" ? "join" : undefined;
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">
+    <main className="mx-auto w-full max-w-7xl px-2 sm:px-4 py-4 sm:py-8">
+      <div className="mb-4 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
           <span className="text-gradient">{title}</span>
         </h1>
         <p className="text-neutral-500 text-sm mt-2">
           {playMode === "computer" 
-            ? "Train your tactics against AI" 
+            ? "Train your tactics" 
             : playMode === "join" 
               ? "You are playing as Black" 
               : playMode === "host"

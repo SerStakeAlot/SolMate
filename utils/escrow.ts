@@ -346,8 +346,13 @@ export class EscrowClient {
     ).blockhash;
 
     const signed = await this.wallet.signTransaction(transaction);
-    const signature = await this.connection.sendRawTransaction(signed.serialize(), { skipPreflight: true });
-    await this.connection.confirmTransaction(signature);
+    const signature = await this.connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
+    
+    // Wait for confirmation with proper status check
+    const confirmation = await this.connection.confirmTransaction(signature, 'confirmed');
+    if (confirmation.value.err) {
+      throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+    }
 
     return signature;
   }
@@ -366,9 +371,9 @@ export class EscrowClient {
 
     // Build instruction data manually
     const instructionData = Buffer.alloc(8);
-    // Instruction discriminator for confirm_payout
+    // Instruction discriminator for confirm_payout: sha256("global:confirm_payout")[0..8]
     const discriminator = Buffer.from([
-      0xa5, 0x8c, 0x2f, 0x1e, 0x9d, 0x4b, 0x7a, 0x3c,
+      0x94, 0x61, 0x91, 0x02, 0x55, 0x8b, 0x04, 0x8c,
     ]);
     discriminator.copy(instructionData, 0);
 
@@ -395,8 +400,13 @@ export class EscrowClient {
     ).blockhash;
 
     const signed = await this.wallet.signTransaction(transaction);
-    const signature = await this.connection.sendRawTransaction(signed.serialize(), { skipPreflight: true });
-    await this.connection.confirmTransaction(signature);
+    const signature = await this.connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
+    
+    // Wait for confirmation with proper status check
+    const confirmation = await this.connection.confirmTransaction(signature, 'confirmed');
+    if (confirmation.value.err) {
+      throw new Error(`Payout transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+    }
 
     return signature;
   }

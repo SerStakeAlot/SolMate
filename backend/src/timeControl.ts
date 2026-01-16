@@ -19,6 +19,11 @@ class TimeControl {
         return;
       }
 
+      // Don't tick time if game hasn't started yet (no moves made)
+      if (!room.gameStarted) {
+        return;
+      }
+
       const now = Date.now();
       const timeDiff = now - room.lastMoveTime;
 

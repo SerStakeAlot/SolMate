@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Trophy, RefreshCw, X, CheckCircle2, Wifi, WifiOff, Users } from 'lucide-react';
+import { Swords, Trophy, RefreshCw, X, CheckCircle2, XCircle, Wifi, WifiOff, Users } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
 import { Chess } from 'chess.js';
@@ -83,6 +83,18 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [joinFreePlayCode, setJoinFreePlayCode] = useState<string>('');
   const [isCreatingFreePlay, setIsCreatingFreePlay] = useState(false);
   const [isJoiningFreePlay, setIsJoiningFreePlay] = useState(false);
+  
+  // Refs to track latest values for socket connect handler
+  const isCreatingFreePlayRef = useRef(false);
+  const isJoiningFreePlayRef = useRef(false);
+  const joinFreePlayCodeRef = useRef('');
+  
+  // Keep refs in sync
+  useEffect(() => {
+    isCreatingFreePlayRef.current = isCreatingFreePlay;
+    isJoiningFreePlayRef.current = isJoiningFreePlay;
+    joinFreePlayCodeRef.current = joinFreePlayCode;
+  }, [isCreatingFreePlay, isJoiningFreePlay, joinFreePlayCode]);
 
   const chessRef = useRef<Chess | null>(null);
   if (!chessRef.current) {
@@ -222,6 +234,26 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     
     newSocket.on('connect', () => {
       console.log('Connected for free play, socket id:', newSocket.id);
+      
+      // Register player first (needed for move handling)
+      const walletAddr = publicKey?.toString() || `guest_${Math.random().toString(36).slice(2, 8)}`;
+      newSocket.emit('player:register', { walletAddress: walletAddr });
+    });
+    
+    // After registration, emit host/join
+    newSocket.on('player:registered', () => {
+      console.log('Player registered for free play');
+      // Use refs to get latest values (closures may be stale)
+      if (isCreatingFreePlayRef.current) {
+        console.log('Emitting freeplay:host');
+        newSocket.emit('freeplay:host', { walletAddress: publicKey?.toString() || 'anonymous' });
+      } else if (isJoiningFreePlayRef.current && joinFreePlayCodeRef.current) {
+        console.log('Emitting freeplay:join with code:', joinFreePlayCodeRef.current);
+        newSocket.emit('freeplay:join', { 
+          code: joinFreePlayCodeRef.current.toUpperCase(),
+          walletAddress: publicKey?.toString() || 'anonymous' 
+        });
+      }
     });
     
     // Free play hosted confirmation
@@ -310,16 +342,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     setIsCreatingFreePlay(true);
     setPlayerColor('w');
     // Socket connection will be established by the useEffect
-    // Then we emit freeplay:host after connection
+    // Emit happens in socket connect handler using refs
   };
-  
-  // Effect to emit freeplay:host after socket connects
-  useEffect(() => {
-    if (isFreePlay && isCreatingFreePlay && socket?.connected) {
-      console.log('Emitting freeplay:host');
-      socket.emit('freeplay:host', { walletAddress: publicKey?.toString() || 'anonymous' });
-    }
-  }, [isFreePlay, isCreatingFreePlay, socket?.connected, publicKey]);
   
   const handleJoinFreePlay = () => {
     if (!joinFreePlayCode || joinFreePlayCode.length !== 4) {
@@ -329,18 +353,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     setIsFreePlay(true);
     setIsJoiningFreePlay(true);
     setPlayerColor('b');
+    // Socket connection will be established by the useEffect
+    // Emit happens in socket connect handler using refs
   };
-  
-  // Effect to emit freeplay:join after socket connects
-  useEffect(() => {
-    if (isFreePlay && isJoiningFreePlay && socket?.connected && joinFreePlayCode) {
-      console.log('Emitting freeplay:join with code:', joinFreePlayCode);
-      socket.emit('freeplay:join', { 
-        code: joinFreePlayCode.toUpperCase(),
-        walletAddress: publicKey?.toString() || 'anonymous' 
-      });
-    }
-  }, [isFreePlay, isJoiningFreePlay, socket?.connected, joinFreePlayCode, publicKey]);
   
   const handleCancelFreePlay = () => {
     if (socket && freePlayCode) {
@@ -581,13 +596,19 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
       const winnerPubkey = gameWinner === 'w' ? matchData.playerA : matchData.playerB!;
       
+      console.log('Submitting result... Winner:', winnerPubkey.toBase58());
       const signature = await client.submitResult(currentMatchPubkey, winnerPubkey);
+      console.log('Result submitted:', signature);
       setTxSignature(signature);
       
+      // Wait a moment for chain state to propagate before confirming payout
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      console.log('Confirming payout...');
       await handleConfirmPayout(winnerPubkey, matchData.playerA);
     } catch (error) {
       console.error('Error submitting result:', error);
-      alert(`Failed to submit result: ${error}`);
+      alert(`Failed to submit result. You may need to use the Refund page to recover funds. Error: ${error}`);
     } finally {
       setIsSubmittingResult(false);
     }
@@ -605,10 +626,11 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setTxSignature(signature);
       setPayoutComplete(true);
       
-      alert(`Payout complete! Winner received reward. Signature: ${signature.slice(0, 8)}...`);
+      alert(`🎉 Payout complete! Winner received the pot. TX: ${signature.slice(0, 8)}...`);
     } catch (error) {
       console.error('Error confirming payout:', error);
-      alert(`Failed to confirm payout: ${error}`);
+      // Don't mark as complete if payout failed
+      alert(`Payout failed. You can claim your funds from the Refund page. Error: ${error}`);
     }
   };
 
@@ -840,12 +862,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
   return (
     <>
-      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 max-w-6xl mx-auto">
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-8 max-w-6xl mx-auto">
         {/* Chess Board */}
-        <div className="flex-1 flex flex-col items-center w-full">
+        <div className="flex-1 flex flex-col items-center w-full min-w-0">
           {/* Match Header */}
           {mode === 'wager' && matchInfo && (
-            <div className="w-full max-w-[480px] glass-card border-solana-purple/20 rounded-xl lg:rounded-2xl p-3 lg:p-4 shadow-glow-sm mb-4">
+            <div className="w-full max-w-[min(480px,calc(100vw-1rem))] glass-card border-solana-purple/20 rounded-lg sm:rounded-xl lg:rounded-2xl p-2 sm:p-3 lg:p-4 shadow-glow-sm mb-3 sm:mb-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs sm:text-sm">
                 <div className="flex items-center gap-2">
                   <Swords className="h-4 w-4 text-solana-purple" />
@@ -916,9 +938,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
             </div>
           )}
 
-          <div className="w-full max-w-[480px] space-y-4">
-            <div className="glass-card rounded-xl lg:rounded-2xl p-3 lg:p-4 shadow-glow">
-              <div className="aspect-square w-full overflow-hidden rounded-xl border-2 border-white/10">
+          <div className="w-full max-w-[min(480px,calc(100vw-1rem))] space-y-3 sm:space-y-4">
+            <div className="glass-card rounded-lg sm:rounded-xl lg:rounded-2xl p-2 sm:p-3 lg:p-4 shadow-glow">
+              <div className="aspect-square w-full overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/10">
                 <div className="grid h-full w-full grid-cols-8 grid-rows-8">
               {Array.from({ length: 64 }).map((_, i) => {
                 const row = Math.floor(i / 8);
@@ -983,8 +1005,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       </div>
 
       {/* Game Controls */}
-      <div className="w-full lg:w-80 space-y-4">
-        <div className="glass-card rounded-xl lg:rounded-2xl p-4 lg:p-6">
+      <div className="w-full lg:w-80 space-y-4 mt-2 lg:mt-0">
+        <div className="glass-card rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold">Game Mode</h3>
               {showModeSelector && (
@@ -1233,65 +1255,96 @@ export const ChessGame: React.FC<ChessGameProps> = ({
             className="glass-card border-solana-purple/30 rounded-2xl p-6 w-[320px] shadow-glow relative"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header: Victory + Knight Icon + Check */}
-            <div className="flex items-center justify-center gap-1.5 mb-3">
-              <img 
-                src="/pieces/wN.svg" 
-                alt="Knight" 
-                className="w-3.5 h-3.5 flex-shrink-0"
-              />
-              <h2 className="text-sm font-bold text-white whitespace-nowrap">
-                Victory!
-              </h2>
-              <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 text-emerald-400" />
-            </div>
-
-            {/* You vs Opponent */}
-            <div className="flex items-center justify-center gap-3 mb-3">
-              <div className="flex flex-col items-center gap-1">
-                <img 
-                  src={gameWinner === 'w' ? '/pieces/wK.svg' : '/pieces/bK.svg'} 
-                  alt="You" 
-                  className="w-6 h-6 flex-shrink-0"
-                />
-                <span className="text-[10px] font-medium text-neutral-400 uppercase">You</span>
-              </div>
+            {/* Determine if current player won */}
+            {(() => {
+              const isWinner = playerColor ? gameWinner === playerColor : true;
+              const winnerColor = gameWinner || 'w';
+              const loserColor = gameWinner === 'w' ? 'b' : 'w';
               
-              <div className="text-xs font-bold text-purple-400">VS</div>
-              
-              <div className="flex flex-col items-center gap-1">
-                <img 
-                  src={gameWinner === 'w' ? '/pieces/bK.svg' : '/pieces/wK.svg'} 
-                  alt="Opponent" 
-                  className="w-6 h-6 flex-shrink-0"
-                />
-                <span className="text-[10px] font-medium text-neutral-400 uppercase">Opp</span>
-              </div>
-            </div>
+              return (
+                <>
+                  {/* Header: Victory/Defeat + Icon */}
+                  <div className="flex items-center justify-center gap-1.5 mb-3">
+                    <img 
+                      src={isWinner ? "/pieces/wN.svg" : "/pieces/bN.svg"}
+                      alt="Knight" 
+                      className="w-3.5 h-3.5 flex-shrink-0"
+                    />
+                    <h2 className={`text-sm font-bold whitespace-nowrap ${isWinner ? 'text-white' : 'text-red-400'}`}>
+                      {isWinner ? 'Victory!' : 'Defeat'}
+                    </h2>
+                    {isWinner ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 text-emerald-400" />
+                    ) : (
+                      <XCircle className="w-3.5 h-3.5 flex-shrink-0 text-red-400" />
+                    )}
+                  </div>
 
-            {/* Reward Section (for wager mode) */}
-            {mode === 'wager' && matchCreated && (
-              <div className="mb-3 text-center">
-                <p className="text-[10px] font-medium text-neutral-400 uppercase mb-1">Reward</p>
-                <div className="bg-gradient-to-r from-purple-600/20 to-purple-400/20 border border-purple-500/30 rounded-lg py-2 px-3">
-                  <p className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-purple-200">
-                    +{getStakeTierInfo(selectedStakeTier).stake * 1.8} SOL
-                  </p>
-                </div>
-                {payoutComplete && (
-                  <p className="text-[10px] text-emerald-400 mt-1 font-medium">
-                    ✓ Claimed
-                  </p>
-                )}
-              </div>
-            )}
+                  {/* Winner vs Loser */}
+                  <div className="flex items-center justify-center gap-3 mb-3">
+                    <div className="flex flex-col items-center gap-1">
+                      <img 
+                        src={`/pieces/${winnerColor}K.svg`}
+                        alt="Winner" 
+                        className="w-6 h-6 flex-shrink-0"
+                      />
+                      <span className={`text-[10px] font-medium uppercase ${isWinner ? 'text-emerald-400' : 'text-neutral-400'}`}>
+                        {isWinner ? 'You' : 'Opp'}
+                      </span>
+                    </div>
+                    
+                    <div className="text-xs font-bold text-purple-400">VS</div>
+                    
+                    <div className="flex flex-col items-center gap-1">
+                      <img 
+                        src={`/pieces/${loserColor}K.svg`}
+                        alt="Loser" 
+                        className="w-6 h-6 flex-shrink-0 opacity-50"
+                      />
+                      <span className={`text-[10px] font-medium uppercase ${!isWinner ? 'text-red-400' : 'text-neutral-400'}`}>
+                        {!isWinner ? 'You' : 'Opp'}
+                      </span>
+                    </div>
+                  </div>
 
-            {/* Status Text (for practice or other info) */}
-            {mode === 'practice' && (
-              <p className="text-center text-neutral-300 text-[11px] mb-3 opacity-80">
-                {statusText}
-              </p>
-            )}
+                  {/* Reward Section (for wager mode) - only show for winner */}
+                  {mode === 'wager' && matchCreated && isWinner && (
+                    <div className="mb-3 text-center">
+                      <p className="text-[10px] font-medium text-neutral-400 uppercase mb-1">Reward</p>
+                      <div className="bg-gradient-to-r from-purple-600/20 to-purple-400/20 border border-purple-500/30 rounded-lg py-2 px-3">
+                        <p className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-purple-200">
+                          +{getStakeTierInfo(selectedStakeTier).stake * 1.8} SOL
+                        </p>
+                      </div>
+                      {payoutComplete && (
+                        <p className="text-[10px] text-emerald-400 mt-1 font-medium">
+                          ✓ Claimed
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Loss message for wager mode */}
+                  {mode === 'wager' && matchCreated && !isWinner && (
+                    <div className="mb-3 text-center">
+                      <p className="text-[10px] font-medium text-neutral-400 uppercase mb-1">Result</p>
+                      <div className="bg-gradient-to-r from-red-600/20 to-red-400/20 border border-red-500/30 rounded-lg py-2 px-3">
+                        <p className="text-lg font-bold text-red-400">
+                          -{getStakeTierInfo(selectedStakeTier).stake} SOL
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Status Text (for practice or other info) */}
+                  {mode === 'practice' && (
+                    <p className="text-center text-neutral-300 text-[11px] mb-3 opacity-80">
+                      {statusText}
+                    </p>
+                  )}
+                </>
+              );
+            })()}
 
             {/* Dismiss Button */}
             <motion.button
