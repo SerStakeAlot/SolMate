@@ -37,6 +37,7 @@ export const PROGRAM_ID = new PublicKey('H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2
 
 // Stake tier configuration (limited to 0.5 and 1 SOL for audit/launch)
 export const STAKE_TIERS = [
+  { tier: 4, label: '0.05 SOL (Test)', lamports: 0.05 * LAMPORTS_PER_SOL, stake: 0.05 },
   { tier: 0, label: '0.5 SOL', lamports: 0.5 * LAMPORTS_PER_SOL, stake: 0.5 },
   { tier: 1, label: '1 SOL', lamports: 1 * LAMPORTS_PER_SOL, stake: 1 },
 ];
