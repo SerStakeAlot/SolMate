@@ -221,6 +221,12 @@ export default function Home() {
           </p>
           <div className="flex items-center gap-6">
             <a 
+              href="/refund" 
+              className="text-neutral-400 hover:text-solana-green transition-colors text-sm"
+            >
+              Claim Refund
+            </a>
+            <a 
               href="/privacy.html" 
               className="text-neutral-400 hover:text-solana-purple transition-colors text-sm"
             >
