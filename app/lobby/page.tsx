@@ -160,17 +160,18 @@ export default function LobbyPage() {
     setJoiningMatch(match.matchCode);
     try {
       // First join on-chain
+      console.log('Joining match on-chain...', match.matchPubkey);
       const matchPubkey = new PublicKey(match.matchPubkey);
       const client = new EscrowClient(connection, wallet);
       const signature = await client.joinMatch(matchPubkey);
       
-      console.log('Joined match on-chain:', signature);
+      console.log('Successfully joined match on-chain! Signature:', signature);
 
       // Redirect to game as joiner (black)
       // The ChessGame component will emit match:join to WebSocket
       router.push(`/game?mode=join&match=${match.matchPubkey}&code=${match.matchCode}&tier=${match.stakeTier}`);
     } catch (error) {
-      console.error("Error joining match:", error);
+      console.error("Error joining match on-chain:", error);
       alert(`Failed to join match: ${error}`);
     } finally {
       setJoiningMatch(null);

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Users, Swords, Bot, Zap, ArrowLeft, ArrowRight } from "lucide-react";
+import { Users, Swords, Bot, Zap, ArrowLeft, ArrowRight, AlertTriangle } from "lucide-react";
 
 type PlayMode = "multiplayer" | "join" | "host" | "computer";
 
@@ -72,6 +72,24 @@ export default function PlayPage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mb-8 sm:mb-10">
+          {/* WAGER_WARNING - Remove this banner once confirm_payout fix is deployed */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="col-span-2 lg:col-span-4 bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 sm:p-4 mb-2"
+          >
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-amber-200 font-medium text-sm sm:text-base">Wager Arena Under Maintenance</p>
+                <p className="text-amber-200/70 text-xs sm:text-sm mt-1">
+                  SOL wager payouts are temporarily disabled. Play <a href="/game?mode=computer" className="text-solana-green hover:text-solana-green/80 underline font-semibold">free online multiplayer</a> for the full experience without risking funds!
+                </p>
+              </div>
+            </div>
+          </motion.div>
+          {/* END WAGER_WARNING */}
+          
           {modeOptions.map((option, index) => (
             <motion.button
               key={option.id}

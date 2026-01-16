@@ -8,7 +8,7 @@ import { Swords, Trophy, RefreshCw, X, CheckCircle2, XCircle, Wifi, WifiOff, Use
 import { io, Socket } from 'socket.io-client';
 
 import { Chess } from 'chess.js';
-import { EscrowClient, STAKE_TIERS, getStakeTierInfo, lamportsToSol } from '@/utils/escrow';
+import { EscrowClient, STAKE_TIERS, getStakeTierInfo, lamportsToSol, MatchStatus } from '@/utils/escrow';
 
 type Mode = 'practice' | 'wager';
 type PlayerColor = 'w' | 'b' | null;
@@ -591,6 +591,16 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       const matchData = await client.fetchMatch(currentMatchPubkey);
       if (!matchData) {
         alert('Could not fetch match data');
+        return;
+      }
+
+      // Check match status before submitting
+      console.log('Match status:', matchData.status);
+      console.log('Match playerA:', matchData.playerA.toBase58());
+      console.log('Match playerB:', matchData.playerB?.toBase58() || 'None');
+      
+      if (matchData.status !== MatchStatus.Active) {
+        alert(`Cannot submit result: Match is in ${matchData.status} status. Expected: Active`);
         return;
       }
 

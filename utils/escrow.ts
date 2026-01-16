@@ -301,13 +301,20 @@ export class EscrowClient {
     const signed = await this.wallet.signTransaction(transaction);
     
     try {
-      const signature = await this.connection.sendRawTransaction(signed.serialize(), { skipPreflight: true });
-      await this.connection.confirmTransaction(signature);
+      const signature = await this.connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
+      
+      // Wait for confirmation with proper status check
+      const confirmation = await this.connection.confirmTransaction(signature, 'confirmed');
+      if (confirmation.value.err) {
+        throw new Error(`Join transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+      }
+      
+      console.log('Join match confirmed on-chain:', signature);
       return signature;
     } catch (error: any) {
       if (error.message?.includes('Attempt to debit an account')) {
         throw new Error(
-          'Insufficient SOL balance. Please fund your wallet from the Solana devnet faucet: https://faucet.solana.com/'
+          'Insufficient SOL balance. Please ensure you have enough SOL to cover the stake.'
         );
       }
       throw error;
