@@ -39,6 +39,7 @@ const squareFromRowCol = (row: number, col: number, flipped: boolean) => {
 
 const STAKE_TIERS = [
   { tier: -1, amount: 0, label: 'Free Play' },
+  { tier: 4, amount: 0.05, label: '0.05 SOL (Test)' },
   { tier: 0, amount: 0.5, label: '0.5 SOL' },
   { tier: 1, amount: 1.0, label: '1 SOL' },
 ];
