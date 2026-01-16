@@ -61,9 +61,10 @@ app.post('/api/matches', (req, res) => {
   console.log(`Registering match via REST: ${matchCode} from ${hostWallet}`);
   
   // Use hostMatch with empty socketId for REST-based registration
-  hostedMatchManager.hostMatch(hostWallet, '', stakeTier, matchPubkey, 30, io);
+  // Pass the provided matchCode as the preferred code
+  const match = hostedMatchManager.hostMatch(hostWallet, '', stakeTier, matchPubkey, 30, io, matchCode);
   
-  res.json({ success: true, matchCode });
+  res.json({ success: true, matchCode: match.matchCode });
 });
 
 // Socket.IO connection handling
@@ -222,13 +223,17 @@ io.on('connection', (socket) => {
 
     console.log(`Player ${player.walletAddress.slice(0, 8)}... hosting match (${stakeTier === 0 ? '0.5' : '1'} SOL)`);
     
+    // Derive preferred code from matchPubkey (first 4 chars, uppercase)
+    const preferredCode = matchPubkey ? matchPubkey.slice(0, 4).toUpperCase() : undefined;
+    
     const match = hostedMatchManager.hostMatch(
       player.walletAddress,
       socket.id,
       stakeTier,
       matchPubkey,
       joinDeadlineMinutes,
-      io
+      io,
+      preferredCode
     );
 
     socket.emit('match:hosted', {
@@ -344,6 +349,97 @@ io.on('connection', (socket) => {
   socket.on('lobby:unsubscribe', () => {
     socket.leave('lobby');
   });
+
+  // ============ FREE PLAY (NO BLOCKCHAIN) EVENTS ============
+  
+  // Store for free play rooms (in-memory, no persistence needed)
+  const freePlayRooms = (global as any).freePlayRooms || new Map<string, { hostSocketId: string; hostWallet: string; guestSocketId?: string; guestWallet?: string }>();
+  (global as any).freePlayRooms = freePlayRooms;
+  
+  // Host a free play game
+  socket.on('freeplay:host', ({ walletAddress }) => {
+    // Generate a 4-char code
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    let code = '';
+    for (let i = 0; i < 4; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    while (freePlayRooms.has(code)) {
+      code = '';
+      for (let i = 0; i < 4; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+    }
+    
+    freePlayRooms.set(code, { hostSocketId: socket.id, hostWallet: walletAddress });
+    console.log(`Free play room created: ${code} by ${walletAddress?.slice(0, 8) || 'anonymous'}`);
+    
+    socket.emit('freeplay:hosted', { code });
+  });
+  
+  // Join a free play game
+  socket.on('freeplay:join', ({ code, walletAddress }) => {
+    const room = freePlayRooms.get(code.toUpperCase());
+    if (!room) {
+      socket.emit('freeplay:error', { error: 'Room not found' });
+      return;
+    }
+    if (room.guestSocketId) {
+      socket.emit('freeplay:error', { error: 'Room is full' });
+      return;
+    }
+    
+    room.guestSocketId = socket.id;
+    room.guestWallet = walletAddress;
+    
+    // Create a simple game room ID
+    const roomId = `free_${code}`;
+    
+    // Create game room for free play
+    const gameRoom = gameRoomManager.createRoomFromHosted(
+      roomId,
+      code,
+      'FREE_PLAY', // No match pubkey
+      -1, // Free tier indicator
+      { wallet: room.hostWallet || 'host', socketId: room.hostSocketId },
+      { wallet: walletAddress || 'guest', socketId: socket.id },
+      io
+    );
+    
+    console.log(`Free play room ${code} - guest joined. Room: ${roomId}`);
+    
+    // Notify host
+    io.to(room.hostSocketId).emit('freeplay:started', {
+      roomId,
+      yourColor: 'w',
+      opponent: walletAddress?.slice(0, 8) || 'Guest'
+    });
+    
+    // Notify guest
+    socket.emit('freeplay:started', {
+      roomId,
+      yourColor: 'b',
+      opponent: room.hostWallet?.slice(0, 8) || 'Host'
+    });
+    
+    // Emit game start to both
+    io.to(room.hostSocketId).emit('game:start', { whiteTimeMs: 600000, blackTimeMs: 600000 });
+    socket.emit('game:start', { whiteTimeMs: 600000, blackTimeMs: 600000 });
+    
+    // Clean up the free play room listing (game has started)
+    freePlayRooms.delete(code.toUpperCase());
+  });
+  
+  // Cancel free play hosting
+  socket.on('freeplay:cancel', ({ code }) => {
+    const room = freePlayRooms.get(code?.toUpperCase());
+    if (room && room.hostSocketId === socket.id) {
+      freePlayRooms.delete(code.toUpperCase());
+      console.log(`Free play room ${code} cancelled`);
+    }
+  });
+
+  // ============ END FREE PLAY EVENTS ============
 
   // ============ END HOSTED MATCH EVENTS ============
 

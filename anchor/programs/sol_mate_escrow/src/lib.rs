@@ -38,6 +38,14 @@ pub mod sol_mate_escrow {
         crate::instructions::cancel_match::handler(ctx)
     }
 
+    pub fn abandon_match(ctx: Context<AbandonMatch>) -> Result<()> {
+        crate::instructions::abandon_match::handler(ctx)
+    }
+
+    pub fn force_refund(ctx: Context<ForceRefund>) -> Result<()> {
+        crate::instructions::force_refund::handler(ctx)
+    }
+
     pub fn withdraw_fees(ctx: Context<WithdrawFees>, amount: u64) -> Result<()> {
         crate::instructions::withdraw_fees::handler(ctx, amount)
     }

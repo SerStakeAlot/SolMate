@@ -38,6 +38,7 @@ const squareFromRowCol = (row: number, col: number, flipped: boolean) => {
 };
 
 const STAKE_TIERS = [
+  { tier: -1, amount: 0, label: 'Free Play' },
   { tier: 0, amount: 0.5, label: '0.5 SOL' },
   { tier: 1, amount: 1.0, label: '1 SOL' },
 ];
@@ -365,10 +366,12 @@ export function MultiplayerChess() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [selectedTier, setSelectedTier] = useState<number>(1);
-  const [status, setStatus] = useState<'idle' | 'searching' | 'matched' | 'playing'>('idle');
+  const [status, setStatus] = useState<'idle' | 'searching' | 'matched' | 'playing' | 'freeplay-menu' | 'freeplay-hosting' | 'freeplay-joining'>('idle');
   const [roomId, setRoomId] = useState<string | null>(null);
   const [yourColor, setYourColor] = useState<'w' | 'b'>('w');
   const [opponent, setOpponent] = useState<any>(null);
+  const [freePlayCode, setFreePlayCode] = useState<string>('');
+  const [joinCode, setJoinCode] = useState<string>('');
 
   useEffect(() => {
     if (!connected || !publicKey) {
@@ -407,6 +410,32 @@ export function MultiplayerChess() {
       setStatus('playing');
     });
 
+    // Free play events
+    newSocket.on('freeplay:hosted', (data) => {
+      console.log('Free play room created:', data);
+      setFreePlayCode(data.roomCode);
+      setRoomId(data.roomId);
+    });
+
+    newSocket.on('freeplay:started', (data) => {
+      console.log('Free play game started:', data);
+      setRoomId(data.roomId);
+      setYourColor(data.color);
+      setOpponent({
+        walletAddress: data.opponent?.walletAddress || 'Guest',
+        rank: data.opponent?.rank || 'Unranked'
+      });
+      setStatus('playing');
+    });
+
+    newSocket.on('freeplay:error', (data) => {
+      console.error('Free play error:', data);
+      alert(data.message || 'Free play error');
+      setStatus('idle');
+      setFreePlayCode('');
+      setJoinCode('');
+    });
+
     newSocket.on('error', (error) => {
       console.error('Socket error:', error);
       alert(error.message);
@@ -425,9 +454,48 @@ export function MultiplayerChess() {
       return;
     }
 
+    // Handle free play separately
+    if (tier === -1) {
+      setSelectedTier(tier);
+      setStatus('freeplay-menu');
+      return;
+    }
+
     setSelectedTier(tier);
     setStatus('searching');
     socket.emit('matchmaking:join', { stakeTier: tier });
+  };
+
+  const handleHostFreePlay = () => {
+    if (!socket || !playerId) {
+      alert('Please wait for connection...');
+      return;
+    }
+    setStatus('freeplay-hosting');
+    socket.emit('freeplay:host');
+  };
+
+  const handleJoinFreePlay = () => {
+    if (!socket || !playerId) {
+      alert('Please wait for connection...');
+      return;
+    }
+    if (!joinCode || joinCode.length !== 4) {
+      alert('Please enter a valid 4-character room code');
+      return;
+    }
+    setStatus('freeplay-joining');
+    socket.emit('freeplay:join', { roomCode: joinCode.toUpperCase() });
+  };
+
+  const handleCancelFreePlay = () => {
+    if (socket && freePlayCode) {
+      socket.emit('freeplay:cancel', { roomCode: freePlayCode });
+    }
+    setStatus('idle');
+    setFreePlayCode('');
+    setJoinCode('');
+    setRoomId(null);
   };
 
   const handleCancelSearch = () => {
@@ -460,6 +528,134 @@ export function MultiplayerChess() {
 
   if (status === 'searching') {
     return <MatchmakingQueue onCancel={handleCancelSearch} />;
+  }
+
+  if (status === 'freeplay-menu') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[500px] p-8">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass-card rounded-2xl p-10 max-w-md w-full text-center"
+        >
+          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center">
+            <Users className="h-8 w-8 text-green-400" />
+          </div>
+          <h2 className="text-2xl font-bold mb-3">Free Play</h2>
+          <p className="text-neutral-400 mb-8">Play with a friend - no SOL required!</p>
+          
+          <div className="space-y-4">
+            <button
+              onClick={handleHostFreePlay}
+              className="w-full btn-glow font-semibold py-3.5 px-6 rounded-xl text-white"
+            >
+              Host Game
+            </button>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/10"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-neutral-900 text-neutral-500">or</span>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase().slice(0, 4))}
+                placeholder="Enter room code"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center text-2xl tracking-widest font-mono placeholder:text-neutral-600 focus:outline-none focus:border-solana-purple"
+                maxLength={4}
+              />
+              <button
+                onClick={handleJoinFreePlay}
+                disabled={joinCode.length !== 4}
+                className="w-full bg-white/10 hover:bg-white/15 disabled:opacity-50 disabled:cursor-not-allowed font-semibold py-3.5 px-6 rounded-xl text-white transition-all border border-white/10"
+              >
+                Join Game
+              </button>
+            </div>
+          </div>
+          
+          <button
+            onClick={() => setStatus('idle')}
+            className="mt-6 text-neutral-500 hover:text-white transition-colors text-sm"
+          >
+            ← Back to tier selection
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (status === 'freeplay-hosting') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[500px] p-8">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass-card rounded-2xl p-10 max-w-md w-full text-center"
+        >
+          <div className="relative mb-8">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-20 h-20 rounded-full border-2 border-green-500/30 animate-ping" />
+            </div>
+            <div className="relative w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-green-500/20 to-emerald-500/20 flex items-center justify-center">
+              <Users className="h-10 w-10 text-green-400" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold mb-3">Waiting for Opponent</h2>
+          <p className="text-neutral-400 mb-6">Share this code with your friend</p>
+          
+          <div className="bg-gradient-to-br from-solana-purple/20 to-solana-green/20 rounded-xl p-6 mb-8 border border-white/10">
+            <p className="text-xs text-neutral-500 uppercase tracking-wider mb-2">Room Code</p>
+            <p className="text-5xl font-bold font-mono tracking-widest text-gradient">
+              {freePlayCode || '....'}
+            </p>
+          </div>
+          
+          <button
+            onClick={handleCancelFreePlay}
+            className="w-full bg-white/5 hover:bg-white/10 text-white font-semibold py-3.5 px-6 rounded-xl transition-all border border-white/10 hover:border-white/20"
+          >
+            Cancel
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (status === 'freeplay-joining') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[500px] p-8">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass-card rounded-2xl p-10 max-w-md w-full text-center"
+        >
+          <div className="relative mb-8">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-20 h-20 rounded-full border-2 border-solana-purple/30 animate-ping" />
+            </div>
+            <div className="relative w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-solana-purple/20 to-solana-green/20 flex items-center justify-center">
+              <Swords className="h-10 w-10 text-solana-purple" />
+            </div>
+          </div>
+          <h2 className="text-2xl font-bold mb-3">Joining Game</h2>
+          <p className="text-neutral-400 mb-6">Connecting to room {joinCode}...</p>
+          
+          <button
+            onClick={handleCancelFreePlay}
+            className="w-full bg-white/5 hover:bg-white/10 text-white font-semibold py-3.5 px-6 rounded-xl transition-all border border-white/10 hover:border-white/20"
+          >
+            Cancel
+          </button>
+        </motion.div>
+      </div>
+    );
   }
 
   if (status === 'playing' && socket && roomId && opponent) {
