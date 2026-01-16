@@ -39,8 +39,11 @@ pub fn handler(
     seed: u64,
     join_deadline: i64,
 ) -> Result<()> {
-    // Validate stake tier
-    require!(stake_tier <= 3, EscrowError::InvalidStakeTier);
+    // Log the seed used for PDA derivation (this also silences unused warning)
+    msg!("Creating match with seed: {}", seed);
+    
+    // Validate stake tier (0-3 are normal tiers, 4 is test tier)
+    require!(stake_tier <= 4, EscrowError::InvalidStakeTier);
     
     let match_account = &mut ctx.accounts.match_account;
     
@@ -51,8 +54,8 @@ pub fn handler(
     match_account.join_deadline = join_deadline;
     match_account.status = MatchStatus::Open;
     match_account.winner = None;
-    match_account.bump = ctx.bumps.match_account;
-    match_account.escrow_bump = ctx.bumps.escrow;
+    match_account.bump = *ctx.bumps.get("match_account").unwrap();
+    match_account.escrow_bump = *ctx.bumps.get("escrow").unwrap();
     
     // Calculate stake amount
     let stake_amount = match_account.stake_amount_lamports();

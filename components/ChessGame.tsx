@@ -76,6 +76,13 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [gameRoomId, setGameRoomId] = useState<string | null>(null); // This is the backend roomId, not matchCode
   const [dynamicPlayerRole, setDynamicPlayerRole] = useState<'host' | 'join' | undefined>(playerRole);
   const actualPlayerRole = dynamicPlayerRole || playerRole;
+  
+  // Free play state (no blockchain, just WebSocket)
+  const [isFreePlay, setIsFreePlay] = useState(false);
+  const [freePlayCode, setFreePlayCode] = useState<string>('');
+  const [joinFreePlayCode, setJoinFreePlayCode] = useState<string>('');
+  const [isCreatingFreePlay, setIsCreatingFreePlay] = useState(false);
+  const [isJoiningFreePlay, setIsJoiningFreePlay] = useState(false);
 
   const chessRef = useRef<Chess | null>(null);
   if (!chessRef.current) {
@@ -203,16 +210,154 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     };
   }, [isMultiplayer, publicKey, matchCode, actualPlayerRole, currentMatchPubkey, selectedStakeTier]);
   
+  // WebSocket connection for FREE PLAY mode (no blockchain)
+  useEffect(() => {
+    if (!isFreePlay) return;
+    
+    console.log('Connecting to game server for FREE PLAY...');
+    
+    const newSocket = io(BACKEND_URL, {
+      transports: ['websocket', 'polling'],
+    });
+    
+    newSocket.on('connect', () => {
+      console.log('Connected for free play, socket id:', newSocket.id);
+    });
+    
+    // Free play hosted confirmation
+    newSocket.on('freeplay:hosted', ({ code }) => {
+      console.log('Free play room created with code:', code);
+      setFreePlayCode(code);
+      setIsCreatingFreePlay(false);
+    });
+    
+    // Free play started (both host and guest)
+    newSocket.on('freeplay:started', ({ roomId, yourColor, opponent }) => {
+      console.log('Free play started! Room:', roomId, 'Color:', yourColor, 'Opponent:', opponent);
+      setGameRoomId(roomId);
+      setPlayerColor(yourColor);
+      setOpponentConnected(true);
+      setIsJoiningFreePlay(false);
+    });
+    
+    // Free play error
+    newSocket.on('freeplay:error', ({ error }) => {
+      console.error('Free play error:', error);
+      alert(`Free play error: ${error}`);
+      setIsJoiningFreePlay(false);
+    });
+    
+    // Game start notification
+    newSocket.on('game:start', ({ whiteTimeMs, blackTimeMs }) => {
+      console.log('Game started! White time:', whiteTimeMs, 'Black time:', blackTimeMs);
+      setOpponentConnected(true);
+    });
+    
+    // Receive opponent's move
+    newSocket.on('game:move', ({ move, timeUpdate }) => {
+      console.log('Received move from opponent:', move);
+      const chess = chessRef.current!;
+      try {
+        chess.move({ from: move.from, to: move.to, promotion: move.promotion });
+        setFen(chess.fen());
+      } catch (e) {
+        console.error('Invalid move received:', e);
+      }
+    });
+    
+    // Game end notification
+    newSocket.on('game:end', ({ winner, reason }) => {
+      console.log('Game over:', winner, reason);
+      setGameWinner(winner);
+      setShowResultModal(true);
+    });
+    
+    newSocket.on('disconnect', () => {
+      console.log('Disconnected from free play server');
+    });
+    
+    setSocket(newSocket);
+    
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [isFreePlay]);
+  
   // Send move to opponent
   const sendMove = useCallback((from: string, to: string, san: string, promotion?: string) => {
-    if (socket && isMultiplayer && gameRoomId) {
-      console.log('Sending move to server:', { roomId: gameRoomId, from, to, san });
-      socket.emit('game:makeMove', { 
-        roomId: gameRoomId,
-        move: { from, to, san, promotion }
+    if (!isMultiplayer && !isFreePlay) {
+      console.log('Not multiplayer/freeplay, not sending move');
+      return;
+    }
+    if (!socket) {
+      console.error('ERROR: Socket not connected, cannot send move!');
+      return;
+    }
+    if (!gameRoomId) {
+      console.error('ERROR: gameRoomId not set, cannot send move! Opponent may not have joined yet.');
+      return;
+    }
+    console.log('Sending move to server:', { roomId: gameRoomId, from, to, san, promotion });
+    socket.emit('game:makeMove', { 
+      roomId: gameRoomId,
+      move: { from, to, san, promotion }
+    });
+  }, [socket, isMultiplayer, isFreePlay, gameRoomId]);
+  
+  // Free play handlers
+  const handleCreateFreePlay = () => {
+    setIsFreePlay(true);
+    setIsCreatingFreePlay(true);
+    setPlayerColor('w');
+    // Socket connection will be established by the useEffect
+    // Then we emit freeplay:host after connection
+  };
+  
+  // Effect to emit freeplay:host after socket connects
+  useEffect(() => {
+    if (isFreePlay && isCreatingFreePlay && socket?.connected) {
+      console.log('Emitting freeplay:host');
+      socket.emit('freeplay:host', { walletAddress: publicKey?.toString() || 'anonymous' });
+    }
+  }, [isFreePlay, isCreatingFreePlay, socket?.connected, publicKey]);
+  
+  const handleJoinFreePlay = () => {
+    if (!joinFreePlayCode || joinFreePlayCode.length !== 4) {
+      alert('Please enter a 4-character room code');
+      return;
+    }
+    setIsFreePlay(true);
+    setIsJoiningFreePlay(true);
+    setPlayerColor('b');
+  };
+  
+  // Effect to emit freeplay:join after socket connects
+  useEffect(() => {
+    if (isFreePlay && isJoiningFreePlay && socket?.connected && joinFreePlayCode) {
+      console.log('Emitting freeplay:join with code:', joinFreePlayCode);
+      socket.emit('freeplay:join', { 
+        code: joinFreePlayCode.toUpperCase(),
+        walletAddress: publicKey?.toString() || 'anonymous' 
       });
     }
-  }, [socket, isMultiplayer, gameRoomId]);
+  }, [isFreePlay, isJoiningFreePlay, socket?.connected, joinFreePlayCode, publicKey]);
+  
+  const handleCancelFreePlay = () => {
+    if (socket && freePlayCode) {
+      socket.emit('freeplay:cancel', { code: freePlayCode });
+    }
+    setIsFreePlay(false);
+    setFreePlayCode('');
+    setJoinFreePlayCode('');
+    setIsCreatingFreePlay(false);
+    setIsJoiningFreePlay(false);
+    setOpponentConnected(false);
+    setGameRoomId(null);
+    setPlayerColor(null);
+    // Reset chess board
+    chessRef.current = new Chess();
+    setFen(chessRef.current.fen());
+  };
 
   const board = useMemo(() => {
     return chessRef.current!.board();
@@ -224,21 +369,27 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     return new Set(moves.map((m) => m.to));
   }, [selectedSquare, fen]);
 
-  const statusText = useMemo(() => {
+  // Check for game end conditions - using useEffect instead of useMemo to avoid state updates during render
+  useEffect(() => {
     const chess = chessRef.current!;
     if (chess.isCheckmate()) {
       const winner = chess.turn() === 'w' ? 'b' : 'w';
       if (gameWinner !== winner) {
+        console.log('Checkmate detected! Winner:', winner);
         setGameWinner(winner);
         setShowResultModal(true);
       }
-      return 'Checkmate';
     }
+  }, [fen, gameWinner]);
+
+  const statusText = useMemo(() => {
+    const chess = chessRef.current!;
+    if (chess.isCheckmate()) return 'Checkmate';
     if (chess.isStalemate()) return 'Stalemate';
     if (chess.isDraw()) return 'Draw';
     const side = chess.turn() === 'w' ? 'White' : 'Black';
     return chess.isCheck() ? `Check — ${side} to move` : `${side} to move`;
-  }, [fen, gameWinner]);
+  }, [fen]);
 
   const resetPractice = () => {
     chessRef.current = new Chess();
@@ -603,15 +754,15 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
     if (chess.isGameOver()) return;
 
-    // In multiplayer, only allow moves on your turn with your color
-    if (isMultiplayer && playerColor) {
+    // In multiplayer or free play, only allow moves on your turn with your color
+    if ((isMultiplayer || isFreePlay) && playerColor) {
       if (chess.turn() !== playerColor) {
         console.log('Not your turn! You are', playerColor, 'but it is', chess.turn(), 'to move');
         return;
       }
     }
 
-    if (mode === 'practice') {
+    if (mode === 'practice' && !isFreePlay) {
       if (chess.turn() !== 'w') return;
     }
 
@@ -619,11 +770,11 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       const piece = chess.get(square as any) as any;
       if (!piece) return;
       
-      // In multiplayer, only select your own pieces
-      if (isMultiplayer && playerColor && piece.color !== playerColor) return;
+      // In multiplayer or free play, only select your own pieces
+      if ((isMultiplayer || isFreePlay) && playerColor && piece.color !== playerColor) return;
       
-      if (mode === 'practice' && piece.color !== 'w') return;
-      if (mode === 'wager' && !isMultiplayer && piece.color !== chess.turn()) return;
+      if (mode === 'practice' && !isFreePlay && piece.color !== 'w') return;
+      if (mode === 'wager' && !isMultiplayer && !isFreePlay && piece.color !== chess.turn()) return;
       setSelectedSquare(square);
       return;
     }
@@ -652,8 +803,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setSelectedSquare(null);
       setFen(chess.fen());
       
-      // Send move to opponent in multiplayer
-      if (isMultiplayer) {
+      // Send move to opponent in multiplayer or free play
+      if (isMultiplayer || isFreePlay) {
         sendMove(selectedSquare, square, move.san, promotion);
       }
     } catch (error) {
@@ -664,6 +815,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
   useEffect(() => {
     if (mode !== 'practice') return;
+    if (isFreePlay) return; // Don't run AI during free play
     const chess = chessRef.current!;
     if (chess.turn() !== 'b') return;
     if (chess.isGameOver()) return;
@@ -673,7 +825,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     }, 250);
 
     return () => clearTimeout(t);
-  }, [fen, mode, playComputerMove]);
+  }, [fen, mode, isFreePlay, playComputerMove]);
 
   const getMatchInfo = () => {
     if (!matchCreated) return null;
@@ -865,19 +1017,90 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
             {mode === 'practice' ? (
               <div className="space-y-4">
-                <p className="text-sm text-neutral-400">
-                  Train against AI. No stakes required.
-                </p>
-                <motion.button
-                  type="button"
-                  onClick={resetPractice}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full flex items-center justify-center gap-2 btn-glow text-white font-semibold py-3 px-6 rounded-xl"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  Reset Game
-                </motion.button>
+                {!isFreePlay ? (
+                  <>
+                    <p className="text-sm text-neutral-400">
+                      Train against AI or play online for free.
+                    </p>
+                    <motion.button
+                      type="button"
+                      onClick={resetPractice}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-6 rounded-xl transition-all"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      Reset vs AI
+                    </motion.button>
+                    
+                    <div className="border-t border-white/10 pt-4 mt-4">
+                      <p className="text-xs font-medium uppercase tracking-wider text-neutral-500 mb-3">
+                        Free Online Play
+                      </p>
+                      <div className="space-y-2">
+                        <motion.button
+                          type="button"
+                          onClick={handleCreateFreePlay}
+                          disabled={isCreatingFreePlay}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className="w-full flex items-center justify-center gap-2 btn-glow text-white font-semibold py-3 px-6 rounded-xl disabled:opacity-50"
+                        >
+                          <Users className="h-4 w-4" />
+                          {isCreatingFreePlay ? 'Creating...' : 'Create Room'}
+                        </motion.button>
+                        
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={joinFreePlayCode}
+                            onChange={(e) => setJoinFreePlayCode(e.target.value.toUpperCase().slice(0, 4))}
+                            placeholder="CODE"
+                            maxLength={4}
+                            className="flex-1 px-3 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-solana-purple text-white text-center font-mono uppercase"
+                          />
+                          <motion.button
+                            type="button"
+                            onClick={handleJoinFreePlay}
+                            disabled={isJoiningFreePlay || joinFreePlayCode.length !== 4}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl disabled:opacity-50 transition-all"
+                          >
+                            {isJoiningFreePlay ? '...' : 'Join'}
+                          </motion.button>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-gradient-to-r from-solana-purple/20 to-solana-green/20 rounded-xl border border-solana-purple/30">
+                      <p className="text-xs font-medium uppercase tracking-wider text-neutral-400 mb-1">
+                        {opponentConnected ? 'Game In Progress' : 'Room Code'}
+                      </p>
+                      {!opponentConnected && freePlayCode && (
+                        <p className="text-3xl font-bold font-mono text-white">{freePlayCode}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2">
+                        <Users className={`h-4 w-4 ${opponentConnected ? 'text-green-400' : 'text-yellow-400'}`} />
+                        <span className={`text-sm ${opponentConnected ? 'text-green-400' : 'text-yellow-400'}`}>
+                          {opponentConnected ? `Playing as ${playerColor === 'w' ? 'White' : 'Black'}` : 'Waiting for opponent...'}
+                        </span>
+                      </div>
+                    </div>
+                    <motion.button
+                      type="button"
+                      onClick={handleCancelFreePlay}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full flex items-center justify-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-semibold py-3 px-6 rounded-xl border border-red-500/30 transition-all"
+                    >
+                      <X className="h-4 w-4" />
+                      {opponentConnected ? 'Leave Game' : 'Cancel'}
+                    </motion.button>
+                  </div>
+                )}
               </div>
             ) : (
               <>
