@@ -25,7 +25,8 @@ class HostedMatchManager {
     stakeTier: number,
     matchPubkey: string,
     joinDeadlineMinutes: number,
-    io: SocketServer
+    io: SocketServer,
+    preferredCode?: string // Optional: use this code if provided (derived from matchPubkey)
   ): HostedMatch {
     // Check if host already has an active match
     const existingCode = this.walletToMatch.get(hostWallet);
@@ -37,8 +38,9 @@ class HostedMatchManager {
       }
     }
 
-    // Generate unique match code
-    let matchCode = generateMatchCode();
+    // Use provided code or generate a unique one
+    let matchCode = preferredCode?.toUpperCase() || generateMatchCode();
+    // If preferred code conflicts, append random char
     while (this.matches.has(matchCode)) {
       matchCode = generateMatchCode();
     }
