@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_lang::system_program::{transfer, Transfer};
 use crate::state::*;
 use crate::errors::*;
 
@@ -67,19 +68,44 @@ pub fn handler(ctx: Context<ConfirmPayout>) -> Result<()> {
         .checked_sub(fee_amount)
         .ok_or(EscrowError::ArithmeticOverflow)?;
     
-    let _escrow_lamports = ctx.accounts.escrow.lamports();
-    
     msg!("Total pot: {} lamports", total_pot);
     msg!("Fee (10%): {} lamports", fee_amount);
     msg!("Payout to winner: {} lamports", payout_amount);
     
-    // Transfer fee to vault
-    **ctx.accounts.escrow.try_borrow_mut_lamports()? -= fee_amount;
-    **ctx.accounts.fee_vault.to_account_info().try_borrow_mut_lamports()? += fee_amount;
+    // Create escrow signer seeds
+    let match_key = ctx.accounts.match_account.key();
+    let escrow_seeds = &[
+        b"escrow".as_ref(),
+        match_key.as_ref(),
+        &[ctx.accounts.match_account.escrow_bump],
+    ];
+    let escrow_signer = &[&escrow_seeds[..]];
     
-    // Transfer payout to winner
-    **ctx.accounts.escrow.try_borrow_mut_lamports()? -= payout_amount;
-    **ctx.accounts.winner.try_borrow_mut_lamports()? += payout_amount;
+    // Transfer fee to vault using CPI
+    transfer(
+        CpiContext::new_with_signer(
+            ctx.accounts.system_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.escrow.to_account_info(),
+                to: ctx.accounts.fee_vault.to_account_info(),
+            },
+            escrow_signer,
+        ),
+        fee_amount,
+    )?;
+    
+    // Transfer payout to winner using CPI
+    transfer(
+        CpiContext::new_with_signer(
+            ctx.accounts.system_program.to_account_info(),
+            Transfer {
+                from: ctx.accounts.escrow.to_account_info(),
+                to: ctx.accounts.winner.to_account_info(),
+            },
+            escrow_signer,
+        ),
+        payout_amount,
+    )?;
     
     // Update fee vault stats
     let fee_vault = &mut ctx.accounts.fee_vault;
