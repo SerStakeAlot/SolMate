@@ -67,15 +67,10 @@ export default function LobbyPage() {
       console.log('Connected to lobby server');
       setIsConnected(true);
       
-      // Register if wallet is connected
-      if (publicKey) {
-        newSocket.emit('player:register', { walletAddress: publicKey.toString() });
-      }
-      
-      // Subscribe to lobby updates
+      // Subscribe to lobby updates immediately
       newSocket.emit('lobby:subscribe');
     });
-
+    
     newSocket.on('disconnect', () => {
       console.log('Disconnected from lobby server');
       setIsConnected(false);
@@ -112,7 +107,15 @@ export default function LobbyPage() {
       newSocket.emit('lobby:unsubscribe');
       newSocket.disconnect();
     };
-  }, [publicKey]);
+  }, []);
+  
+  // Register player when wallet connects
+  useEffect(() => {
+    if (socket && isConnected && publicKey) {
+      console.log('Registering player with wallet:', publicKey.toString());
+      socket.emit('player:register', { walletAddress: publicKey.toString() });
+    }
+  }, [socket, isConnected, publicKey]);
 
   // Load on-chain matches for fallback
   useEffect(() => {
@@ -163,15 +166,8 @@ export default function LobbyPage() {
       
       console.log('Joined match on-chain:', signature);
 
-      // Then notify the WebSocket server
-      if (socket && isConnected) {
-        socket.emit('match:join', { 
-          matchCode: match.matchCode, 
-          guestWallet: publicKey.toString() 
-        });
-      }
-
       // Redirect to game as joiner (black)
+      // The ChessGame component will emit match:join to WebSocket
       router.push(`/game?mode=join&match=${match.matchPubkey}&code=${match.matchCode}&tier=${match.stakeTier}`);
     } catch (error) {
       console.error("Error joining match:", error);
@@ -245,19 +241,19 @@ export default function LobbyPage() {
   ];
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-12">
+    <main className="mx-auto w-full max-w-6xl px-3 sm:px-6 py-6 sm:py-12">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
         {/* Header */}
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-10">
+        <header className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-10">
           <div>
-            <h1 className="text-4xl font-bold mb-2">
+            <h1 className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">
               Match <span className="text-gradient">Lobby</span>
             </h1>
-            <p className="text-lg text-neutral-400">
+            <p className="text-sm sm:text-lg text-neutral-400">
               Join an open match or create your own
             </p>
           </div>

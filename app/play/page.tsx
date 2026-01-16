@@ -35,7 +35,7 @@ export default function PlayPage() {
     {
       id: "computer" as const,
       title: "Practice",
-      description: "Train against AI - no stakes",
+      description: "Train your tactics",
       icon: Bot,
       featured: false,
     },

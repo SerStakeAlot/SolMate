@@ -95,6 +95,7 @@ export interface GameRoom {
   lastMoveTime: number;
   moves: string[]; // Array of moves in algebraic notation
   status: 'waiting' | 'active' | 'finished';
+  gameStarted?: boolean; // Whether the clock has started (first move made)
   winner?: 'w' | 'b' | 'draw';
   endReason?: 'checkmate' | 'timeout' | 'resignation' | 'draw';
 }
