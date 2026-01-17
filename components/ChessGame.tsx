@@ -434,7 +434,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       return;
     }
     if (!gameRoomId) {
-      console.error('ERROR: gameRoomId not set, cannot send move! Opponent may not have joined yet.');
+      console.error('ERROR: gameRoomId not set, cannot send move! Current state:', { isMultiplayer, isFreePlay, opponentConnected });
       return;
     }
     console.log('Sending move to server:', { roomId: gameRoomId, from, to, san, promotion });
@@ -442,16 +442,20 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       roomId: gameRoomId,
       move: { from, to, san, promotion }
     });
-  }, [socket, isMultiplayer, isFreePlay, gameRoomId]);
+  }, [socket, isMultiplayer, isFreePlay, gameRoomId, opponentConnected]);
   
   // Auto-join free play if code is provided via URL
   useEffect(() => {
     if (freePlayJoinCode && freePlayJoinCode.length === 4 && !isFreePlay) {
       console.log('Auto-joining free play room:', freePlayJoinCode);
-      setJoinFreePlayCode(freePlayJoinCode.toUpperCase());
+      const code = freePlayJoinCode.toUpperCase();
+      setJoinFreePlayCode(code);
       setIsFreePlay(true);
       setIsJoiningFreePlay(true);
       setPlayerColor('b');
+      // Also update refs immediately to avoid race condition with socket
+      joinFreePlayCodeRef.current = code;
+      isJoiningFreePlayRef.current = true;
     }
   }, [freePlayJoinCode]);
 
