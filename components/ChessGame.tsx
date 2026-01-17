@@ -13,11 +13,90 @@ import { EscrowClient, STAKE_TIERS, getStakeTierInfo, lamportsToSol, MatchStatus
 type Mode = 'practice' | 'wager';
 type PlayerColor = 'w' | 'b' | null;
 
+// Sound effects hook
+const useChessSounds = () => {
+  const soundsRef = useRef<{
+    move: HTMLAudioElement | null;
+    capture: HTMLAudioElement | null;
+    check: HTMLAudioElement | null;
+    castle: HTMLAudioElement | null;
+  }>({ move: null, capture: null, check: null, castle: null });
+  
+  useEffect(() => {
+    soundsRef.current = {
+      move: new Audio('/sounds/move.ogg'),
+      capture: new Audio('/sounds/capture.ogg'),
+      check: new Audio('/sounds/check.ogg'),
+      castle: new Audio('/sounds/castle.ogg'),
+    };
+    Object.values(soundsRef.current).forEach(audio => {
+      if (audio) audio.volume = 0.5;
+    });
+  }, []);
+  
+  const playSound = useCallback((type: 'move' | 'capture' | 'check' | 'castle') => {
+    const audio = soundsRef.current[type];
+    if (audio) {
+      audio.currentTime = 0;
+      audio.play().catch(() => {});
+    }
+  }, []);
+  
+  return { playSound };
+};
+
+// Captured pieces tracker - returns arrays of SVG paths for display
+const getCapturedPieces = (chess: Chess) => {
+  const initialPieces = { w: { p: 8, n: 2, b: 2, r: 2, q: 1 }, b: { p: 8, n: 2, b: 2, r: 2, q: 1 } };
+  const currentPieces = { w: { p: 0, n: 0, b: 0, r: 0, q: 0 }, b: { p: 0, n: 0, b: 0, r: 0, q: 0 } };
+  
+  const board = chess.board();
+  for (const row of board) {
+    for (const piece of row) {
+      if (piece && piece.type !== 'k') {
+        currentPieces[piece.color][piece.type as 'p' | 'n' | 'b' | 'r' | 'q']++;
+      }
+    }
+  }
+  
+  // Convert counts to arrays of SVG paths for display
+  const createPieceArray = (capturedBy: 'w' | 'b') => {
+    const result: { svg: string; value: number }[] = [];
+    const pieceOrder: ('q' | 'r' | 'b' | 'n' | 'p')[] = ['q', 'r', 'b', 'n', 'p'];
+    const pieceValues: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+    const victimColor = capturedBy === 'w' ? 'b' : 'w'; // Pieces captured BY white are black pieces
+    
+    for (const type of pieceOrder) {
+      const initial = capturedBy === 'w' ? initialPieces.b[type] : initialPieces.w[type];
+      const current = capturedBy === 'w' ? currentPieces.b[type] : currentPieces.w[type];
+      const captured = initial - current;
+      for (let i = 0; i < captured; i++) {
+        result.push({
+          svg: `/pieces/${victimColor}${type.toUpperCase()}.svg`,
+          value: pieceValues[type]
+        });
+      }
+    }
+    return result;
+  };
+  
+  return {
+    w: createPieceArray('w'), // pieces captured BY white (black piece SVGs)
+    b: createPieceArray('b'), // pieces captured BY black (white piece SVGs)
+  };
+};
+
+const getMaterialAdvantage = (captured: ReturnType<typeof getCapturedPieces>) => {
+  const whiteTotal = captured.w.reduce((sum, p) => sum + p.value, 0);
+  const blackTotal = captured.b.reduce((sum, p) => sum + p.value, 0);
+  return whiteTotal - blackTotal;
+};
+
 type ChessGameProps = {
   initialMode?: Mode;
   showModeSelector?: boolean;
   matchPubkey?: string;
-  playerRole?: 'host' | 'join'; // host = white, join = black
+  playerRole?: 'host' | 'join';
   matchCode?: string;
   initialStakeTier?: number;
 };
@@ -51,6 +130,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const { connection } = useConnection();
   const { connected, publicKey } = wallet;
   
+  // Chess sounds
+  const { playSound } = useChessSounds();
+  
   const [mode, setMode] = useState<Mode>(initialMode);
   const [selectedStakeTier, setSelectedStakeTier] = useState(initialStakeTier);
   const [isCreatingMatch, setIsCreatingMatch] = useState(false);
@@ -67,6 +149,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [txSignature, setTxSignature] = useState<string>('');
   const [canJoinAt, setCanJoinAt] = useState<number>(0);
   const [showResultModal, setShowResultModal] = useState(false);
+  
+  // Last move tracking for highlighting
+  const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   
   // Multiplayer state
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -192,9 +277,19 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       console.log('Received move from opponent:', move);
       const chess = chessRef.current!;
       try {
-        // The move object has { from, to, san, promotion }
-        chess.move({ from: move.from, to: move.to, promotion: move.promotion });
+        const result = chess.move({ from: move.from, to: move.to, promotion: move.promotion });
         setFen(chess.fen());
+        setLastMove({ from: move.from, to: move.to });
+        // Play sound
+        if (chess.isCheck()) {
+          playSound('check');
+        } else if (result?.flags?.includes('c') || result?.flags?.includes('e')) {
+          playSound('capture');
+        } else if (result?.flags?.includes('k') || result?.flags?.includes('q')) {
+          playSound('castle');
+        } else {
+          playSound('move');
+        }
       } catch (e) {
         console.error('Invalid move received:', e);
       }
@@ -290,8 +385,19 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       console.log('Received move from opponent:', move);
       const chess = chessRef.current!;
       try {
-        chess.move({ from: move.from, to: move.to, promotion: move.promotion });
+        const result = chess.move({ from: move.from, to: move.to, promotion: move.promotion });
         setFen(chess.fen());
+        setLastMove({ from: move.from, to: move.to });
+        // Play sound
+        if (chess.isCheck()) {
+          playSound('check');
+        } else if (result?.flags?.includes('c') || result?.flags?.includes('e')) {
+          playSound('capture');
+        } else if (result?.flags?.includes('k') || result?.flags?.includes('q')) {
+          playSound('castle');
+        } else {
+          playSound('move');
+        }
       } catch (e) {
         console.error('Invalid move received:', e);
       }
@@ -313,7 +419,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     return () => {
       newSocket.disconnect();
     };
-  }, [isFreePlay]);
+  }, [isFreePlay, playSound]);
   
   // Send move to opponent
   const sendMove = useCallback((from: string, to: string, san: string, promotion?: string) => {
@@ -384,6 +490,27 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     return new Set(moves.map((m) => m.to));
   }, [selectedSquare, fen]);
 
+  // Find king position for check indicator
+  const kingInCheck = useMemo(() => {
+    const chess = chessRef.current!;
+    if (!chess.isCheck()) return null;
+    const turn = chess.turn();
+    const boardState = chess.board();
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const piece = boardState[row][col];
+        if (piece && piece.type === 'k' && piece.color === turn) {
+          return squareFromRowCol(row, col);
+        }
+      }
+    }
+    return null;
+  }, [fen]);
+
+  // Captured pieces calculation
+  const capturedPieces = useMemo(() => getCapturedPieces(chessRef.current!), [fen]);
+  const materialAdvantage = useMemo(() => getMaterialAdvantage(capturedPieces), [capturedPieces]);
+
   // Check for game end conditions - using useEffect instead of useMemo to avoid state updates during render
   useEffect(() => {
     const chess = chessRef.current!;
@@ -411,6 +538,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     setSelectedSquare(null);
     setGameWinner(null);
     setShowResultModal(false);
+    setLastMove(null);
     setFen(chessRef.current.fen());
   };
 
@@ -777,9 +905,20 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       }
     }
 
-    chess.move(bestMove);
+    const result = chess.move(bestMove);
     setFen(chess.fen());
-  }, []);
+    setLastMove({ from: bestMove.from, to: bestMove.to });
+    // Play sound for AI move
+    if (chess.isCheck()) {
+      playSound('check');
+    } else if (result?.flags?.includes('c') || result?.flags?.includes('e')) {
+      playSound('capture');
+    } else if (result?.flags?.includes('k') || result?.flags?.includes('q')) {
+      playSound('castle');
+    } else {
+      playSound('move');
+    }
+  }, [playSound]);
 
   const onSquareClick = (square: string) => {
     const chess = chessRef.current!;
@@ -834,6 +973,18 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       if (!move) return;
       setSelectedSquare(null);
       setFen(chess.fen());
+      setLastMove({ from: selectedSquare, to: square });
+      
+      // Play sound
+      if (chess.isCheck()) {
+        playSound('check');
+      } else if (move.flags?.includes('c') || move.flags?.includes('e')) {
+        playSound('capture');
+      } else if (move.flags?.includes('k') || move.flags?.includes('q')) {
+        playSound('castle');
+      } else {
+        playSound('move');
+      }
       
       // Send move to opponent in multiplayer or free play
       if (isMultiplayer || isFreePlay) {
@@ -950,6 +1101,23 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
           <div className="w-full max-w-[min(480px,calc(100vw-1rem))] space-y-3 sm:space-y-4">
             <div className="glass-card rounded-lg sm:rounded-xl lg:rounded-2xl p-2 sm:p-3 lg:p-4 shadow-glow">
+              {/* Opponent's captured pieces (shown at top) */}
+              <div className="flex items-center justify-between mb-2 min-h-[28px]">
+                <div className="flex items-center gap-0.5 flex-wrap">
+                  {capturedPieces[playerColor === 'w' ? 'b' : 'w'].map((piece, idx) => (
+                    <img
+                      key={idx}
+                      src={piece.svg}
+                      alt="captured piece"
+                      className="w-5 h-5 sm:w-6 sm:h-6 opacity-70"
+                    />
+                  ))}
+                </div>
+                {materialAdvantage < 0 && (
+                  <span className="text-xs font-bold text-neutral-400">+{Math.abs(materialAdvantage)}</span>
+                )}
+              </div>
+              
               <div className="aspect-square w-full overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/10">
                 <div className="grid h-full w-full grid-cols-8 grid-rows-8">
               {Array.from({ length: 64 }).map((_, i) => {
@@ -962,6 +1130,26 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
                 const isSelected = selectedSquare === square;
                 const isLegal = legalDestinations.has(square);
+                const isLastMove = lastMove !== null && (lastMove.from === square || lastMove.to === square);
+                const isKingInCheck = kingInCheck === square;
+
+                // Determine background color with priority: check > selected > lastMove > default
+                let bgStyle: React.CSSProperties = {
+                  backgroundColor: isLight ? '#e5e5e5' : '#525252',
+                  borderRadius: '2px',
+                };
+                
+                if (isLastMove && !isSelected && !isKingInCheck) {
+                  bgStyle.backgroundColor = isLight ? '#fcd34d' : '#b45309'; // amber-300 / amber-700
+                }
+                if (isSelected) {
+                  bgStyle.backgroundColor = '#34d399'; // emerald-400
+                  bgStyle.boxShadow = 'inset 0 0 0 4px #10b981'; // emerald-500
+                }
+                if (isKingInCheck) {
+                  bgStyle.backgroundColor = '#ef4444'; // red-500
+                  bgStyle.boxShadow = 'inset 0 0 0 4px #b91c1c'; // red-700
+                }
 
                 return (
                   <motion.button
@@ -970,27 +1158,17 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     onClick={() => onSquareClick(square)}
                     whileHover={piece ? { scale: 1.05 } : {}}
                     whileTap={{ scale: 0.95 }}
-                    className={`relative flex items-center justify-center select-none transition-all ${
-                      isLight ? 'bg-neutral-200' : 'bg-neutral-600'
-                    } ${
-                      isSelected ? 'ring-4 ring-inset ring-solana-green bg-solana-green/20' : ''
-                    }`}
-                    style={{ borderRadius: '2px' }}
+                    className="relative flex items-center justify-center select-none transition-all"
+                    style={bgStyle}
                     aria-label={square}
                   >
-                    {isLegal && !piece && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-3 h-3 rounded-full bg-solana-green opacity-50" />
-                      </div>
-                    )}
-                    {isLegal && piece && (
-                      <div className="absolute inset-0 rounded-full ring-4 ring-inset ring-solana-green opacity-50" />
-                    )}
+                    {/* Piece image */}
                     {piece && svgPath && (
                       <motion.div
                         initial={false}
                         animate={{ scale: isSelected ? 1.1 : 1 }}
                         className="relative w-[80%] h-[80%]"
+                        style={{ zIndex: 1 }}
                       >
                         <img
                           src={svgPath}
@@ -1000,11 +1178,55 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                         />
                       </motion.div>
                     )}
+                    {/* Legal move dot (empty square) */}
+                    {isLegal && !piece && (
+                      <div 
+                        style={{
+                          position: 'absolute',
+                          width: '30%',
+                          height: '30%',
+                          borderRadius: '50%',
+                          backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                          zIndex: 10,
+                          pointerEvents: 'none',
+                        }}
+                      />
+                    )}
+                    {/* Legal capture indicator (square with piece) */}
+                    {isLegal && piece && (
+                      <div 
+                        style={{
+                          position: 'absolute',
+                          inset: '4px',
+                          borderRadius: '50%',
+                          border: '5px solid rgba(0, 0, 0, 0.25)',
+                          zIndex: 10,
+                          pointerEvents: 'none',
+                        }}
+                      />
+                    )}
                   </motion.button>
                 );
               })}
             </div>
           </div>
+          
+              {/* Player's captured pieces (shown at bottom) */}
+              <div className="flex items-center justify-between mt-2 min-h-[28px]">
+                <div className="flex items-center gap-0.5 flex-wrap">
+                  {capturedPieces[playerColor === 'w' ? 'w' : 'b'].map((piece, idx) => (
+                    <img
+                      key={idx}
+                      src={piece.svg}
+                      alt="captured piece"
+                      className="w-5 h-5 sm:w-6 sm:h-6 opacity-70"
+                    />
+                  ))}
+                </div>
+                {materialAdvantage > 0 && (
+                  <span className="text-xs font-bold text-solana-green">+{materialAdvantage}</span>
+                )}
+              </div>
         </div>
         
         <div className="text-center py-3">
