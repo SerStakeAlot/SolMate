@@ -1144,9 +1144,13 @@ export const ChessGame: React.FC<ChessGameProps> = ({
               <div className="aspect-square w-full overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/10">
                 <div className="grid h-full w-full grid-cols-8 grid-rows-8">
               {Array.from({ length: 64 }).map((_, i) => {
-                const row = Math.floor(i / 8);
-                const col = i % 8;
-                const isLight = (row + col) % 2 === 0;
+                // Flip board for black player - their pieces should be at bottom
+                const flipped = playerColor === 'b';
+                const row = flipped ? 7 - Math.floor(i / 8) : Math.floor(i / 8);
+                const col = flipped ? 7 - (i % 8) : i % 8;
+                const visualRow = Math.floor(i / 8); // For light/dark square coloring
+                const visualCol = i % 8;
+                const isLight = (visualRow + visualCol) % 2 === 0;
                 const square = squareFromRowCol(row, col);
                 const piece = board[row]?.[col] ?? null;
                 const svgPath = pieceToSvg(piece as any);
