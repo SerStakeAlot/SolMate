@@ -358,6 +358,10 @@ io.on('connection', (socket) => {
   
   // Host a free play game
   socket.on('freeplay:host', ({ walletAddress }) => {
+    // Get the player from store to ensure we use the same ID
+    const player = playerStore.getPlayerBySocket(socket.id);
+    const playerId = player?.id || walletAddress || `host_${socket.id}`;
+    
     // Generate a 4-char code
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
     let code = '';
@@ -371,14 +375,18 @@ io.on('connection', (socket) => {
       }
     }
     
-    freePlayRooms.set(code, { hostSocketId: socket.id, hostWallet: walletAddress });
-    console.log(`Free play room created: ${code} by ${walletAddress?.slice(0, 8) || 'anonymous'}`);
+    freePlayRooms.set(code, { hostSocketId: socket.id, hostWallet: playerId });
+    console.log(`Free play room created: ${code} by ${playerId?.slice(0, 8) || 'anonymous'}`);
     
     socket.emit('freeplay:hosted', { code });
   });
   
   // Join a free play game
   socket.on('freeplay:join', ({ code, walletAddress }) => {
+    // Get the player from store to ensure we use the same ID
+    const player = playerStore.getPlayerBySocket(socket.id);
+    const playerId = player?.id || walletAddress || `guest_${socket.id}`;
+    
     const room = freePlayRooms.get(code.toUpperCase());
     if (!room) {
       socket.emit('freeplay:error', { error: 'Room not found' });
@@ -390,29 +398,29 @@ io.on('connection', (socket) => {
     }
     
     room.guestSocketId = socket.id;
-    room.guestWallet = walletAddress;
+    room.guestWallet = playerId;
     
     // Create a simple game room ID
     const roomId = `free_${code}`;
     
-    // Create game room for free play
+    // Create game room for free play - use the player IDs from playerStore
     const gameRoom = gameRoomManager.createRoomFromHosted(
       roomId,
       code,
       'FREE_PLAY', // No match pubkey
       -1, // Free tier indicator
-      { wallet: room.hostWallet || 'host', socketId: room.hostSocketId },
-      { wallet: walletAddress || 'guest', socketId: socket.id },
+      { wallet: room.hostWallet, socketId: room.hostSocketId },
+      { wallet: playerId, socketId: socket.id },
       io
     );
     
-    console.log(`Free play room ${code} - guest joined. Room: ${roomId}`);
+    console.log(`Free play room ${code} - guest ${playerId.slice(0, 8)} joined. Room: ${roomId}`);
     
     // Notify host
     io.to(room.hostSocketId).emit('freeplay:started', {
       roomId,
       yourColor: 'w',
-      opponent: walletAddress?.slice(0, 8) || 'Guest'
+      opponent: playerId?.slice(0, 8) || 'Guest'
     });
     
     // Notify guest
