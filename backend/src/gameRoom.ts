@@ -243,15 +243,23 @@ class GameRoomManager {
       return;
     }
 
-    // Give player 30 seconds to reconnect
+    const isWhite = room.playerWhite.id === playerId;
+    const winner = isWhite ? 'b' : 'w';
+    
+    // For free play (stakeTier === -1), end game immediately
+    // For wager games, give 30 seconds to reconnect
+    const isFreePlay = room.stakeTier === -1;
+    const disconnectDelay = isFreePlay ? 5000 : 30000; // 5 sec for free, 30 sec for wager
+    
+    console.log(`Player ${playerId.slice(0, 8)} disconnected from room ${roomId}. ${isFreePlay ? 'Free play' : 'Wager'} - waiting ${disconnectDelay/1000}s...`);
+
     setTimeout(() => {
       const currentRoom = this.rooms.get(roomId);
       if (currentRoom && currentRoom.status === 'active') {
-        const isWhite = currentRoom.playerWhite.id === playerId;
-        const winner = isWhite ? 'b' : 'w';
-        this.endGame(roomId, winner, 'resignation', io);
+        console.log(`Player did not reconnect. ${winner === 'w' ? 'White' : 'Black'} wins by abandonment.`);
+        this.endGame(roomId, winner, 'abandonment', io);
       }
-    }, 30000);
+    }, disconnectDelay);
   }
 
   getAllRooms(): GameRoom[] {
