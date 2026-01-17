@@ -481,7 +481,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   };
   
   const handleCancelFreePlay = () => {
-    if (socket && freePlayCode) {
+    // If game is in progress (opponent connected), resign/abandon
+    if (socket && gameRoomId && opponentConnected) {
+      console.log('Leaving active game - emitting resignation');
+      socket.emit('game:resign', { roomId: gameRoomId });
+    } else if (socket && freePlayCode) {
+      // Just cancelling a room before opponent joined
       socket.emit('freeplay:cancel', { code: freePlayCode });
     }
     setIsFreePlay(false);
@@ -495,6 +500,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     // Reset chess board
     chessRef.current = new Chess();
     setFen(chessRef.current.fen());
+    setLastMove(null);
   };
 
   const board = useMemo(() => {
