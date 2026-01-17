@@ -13,47 +13,53 @@ import { EscrowClient, STAKE_TIERS, getStakeTierInfo, lamportsToSol, MatchStatus
 type Mode = 'practice' | 'wager';
 type PlayerColor = 'w' | 'b' | null;
 
-// Sound effects hook
+// Sound effects hook - creates audio lazily to avoid SSR issues
 const useChessSounds = () => {
   const soundsRef = useRef<{
     move: HTMLAudioElement | null;
     capture: HTMLAudioElement | null;
     check: HTMLAudioElement | null;
     castle: HTMLAudioElement | null;
-  }>({ move: null, capture: null, check: null, castle: null });
+  } | null>(null);
+  const initializedRef = useRef(false);
   
-  useEffect(() => {
-    // Create and preload audio elements
-    const move = new Audio('/sounds/move.ogg');
-    const capture = new Audio('/sounds/capture.ogg');
-    const check = new Audio('/sounds/check.ogg');
-    const castle = new Audio('/sounds/castle.ogg');
+  // Initialize audio elements lazily (not in useEffect to avoid timing issues)
+  const getOrCreateSounds = useCallback(() => {
+    if (typeof window === 'undefined') return null;
     
-    // Preload audio
-    move.load();
-    capture.load();
-    check.load();
-    castle.load();
-    
-    // Set volume
-    move.volume = 0.5;
-    capture.volume = 0.5;
-    check.volume = 0.5;
-    castle.volume = 0.5;
-    
-    soundsRef.current = { move, capture, check, castle };
+    if (!soundsRef.current && !initializedRef.current) {
+      initializedRef.current = true;
+      const move = new Audio('/sounds/move.ogg');
+      const capture = new Audio('/sounds/capture.ogg');
+      const check = new Audio('/sounds/check.ogg');
+      const castle = new Audio('/sounds/castle.ogg');
+      
+      // Preload and set volume
+      [move, capture, check, castle].forEach(audio => {
+        audio.load();
+        audio.volume = 0.5;
+      });
+      
+      soundsRef.current = { move, capture, check, castle };
+    }
+    return soundsRef.current;
   }, []);
   
   const playSound = useCallback((type: 'move' | 'capture' | 'check' | 'castle') => {
-    const audio = soundsRef.current[type];
+    const sounds = getOrCreateSounds();
+    if (!sounds) return;
+    
+    const audio = sounds[type];
     if (audio) {
-      audio.currentTime = 0;
-      audio.play().catch((e) => {
-        // Browser may block autoplay - this is expected
+      // Clone for overlapping sounds
+      const clone = audio.cloneNode() as HTMLAudioElement;
+      clone.volume = 0.5;
+      clone.play().catch((e) => {
+        // Browser may block autoplay until user interaction
         console.log('Audio play blocked:', e.message);
       });
     }
-  }, []);
+  }, [getOrCreateSounds]);
   
   return { playSound };
 };
