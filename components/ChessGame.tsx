@@ -23,22 +23,35 @@ const useChessSounds = () => {
   }>({ move: null, capture: null, check: null, castle: null });
   
   useEffect(() => {
-    soundsRef.current = {
-      move: new Audio('/sounds/move.ogg'),
-      capture: new Audio('/sounds/capture.ogg'),
-      check: new Audio('/sounds/check.ogg'),
-      castle: new Audio('/sounds/castle.ogg'),
-    };
-    Object.values(soundsRef.current).forEach(audio => {
-      if (audio) audio.volume = 0.5;
-    });
+    // Create and preload audio elements
+    const move = new Audio('/sounds/move.ogg');
+    const capture = new Audio('/sounds/capture.ogg');
+    const check = new Audio('/sounds/check.ogg');
+    const castle = new Audio('/sounds/castle.ogg');
+    
+    // Preload audio
+    move.load();
+    capture.load();
+    check.load();
+    castle.load();
+    
+    // Set volume
+    move.volume = 0.5;
+    capture.volume = 0.5;
+    check.volume = 0.5;
+    castle.volume = 0.5;
+    
+    soundsRef.current = { move, capture, check, castle };
   }, []);
   
   const playSound = useCallback((type: 'move' | 'capture' | 'check' | 'castle') => {
     const audio = soundsRef.current[type];
     if (audio) {
       audio.currentTime = 0;
-      audio.play().catch(() => {});
+      audio.play().catch((e) => {
+        // Browser may block autoplay - this is expected
+        console.log('Audio play blocked:', e.message);
+      });
     }
   }, []);
   
