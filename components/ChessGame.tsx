@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Trophy, RefreshCw, X, CheckCircle2, XCircle, Wifi, WifiOff, Users } from 'lucide-react';
+import { Swords, Trophy, RefreshCw, X, CheckCircle2, XCircle, Wifi, WifiOff, Users, Share2 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
 import { Chess } from 'chess.js';
@@ -99,6 +99,7 @@ type ChessGameProps = {
   playerRole?: 'host' | 'join';
   matchCode?: string;
   initialStakeTier?: number;
+  freePlayJoinCode?: string; // Auto-join free play via shareable link
 };
 
 const BACKEND_URL = 'https://solmate-production.up.railway.app';
@@ -125,6 +126,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   playerRole,
   matchCode,
   initialStakeTier = 4,
+  freePlayJoinCode,
 }) => {
   const wallet = useWallet();
   const { connection } = useConnection();
@@ -442,6 +444,17 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     });
   }, [socket, isMultiplayer, isFreePlay, gameRoomId]);
   
+  // Auto-join free play if code is provided via URL
+  useEffect(() => {
+    if (freePlayJoinCode && freePlayJoinCode.length === 4 && !isFreePlay) {
+      console.log('Auto-joining free play room:', freePlayJoinCode);
+      setJoinFreePlayCode(freePlayJoinCode.toUpperCase());
+      setIsFreePlay(true);
+      setIsJoiningFreePlay(true);
+      setPlayerColor('b');
+    }
+  }, [freePlayJoinCode]);
+
   // Free play handlers
   const handleCreateFreePlay = () => {
     setIsFreePlay(true);
@@ -1348,6 +1361,30 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           {opponentConnected ? `Playing as ${playerColor === 'w' ? 'White' : 'Black'}` : 'Waiting for opponent...'}
                         </span>
                       </div>
+                      {!opponentConnected && freePlayCode && (
+                        <motion.button
+                          type="button"
+                          onClick={() => {
+                            const shareUrl = `${window.location.origin}/game?freeplay=${freePlayCode}`;
+                            if (navigator.share) {
+                              navigator.share({
+                                title: 'Play Chess with me on SolMate!',
+                                text: `Join my chess game! Room code: ${freePlayCode}`,
+                                url: shareUrl,
+                              }).catch(() => {});
+                            } else {
+                              navigator.clipboard.writeText(shareUrl);
+                              alert('Link copied! Share it with your friend.');
+                            }
+                          }}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className="mt-3 w-full flex items-center justify-center gap-2 bg-solana-green/20 hover:bg-solana-green/30 text-solana-green font-semibold py-2 px-4 rounded-lg border border-solana-green/30 transition-all text-sm"
+                        >
+                          <Share2 className="h-4 w-4" />
+                          Share Invite Link
+                        </motion.button>
+                      )}
                     </div>
                     <motion.button
                       type="button"

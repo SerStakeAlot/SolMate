@@ -19,15 +19,18 @@ function GameContent() {
   const matchParam = searchParams.get("match");
   const codeParam = searchParams.get("code");
   const tierParam = searchParams.get("tier");
+  const freePlayCode = searchParams.get("freeplay"); // Join free play via link
 
-  const initialMode: ChessMode = playMode === "computer" ? "practice" : "wager";
+  const initialMode: ChessMode = (playMode === "computer" || freePlayCode) ? "practice" : "wager";
   const stakeTier = tierParam ? parseInt(tierParam, 10) : 4; // Default to test tier
   const title =
-    playMode === "join"
-      ? "Active Match (Black)"
-      : playMode === "host"
-        ? "Staked Match (White)"
-        : "Practice Mode";
+    freePlayCode
+      ? "Free Online Match"
+      : playMode === "join"
+        ? "Active Match (Black)"
+        : playMode === "host"
+          ? "Staked Match (White)"
+          : "Practice Mode";
   
   // Determine player role for multiplayer
   const playerRole = playMode === "host" ? "host" : playMode === "join" ? "join" : undefined;
@@ -51,11 +54,12 @@ function GameContent() {
 
       <ChessGame
         initialMode={initialMode}
-        showModeSelector={playMode === "computer"}
+        showModeSelector={playMode === "computer" && !freePlayCode}
         matchPubkey={matchParam || undefined}
         playerRole={playerRole as "host" | "join" | undefined}
         matchCode={codeParam || undefined}
         initialStakeTier={stakeTier}
+        freePlayJoinCode={freePlayCode || undefined}
       />
     </main>
   );
