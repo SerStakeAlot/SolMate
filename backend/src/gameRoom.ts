@@ -246,12 +246,10 @@ class GameRoomManager {
     const isWhite = room.playerWhite.id === playerId;
     const winner = isWhite ? 'b' : 'w';
     
-    // For free play (stakeTier === -1), end game immediately
-    // For wager games, give 30 seconds to reconnect
-    const isFreePlay = room.stakeTier === -1;
-    const disconnectDelay = isFreePlay ? 5000 : 30000; // 5 sec for free, 30 sec for wager
+    // Give player 30 seconds to reconnect before declaring abandonment
+    const disconnectDelay = 30000;
     
-    console.log(`Player ${playerId.slice(0, 8)} disconnected from room ${roomId}. ${isFreePlay ? 'Free play' : 'Wager'} - waiting ${disconnectDelay/1000}s...`);
+    console.log(`Player ${playerId.slice(0, 8)} disconnected from room ${roomId}. Waiting ${disconnectDelay/1000}s for reconnect...`);
 
     setTimeout(() => {
       const currentRoom = this.rooms.get(roomId);
