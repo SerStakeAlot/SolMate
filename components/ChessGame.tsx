@@ -925,6 +925,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
     if (chess.isGameOver()) return;
 
+    // In multiplayer or free play, don't allow moves until opponent connects
+    if ((isMultiplayer || isFreePlay) && !opponentConnected) {
+      console.log('Waiting for opponent to connect...');
+      return;
+    }
+
     // In multiplayer or free play, only allow moves on your turn with your color
     if ((isMultiplayer || isFreePlay) && playerColor) {
       if (chess.turn() !== playerColor) {
