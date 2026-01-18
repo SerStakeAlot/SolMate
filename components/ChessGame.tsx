@@ -932,13 +932,13 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     const moves = chess.moves({ verbose: true }) as Array<any>;
     if (moves.length === 0) return;
 
-    // Use minimax with depth 3 for ~1600-1800 ELO
+    // Use minimax with depth 2 for faster response (~1400-1500 ELO)
     let bestMove = moves[0];
     let bestValue = Infinity;
     
     for (const move of moves) {
       chess.move(move);
-      const value = minimax(chess, 3, -Infinity, Infinity, true);
+      const value = minimax(chess, 2, -Infinity, Infinity, true);
       chess.undo();
       
       if (value < bestValue) {
@@ -1053,7 +1053,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
     const t = setTimeout(() => {
       playComputerMove();
-    }, 250);
+    }, 100);
 
     return () => clearTimeout(t);
   }, [fen, mode, isFreePlay, playComputerMove]);
