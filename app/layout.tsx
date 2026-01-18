@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     siteName: "SolMate",
     images: [
       {
-        url: "https://playsolmate.fun/images/solmate-logo.png",
+        url: "https://playsolmate.fun/images/solmateee.png",
         width: 512,
         height: 512,
         alt: "SolMate Logo",
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "SolMate - Tactical Chess on Solana",
     description: "Compete in staked chess matches on Solana blockchain. Play free or stake SOL!",
-    images: ["https://playsolmate.fun/images/solmate-logo.png"],
+    images: ["https://playsolmate.fun/images/solmateee.png"],
   },
 };
 
