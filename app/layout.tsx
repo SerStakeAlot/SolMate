@@ -28,16 +28,16 @@ export const metadata: Metadata = {
     images: [
       {
         url: "https://playsolmate.fun/images/solmateee.png",
-        width: 512,
-        height: 512,
-        alt: "SolMate Logo",
+        width: 718,
+        height: 966,
+        alt: "SolMate - Chess on Solana",
       },
     ],
     locale: "en_US",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
+    card: "summary",
     title: "SolMate - Tactical Chess on Solana",
     description: "Compete in staked chess matches on Solana blockchain. Play free or stake SOL!",
     images: ["https://playsolmate.fun/images/solmateee.png"],
