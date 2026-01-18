@@ -6,7 +6,7 @@ import { WalletBalanceWarning } from "@/components/WalletBalanceWarning";
 
 export const metadata: Metadata = {
   title: "SolMate - Tactical Chess on Solana",
-  description: "Compete in staked chess matches on Solana blockchain",
+  description: "Compete in staked chess matches on Solana blockchain. Play free or stake SOL in competitive chess matches.",
   manifest: "/manifest.json",
   viewport: {
     width: "device-width",
@@ -19,6 +19,28 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "SolMate",
+  },
+  openGraph: {
+    title: "SolMate - Tactical Chess on Solana",
+    description: "Compete in staked chess matches on Solana blockchain. Play free or stake SOL in competitive chess matches.",
+    url: "https://playsolmate.fun",
+    siteName: "SolMate",
+    images: [
+      {
+        url: "https://playsolmate.fun/images/solmate-logo.png",
+        width: 512,
+        height: 512,
+        alt: "SolMate Logo",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SolMate - Tactical Chess on Solana",
+    description: "Compete in staked chess matches on Solana blockchain. Play free or stake SOL!",
+    images: ["https://playsolmate.fun/images/solmate-logo.png"],
   },
 };
 
