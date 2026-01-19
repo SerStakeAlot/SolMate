@@ -60,7 +60,7 @@ export function Navigation() {
               href="https://x.com/SolMateChess"
               target="_blank"
               rel="noopener noreferrer"
-              className="p-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-all"
+              className="relative z-50 p-2 mr-2 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-all"
               aria-label="Follow us on X"
             >
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
