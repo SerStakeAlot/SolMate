@@ -1565,7 +1565,10 @@ export const ChessGame: React.FC<ChessGameProps> = ({
           >
             {/* Determine if current player won */}
             {(() => {
-              const isWinner = playerColor ? gameWinner === playerColor : true;
+              // In practice mode, player is always white
+              // In multiplayer/free play, use playerColor
+              const myColor = playerColor || 'w';
+              const isWinner = gameWinner === myColor;
               const winnerColor = gameWinner || 'w';
               const loserColor = gameWinner === 'w' ? 'b' : 'w';
               
