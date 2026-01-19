@@ -60,12 +60,11 @@ export function Navigation() {
               href="https://x.com/SolMateChess"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: '8px', border: '1px solid white', color: 'white', zIndex: 9999, position: 'relative' }}
+              style={{ display: 'flex', alignItems: 'center', padding: '8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '8px', color: 'white', zIndex: 9999, position: 'relative' }}
             >
-              <svg style={{ width: '20px', height: '20px' }} fill="currentColor" viewBox="0 0 24 24">
+              <svg style={{ width: '22px', height: '22px' }} fill="currentColor" viewBox="0 0 24 24">
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
               </svg>
-              <span style={{ fontSize: '14px', fontWeight: 500 }}>X</span>
             </a>
             <WalletButton />
           </div>
