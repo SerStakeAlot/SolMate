@@ -7,6 +7,7 @@ import { playerStore } from './playerStore';
 import { matchmaking } from './matchmaking';
 import { gameRoomManager } from './gameRoom';
 import { hostedMatchManager } from './hostedMatch';
+import { userStore } from './userStore';
 import { ChessMove } from './types';
 
 dotenv.config();
@@ -65,6 +66,53 @@ app.post('/api/matches', (req, res) => {
   const match = hostedMatchManager.hostMatch(hostWallet, '', stakeTier, matchPubkey, 30, io, matchCode);
   
   res.json({ success: true, matchCode: match.matchCode });
+});
+
+// ============= Username API Endpoints =============
+
+// Get username for a wallet address
+app.get('/api/username/:walletAddress', (req, res) => {
+  const { walletAddress } = req.params;
+  const username = userStore.getUsername(walletAddress);
+  res.json({ username });
+});
+
+// Get multiple usernames (batch lookup)
+app.post('/api/usernames', (req, res) => {
+  const { walletAddresses } = req.body;
+  if (!Array.isArray(walletAddresses)) {
+    return res.status(400).json({ error: 'walletAddresses must be an array' });
+  }
+  const usernames = userStore.getUsernames(walletAddresses);
+  res.json({ usernames });
+});
+
+// Check if username is available
+app.get('/api/username/check/:username', (req, res) => {
+  const { username } = req.params;
+  const { wallet } = req.query;
+  const available = userStore.isUsernameAvailable(username, wallet as string | undefined);
+  res.json({ available });
+});
+
+// Set username for a wallet (requires signature verification in production)
+app.post('/api/username', (req, res) => {
+  const { walletAddress, username, signature } = req.body;
+  
+  if (!walletAddress || !username) {
+    return res.status(400).json({ error: 'walletAddress and username are required' });
+  }
+
+  // TODO: In production, verify signature to prove wallet ownership
+  // For now, we trust the client (since wallet connection happens client-side)
+  
+  const result = userStore.setUsername(walletAddress, username);
+  
+  if (result.success) {
+    res.json({ success: true, username });
+  } else {
+    res.status(400).json({ success: false, error: result.error });
+  }
 });
 
 // Socket.IO connection handling

@@ -6,6 +6,7 @@ import { io, Socket } from 'socket.io-client';
 import { Chess } from 'chess.js';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, Trophy, Swords, LogOut, Users } from 'lucide-react';
+import { getUsername, formatDisplayName } from '@/utils/username';
 
 const BACKEND_URL = 'https://solmate-production.up.railway.app';
 
@@ -101,9 +102,17 @@ function GameRoom({ socket, roomId, yourColor, opponent, stakeTier, onExit }: Ga
   const [gameStatus, setGameStatus] = useState<'active' | 'finished'>('active');
   const [winner, setWinner] = useState<'w' | 'b' | 'draw' | null>(null);
   const [endReason, setEndReason] = useState<string>('');
+  const [opponentUsername, setOpponentUsername] = useState<string | null>(null);
 
   const isFlipped = yourColor === 'b';
   const isMyTurn = currentTurn === yourColor;
+
+  // Fetch opponent's username
+  useEffect(() => {
+    if (opponent?.walletAddress) {
+      getUsername(opponent.walletAddress).then(setOpponentUsername);
+    }
+  }, [opponent?.walletAddress]);
 
   useEffect(() => {
     // Listen for opponent moves
@@ -226,7 +235,9 @@ function GameRoom({ socket, roomId, yourColor, opponent, stakeTier, onExit }: Ga
           <div className="glass-card rounded-xl p-4 mb-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-neutral-500 uppercase tracking-wider mb-1">Opponent</p>
-              <p className="font-semibold truncate">{opponent.walletAddress.slice(0, 8)}...</p>
+              <p className="font-semibold truncate">
+                {formatDisplayName(opponent.walletAddress, opponentUsername)}
+              </p>
               <p className="text-xs text-solana-green">{opponent.rank}</p>
             </div>
             <div className={`flex items-center gap-2 text-2xl font-mono px-4 py-2 rounded-lg ${
