@@ -1,19 +1,44 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { WalletName } from '@solana/wallet-adapter-base';
+import { WalletName, WalletReadyState } from '@solana/wallet-adapter-base';
 
 export const WalletButton: React.FC = () => {
-  const { connected, publicKey, wallets, select, disconnect, connecting } = useWallet();
+  const { connected, publicKey, wallets, select, disconnect, connecting, connect, wallet } = useWallet();
   const [showModal, setShowModal] = useState(false);
+  const [pendingConnect, setPendingConnect] = useState(false);
 
   const handleConnect = useCallback(() => {
     setShowModal(true);
   }, []);
 
+  // When a wallet is selected, try to connect
+  useEffect(() => {
+    if (wallet && pendingConnect && !connected && !connecting) {
+      console.log('Attempting to connect to wallet:', wallet.adapter.name);
+      setPendingConnect(false);
+      
+      // Small delay to ensure wallet adapter is ready
+      setTimeout(() => {
+        connect().catch((error) => {
+          console.log('Connection error:', error);
+          // On mobile, if wallet isn't installed, open the app store or wallet URL
+          if (wallet.adapter.readyState === WalletReadyState.NotDetected) {
+            const url = wallet.adapter.url;
+            if (url) {
+              window.open(url, '_blank');
+            }
+          }
+        });
+      }, 100);
+    }
+  }, [wallet, connected, connecting, connect, pendingConnect]);
+
   const handleSelectWallet = useCallback((walletName: WalletName) => {
+    console.log('Selected wallet:', walletName);
     select(walletName);
+    setPendingConnect(true);
     setShowModal(false);
   }, [select]);
 
@@ -148,22 +173,39 @@ export const WalletButton: React.FC = () => {
             </button>
             <div style={modalTitleStyle}>Connect Wallet</div>
             <div>
-              {wallets.map((wallet) => (
-                <button
-                  key={wallet.adapter.name}
-                  style={walletButtonStyle}
-                  onClick={() => handleSelectWallet(wallet.adapter.name)}
-                >
-                  {wallet.adapter.icon && (
-                    <img 
-                      src={wallet.adapter.icon} 
-                      alt={wallet.adapter.name}
-                      style={{ width: '32px', height: '32px', borderRadius: '8px' }}
-                    />
-                  )}
-                  <span>{wallet.adapter.name}</span>
-                </button>
-              ))}
+              {wallets.map((wallet) => {
+                const isInstalled = wallet.readyState === WalletReadyState.Installed || 
+                                    wallet.readyState === WalletReadyState.Loadable;
+                return (
+                  <button
+                    key={wallet.adapter.name}
+                    style={{
+                      ...walletButtonStyle,
+                      opacity: isInstalled ? 1 : 0.7,
+                    }}
+                    onClick={() => handleSelectWallet(wallet.adapter.name)}
+                  >
+                    {wallet.adapter.icon && (
+                      <img 
+                        src={wallet.adapter.icon} 
+                        alt={wallet.adapter.name}
+                        style={{ width: '32px', height: '32px', borderRadius: '8px' }}
+                      />
+                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                      <span>{wallet.adapter.name}</span>
+                      {!isInstalled && (
+                        <span style={{ fontSize: '11px', color: '#888' }}>Tap to install</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+              {wallets.length === 0 && (
+                <p style={{ color: '#888', textAlign: 'center', fontSize: '14px' }}>
+                  No wallet detected. Please install Phantom or Solflare.
+                </p>
+              )}
             </div>
           </div>
         </div>
