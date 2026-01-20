@@ -1,46 +1,44 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletName, WalletReadyState } from '@solana/wallet-adapter-base';
 
 export const WalletButton: React.FC = () => {
-  const { connected, publicKey, wallets, select, disconnect, connecting, connect, wallet } = useWallet();
+  const { connected, publicKey, wallets, select, disconnect, connecting, connect } = useWallet();
   const [showModal, setShowModal] = useState(false);
-  const [pendingConnect, setPendingConnect] = useState(false);
 
   const handleConnect = useCallback(() => {
     setShowModal(true);
   }, []);
 
-  // When a wallet is selected, try to connect
-  useEffect(() => {
-    if (wallet && pendingConnect && !connected && !connecting) {
-      console.log('Attempting to connect to wallet:', wallet.adapter.name);
-      setPendingConnect(false);
-      
-      // Small delay to ensure wallet adapter is ready
-      setTimeout(() => {
-        connect().catch((error) => {
-          console.log('Connection error:', error);
-          // On mobile, if wallet isn't installed, open the app store or wallet URL
-          if (wallet.adapter.readyState === WalletReadyState.NotDetected) {
-            const url = wallet.adapter.url;
-            if (url) {
-              window.open(url, '_blank');
-            }
-          }
-        });
-      }, 100);
-    }
-  }, [wallet, connected, connecting, connect, pendingConnect]);
-
-  const handleSelectWallet = useCallback((walletName: WalletName) => {
+  const handleSelectWallet = useCallback(async (walletName: WalletName) => {
     console.log('Selected wallet:', walletName);
-    select(walletName);
-    setPendingConnect(true);
     setShowModal(false);
-  }, [select]);
+    
+    try {
+      // Select the wallet first
+      select(walletName);
+      
+      // Give the adapter a moment to initialize, then connect
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      // Now try to connect
+      await connect();
+      console.log('Connected successfully!');
+    } catch (error: any) {
+      console.log('Connection error:', error?.message || error);
+      
+      // If wallet not detected, try to open the wallet's website/app store
+      const selectedWallet = wallets.find(w => w.adapter.name === walletName);
+      if (selectedWallet?.adapter.readyState === WalletReadyState.NotDetected) {
+        const url = selectedWallet.adapter.url;
+        if (url) {
+          window.open(url, '_blank');
+        }
+      }
+    }
+  }, [select, connect, wallets]);
 
   const handleDisconnect = useCallback(() => {
     disconnect();
