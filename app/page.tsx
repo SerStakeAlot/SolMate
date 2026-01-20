@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Shield, Zap, Trophy, ChevronRight, Sparkles } from "lucide-react";
+import { Shield, Zap, Trophy, ChevronRight, Sparkles, User } from "lucide-react";
+import { UsernameSetting } from "@/components/UsernameSetting";
 
 export default function Home() {
   const router = useRouter();
@@ -104,6 +105,17 @@ export default function Home() {
             <Sparkles className="w-4 h-4 text-solana-purple" />
             Connect your wallet to access competitive staked matches
           </motion.p>
+        )}
+
+        {connected && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="mt-8 w-full max-w-sm"
+          >
+            <UsernameSetting />
+          </motion.div>
         )}
       </section>
 
