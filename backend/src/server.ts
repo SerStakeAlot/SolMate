@@ -464,17 +464,19 @@ io.on('connection', (socket) => {
     
     console.log(`Free play room ${code} - guest ${playerId.slice(0, 8)} joined. Room: ${roomId}`);
     
-    // Notify host
+    // Notify host - include full wallet address for username lookup
     io.to(room.hostSocketId).emit('freeplay:started', {
       roomId,
       yourColor: 'w',
+      opponentWallet: playerId !== `guest_${socket.id}` ? playerId : null,
       opponent: playerId?.slice(0, 8) || 'Guest'
     });
     
-    // Notify guest
+    // Notify guest - include full wallet address for username lookup
     socket.emit('freeplay:started', {
       roomId,
       yourColor: 'b',
+      opponentWallet: room.hostWallet && !room.hostWallet.startsWith('host_') ? room.hostWallet : null,
       opponent: room.hostWallet?.slice(0, 8) || 'Host'
     });
     
