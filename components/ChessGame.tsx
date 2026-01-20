@@ -4,11 +4,12 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Trophy, RefreshCw, X, CheckCircle2, XCircle, Wifi, WifiOff, Users, Share2 } from 'lucide-react';
+import { Swords, Trophy, RefreshCw, X, CheckCircle2, XCircle, Wifi, WifiOff, Users, Share2, Clock } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
 import { Chess } from 'chess.js';
 import { EscrowClient, STAKE_TIERS, getStakeTierInfo, lamportsToSol, MatchStatus } from '@/utils/escrow';
+import { getUsername, formatDisplayName } from '@/utils/username';
 
 type Mode = 'practice' | 'wager';
 type PlayerColor = 'w' | 'b' | null;
@@ -138,6 +139,14 @@ const squareFromRowCol = (row: number, col: number) => {
   return `${file}${rank}`;
 };
 
+// Format time as MM:SS
+const formatTime = (ms: number): string => {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+};
+
 export const ChessGame: React.FC<ChessGameProps> = ({
   initialMode = 'practice',
   showModeSelector = true,
@@ -190,6 +199,16 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [isCreatingFreePlay, setIsCreatingFreePlay] = useState(false);
   const [isJoiningFreePlay, setIsJoiningFreePlay] = useState(false);
   
+  // Opponent info for username display
+  const [opponentWallet, setOpponentWallet] = useState<string | null>(null);
+  const [opponentUsername, setOpponentUsername] = useState<string | null>(null);
+  const [myUsername, setMyUsername] = useState<string | null>(null);
+  
+  // Timer state (10 minutes = 600000ms)
+  const [whiteTimeMs, setWhiteTimeMs] = useState(600000);
+  const [blackTimeMs, setBlackTimeMs] = useState(600000);
+  const lastTickRef = useRef<number>(Date.now());
+  
   // Refs to track latest values for socket connect handler
   const isCreatingFreePlayRef = useRef(false);
   const isJoiningFreePlayRef = useRef(false);
@@ -202,6 +221,15 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     joinFreePlayCodeRef.current = joinFreePlayCode;
   }, [isCreatingFreePlay, isJoiningFreePlay, joinFreePlayCode]);
 
+  // Fetch my username when wallet is connected
+  useEffect(() => {
+    if (publicKey) {
+      getUsername(publicKey.toBase58()).then(setMyUsername);
+    } else {
+      setMyUsername(null);
+    }
+  }, [publicKey]);
+
   const chessRef = useRef<Chess | null>(null);
   if (!chessRef.current) {
     chessRef.current = new Chess();
@@ -209,6 +237,30 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
   const [fen, setFen] = useState(() => chessRef.current!.fen());
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+
+  // Live timer countdown (must be after fen is declared)
+  useEffect(() => {
+    // Only run timer when game is active (opponent connected, not game over)
+    if (!opponentConnected || !isFreePlay) return;
+    
+    const chess = chessRef.current;
+    if (!chess || chess.isGameOver()) return;
+    
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const elapsed = now - lastTickRef.current;
+      lastTickRef.current = now;
+      
+      // Decrement the active player's time
+      if (chess.turn() === 'w') {
+        setWhiteTimeMs(prev => Math.max(0, prev - elapsed));
+      } else {
+        setBlackTimeMs(prev => Math.max(0, prev - elapsed));
+      }
+    }, 100); // Update every 100ms for smooth countdown
+    
+    return () => clearInterval(interval);
+  }, [opponentConnected, isFreePlay, fen]); // fen changes on each move
 
   // WebSocket connection for multiplayer
   useEffect(() => {
@@ -380,12 +432,24 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     });
     
     // Free play started (both host and guest)
-    newSocket.on('freeplay:started', ({ roomId, yourColor, opponent }) => {
-      console.log('Free play started! Room:', roomId, 'Color:', yourColor, 'Opponent:', opponent);
+    newSocket.on('freeplay:started', ({ roomId, yourColor, opponent, opponentWallet: oppWallet }) => {
+      console.log('Free play started! Room:', roomId, 'Color:', yourColor, 'Opponent:', opponent, 'OpponentWallet:', oppWallet);
       setGameRoomId(roomId);
       setPlayerColor(yourColor);
       setOpponentConnected(true);
       setIsJoiningFreePlay(false);
+      
+      // Store opponent wallet for username lookup
+      if (oppWallet) {
+        setOpponentWallet(oppWallet);
+        // Fetch opponent's username
+        getUsername(oppWallet).then(setOpponentUsername);
+      }
+      
+      // Reset timer when game starts
+      setWhiteTimeMs(600000);
+      setBlackTimeMs(600000);
+      lastTickRef.current = Date.now();
     });
     
     // Free play error
@@ -1149,6 +1213,27 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
           <div className="w-full max-w-[min(480px,calc(100vw-1rem))] space-y-3 sm:space-y-4">
             <div className="glass-card rounded-lg sm:rounded-xl lg:rounded-2xl p-2 sm:p-3 lg:p-4 shadow-glow">
+              {/* Opponent info bar (shown at top) */}
+              {(isFreePlay || isMultiplayer) && opponentConnected && (
+                <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${playerColor === 'b' ? 'bg-white border border-neutral-400' : 'bg-neutral-800 border border-neutral-600'}`} />
+                    <span className="font-semibold text-sm truncate max-w-[120px]">
+                      {opponentUsername || (opponentWallet ? `${opponentWallet.slice(0, 4)}...${opponentWallet.slice(-4)}` : 'Opponent')}
+                    </span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-lg ${
+                    (playerColor === 'w' && chessRef.current?.turn() === 'b') || 
+                    (playerColor === 'b' && chessRef.current?.turn() === 'w')
+                      ? 'bg-solana-purple/30 text-white'
+                      : 'bg-white/5 text-neutral-400'
+                  }`}>
+                    <Clock className="w-4 h-4" />
+                    {formatTime(playerColor === 'w' ? blackTimeMs : whiteTimeMs)}
+                  </div>
+                </div>
+              )}
+              
               {/* Opponent's captured pieces (shown at top) */}
               <div className="flex items-center justify-between mb-2 min-h-[28px]">
                 <div className="flex items-center gap-0.5 flex-wrap">
@@ -1279,6 +1364,27 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                   <span className="text-xs font-bold text-solana-green">+{materialAdvantage}</span>
                 )}
               </div>
+              
+              {/* Player info bar (shown at bottom) */}
+              {(isFreePlay || isMultiplayer) && opponentConnected && (
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/10">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${playerColor === 'w' ? 'bg-white border border-neutral-400' : 'bg-neutral-800 border border-neutral-600'}`} />
+                    <span className="font-semibold text-sm truncate max-w-[120px]">
+                      {myUsername || (publicKey ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}` : 'You')}
+                    </span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-lg ${
+                    (playerColor === 'w' && chessRef.current?.turn() === 'w') || 
+                    (playerColor === 'b' && chessRef.current?.turn() === 'b')
+                      ? 'bg-solana-purple/30 text-white'
+                      : 'bg-white/5 text-neutral-400'
+                  }`}>
+                    <Clock className="w-4 h-4" />
+                    {formatTime(playerColor === 'w' ? whiteTimeMs : blackTimeMs)}
+                  </div>
+                </div>
+              )}
         </div>
         
         <div className="text-center py-3">
