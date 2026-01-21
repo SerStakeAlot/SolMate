@@ -13,6 +13,14 @@ module.exports = {
     'bg-red-500',
     'ring-emerald-500',
     'ring-red-700',
+    // AI difficulty button gradients
+    'from-green-600',
+    'to-green-500',
+    'from-yellow-600',
+    'to-yellow-500',
+    'from-red-600',
+    'to-red-500',
+    'bg-gradient-to-r',
   ],
   theme: {
     extend: {
