@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Trophy, RefreshCw, X, CheckCircle2, XCircle, Wifi, WifiOff, Users, Share2, Clock } from 'lucide-react';
+import { Swords, Trophy, RefreshCw, X, CheckCircle2, XCircle, Wifi, WifiOff, Users, Share2, Clock, MessageCircle, Send } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
 import { Chess } from 'chess.js';
@@ -214,6 +214,14 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [incomingReaction, setIncomingReaction] = useState<string | null>(null);
   const [outgoingReaction, setOutgoingReaction] = useState<string | null>(null);
   
+  // Chat state
+  type ChatMessage = { message: string; sender: 'me' | 'opponent'; timestamp: number };
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [showChat, setShowChat] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  
   // Timer state (10 minutes = 600000ms)
   const [whiteTimeMs, setWhiteTimeMs] = useState(600000);
   const [blackTimeMs, setBlackTimeMs] = useState(600000);
@@ -398,6 +406,13 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setTimeout(() => setIncomingReaction(null), 2000);
     });
     
+    // Receive chat message from opponent
+    newSocket.on('game:chat', ({ message, timestamp }) => {
+      console.log('Received chat:', message);
+      setChatMessages(prev => [...prev, { message, sender: 'opponent', timestamp }]);
+      setUnreadCount(prev => prev + 1);
+    });
+    
     newSocket.on('disconnect', () => {
       console.log('Disconnected from game server');
     });
@@ -526,6 +541,13 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setTimeout(() => setIncomingReaction(null), 2000);
     });
     
+    // Receive chat message from opponent
+    newSocket.on('game:chat', ({ message, timestamp }) => {
+      console.log('Received chat:', message);
+      setChatMessages(prev => [...prev, { message, sender: 'opponent', timestamp }]);
+      setUnreadCount(prev => prev + 1);
+    });
+    
     newSocket.on('disconnect', () => {
       console.log('Disconnected from free play server');
     });
@@ -580,6 +602,51 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     }
     setShowEmojiPicker(false);
   }, [socket, gameRoomId, mode, isFreePlay]);
+  
+  // Send chat message
+  const sendChat = useCallback(() => {
+    if (!chatInput.trim()) return;
+    
+    const message = chatInput.trim().slice(0, 200);
+    const timestamp = Date.now();
+    
+    // Add to our own messages
+    setChatMessages(prev => [...prev, { message, sender: 'me', timestamp }]);
+    setChatInput('');
+    
+    // For AI matches, AI responds with a random message
+    if (mode === 'practice' && !isFreePlay) {
+      const aiResponses = [
+        'Good move!', 'Interesting...', 'Hmm, let me think...', 
+        'Nice!', '🤔', 'Well played!', 'I see what you did there'
+      ];
+      setTimeout(() => {
+        setChatMessages(prev => [...prev, { 
+          message: aiResponses[Math.floor(Math.random() * aiResponses.length)], 
+          sender: 'opponent', 
+          timestamp: Date.now() 
+        }]);
+      }, 1000 + Math.random() * 2000);
+      return;
+    }
+    
+    // For multiplayer, send via socket
+    if (socket && gameRoomId) {
+      socket.emit('game:chat', { roomId: gameRoomId, message });
+    }
+  }, [chatInput, socket, gameRoomId, mode, isFreePlay]);
+  
+  // Clear unread count when chat is opened
+  useEffect(() => {
+    if (showChat) {
+      setUnreadCount(0);
+    }
+  }, [showChat]);
+  
+  // Scroll to bottom of chat when new messages arrive
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
   
   // Auto-join free play if code is provided via URL
   useEffect(() => {
@@ -1481,41 +1548,134 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                 )}
               </div>
               
-              {/* Emoji Picker Button & Panel */}
+              {/* Emoji Picker & Chat Buttons */}
               {((isFreePlay || isMultiplayer) && opponentConnected) || (mode === 'practice' && !isFreePlay) ? (
-                <div className="relative mt-2">
-                  <button
-                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-all text-sm"
-                  >
-                    <span>😊</span>
-                    <span className="text-neutral-400">React</span>
-                  </button>
+                <div className="flex items-center gap-2 mt-2">
+                  {/* React Button */}
+                  <div className="relative">
+                    <button
+                      onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowChat(false); }}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-all text-sm"
+                    >
+                      <span>😊</span>
+                      <span className="text-neutral-400">React</span>
+                    </button>
+                    
+                    <AnimatePresence>
+                      {showEmojiPicker && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                          className="absolute bottom-full left-0 mb-2 z-40"
+                        >
+                          <div className="bg-neutral-900 rounded-xl p-2 border border-white/20 shadow-xl flex gap-1">
+                            {REACTION_EMOJIS.map((emoji) => (
+                              <button
+                                key={emoji}
+                                onClick={() => sendReaction(emoji)}
+                                className="text-2xl hover:scale-125 transition-transform p-1 hover:bg-white/10 rounded-lg"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                   
-                  <AnimatePresence>
-                    {showEmojiPicker && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                        className="absolute bottom-full left-0 mb-2 z-40"
-                      >
-                        <div className="bg-neutral-900 rounded-xl p-2 border border-white/20 shadow-xl flex gap-1">
-                          {REACTION_EMOJIS.map((emoji) => (
-                            <button
-                              key={emoji}
-                              onClick={() => sendReaction(emoji)}
-                              className="text-2xl hover:scale-125 transition-transform p-1 hover:bg-white/10 rounded-lg"
-                            >
-                              {emoji}
-                            </button>
-                          ))}
-                        </div>
-                      </motion.div>
+                  {/* Chat Button */}
+                  <button
+                    onClick={() => { setShowChat(!showChat); setShowEmojiPicker(false); }}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-all text-sm relative"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span className="text-neutral-400">Chat</span>
+                    {unreadCount > 0 && !showChat && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
                     )}
-                  </AnimatePresence>
+                  </button>
                 </div>
               ) : null}
+              
+              {/* Chat Popup */}
+              <AnimatePresence>
+                {showChat && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 20, scale: 0.95 }}
+                    className="absolute bottom-24 left-2 right-2 z-50 sm:left-auto sm:right-4 sm:w-80"
+                  >
+                    <div className="bg-neutral-900 rounded-xl border border-white/20 shadow-2xl overflow-hidden">
+                      {/* Chat Header */}
+                      <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/5">
+                        <span className="font-semibold text-sm">Chat</span>
+                        <button
+                          onClick={() => setShowChat(false)}
+                          className="text-neutral-400 hover:text-white transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      
+                      {/* Chat Messages */}
+                      <div className="h-48 overflow-y-auto p-3 space-y-2">
+                        {chatMessages.length === 0 ? (
+                          <p className="text-neutral-500 text-sm text-center py-8">
+                            No messages yet. Say hi! 👋
+                          </p>
+                        ) : (
+                          chatMessages.map((msg, idx) => (
+                            <div
+                              key={idx}
+                              className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}
+                            >
+                              <div
+                                className={`max-w-[80%] px-3 py-1.5 rounded-xl text-sm ${
+                                  msg.sender === 'me'
+                                    ? 'bg-solana-purple/40 text-white'
+                                    : 'bg-white/10 text-neutral-200'
+                                }`}
+                              >
+                                {msg.message}
+                              </div>
+                            </div>
+                          ))
+                        )}
+                        <div ref={chatEndRef} />
+                      </div>
+                      
+                      {/* Chat Input */}
+                      <div className="p-2 border-t border-white/10">
+                        <form
+                          onSubmit={(e) => { e.preventDefault(); sendChat(); }}
+                          className="flex gap-2"
+                        >
+                          <input
+                            type="text"
+                            value={chatInput}
+                            onChange={(e) => setChatInput(e.target.value)}
+                            placeholder="Type a message..."
+                            maxLength={200}
+                            className="flex-1 bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-solana-purple/50"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!chatInput.trim()}
+                            className="bg-solana-purple hover:bg-solana-purple/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg px-3 py-2 transition-colors"
+                          >
+                            <Send className="w-4 h-4" />
+                          </button>
+                        </form>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
               
               {/* Player info bar for multiplayer/free play (shown at bottom) */}
               {(isFreePlay || isMultiplayer) && opponentConnected && (

@@ -527,6 +527,38 @@ io.on('connection', (socket) => {
   
   // ============ END EMOJI REACTIONS ============
 
+  // ============ CHAT MESSAGES ============
+  
+  // Send chat message to opponent
+  socket.on('game:chat', ({ roomId, message }) => {
+    const player = playerStore.getPlayerBySocket(socket.id);
+    if (!player || !message || message.trim().length === 0) return;
+    
+    // Limit message length
+    const trimmedMessage = message.trim().slice(0, 200);
+    
+    // Find room by player or roomId
+    let gameRoom = gameRoomManager.getRoomByPlayer(player.id);
+    if (!gameRoom && roomId) {
+      gameRoom = gameRoomManager.getRoom(roomId);
+    }
+    
+    if (gameRoom) {
+      const isWhite = gameRoom.playerWhite.id === player.id;
+      const opponentSocketId = isWhite ? gameRoom.playerBlack.socketId : gameRoom.playerWhite.socketId;
+      if (opponentSocketId) {
+        io.to(opponentSocketId).emit('game:chat', { 
+          message: trimmedMessage,
+          sender: 'opponent',
+          timestamp: Date.now()
+        });
+        console.log(`Chat from ${player.id.slice(0, 8)}: ${trimmedMessage.slice(0, 30)}...`);
+      }
+    }
+  });
+  
+  // ============ END CHAT MESSAGES ============
+
   // ============ END HOSTED MATCH EVENTS ============
 
   // Disconnect handling
