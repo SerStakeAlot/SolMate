@@ -199,6 +199,10 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [isCreatingFreePlay, setIsCreatingFreePlay] = useState(false);
   const [isJoiningFreePlay, setIsJoiningFreePlay] = useState(false);
   
+  // AI difficulty: 'novice' (depth 1), 'club' (depth 2), 'master' (depth 3)
+  type AIDifficulty = 'novice' | 'club' | 'master';
+  const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>('club');
+  
   // Opponent info for username display
   const [opponentWallet, setOpponentWallet] = useState<string | null>(null);
   const [opponentUsername, setOpponentUsername] = useState<string | null>(null);
@@ -237,11 +241,16 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
   const [fen, setFen] = useState(() => chessRef.current!.fen());
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  
+  // Track if AI game has started (for timer)
+  const [aiGameStarted, setAiGameStarted] = useState(false);
 
-  // Live timer countdown (must be after fen is declared)
+  // Live timer countdown - works for both free play and AI matches
   useEffect(() => {
-    // Only run timer when game is active (opponent connected, not game over)
-    if (!opponentConnected || !isFreePlay) return;
+    // For free play: need opponent connected
+    // For AI: need game to have started (first move made)
+    const shouldRunTimer = (isFreePlay && opponentConnected) || (mode === 'practice' && !isFreePlay && aiGameStarted);
+    if (!shouldRunTimer) return;
     
     const chess = chessRef.current;
     if (!chess || chess.isGameOver()) return;
@@ -260,7 +269,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     }, 100); // Update every 100ms for smooth countdown
     
     return () => clearInterval(interval);
-  }, [opponentConnected, isFreePlay, fen]); // fen changes on each move
+  }, [opponentConnected, isFreePlay, fen, mode, aiGameStarted]); // fen changes on each move
 
   // WebSocket connection for multiplayer
   useEffect(() => {
@@ -646,6 +655,11 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     setShowResultModal(false);
     setLastMove(null);
     setFen(chessRef.current.fen());
+    // Reset timer for AI games
+    setWhiteTimeMs(600000);
+    setBlackTimeMs(600000);
+    setAiGameStarted(false);
+    lastTickRef.current = Date.now();
   };
 
   const handleCreateMatch = async () => {
@@ -996,13 +1010,16 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     const moves = chess.moves({ verbose: true }) as Array<any>;
     if (moves.length === 0) return;
 
-    // Use minimax with depth 2 for faster response (~1400-1500 ELO)
+    // Depth based on difficulty: Novice=1, Club=2, Master=3
+    const depthMap = { novice: 1, club: 2, master: 3 };
+    const depth = depthMap[aiDifficulty];
+    
     let bestMove = moves[0];
     let bestValue = Infinity;
     
     for (const move of moves) {
       chess.move(move);
-      const value = minimax(chess, 2, -Infinity, Infinity, true);
+      const value = minimax(chess, depth, -Infinity, Infinity, true);
       chess.undo();
       
       if (value < bestValue) {
@@ -1024,7 +1041,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     } else {
       playSound('move');
     }
-  }, [playSound]);
+  }, [playSound, aiDifficulty]);
 
   const onSquareClick = (square: string) => {
     const chess = chessRef.current!;
@@ -1086,6 +1103,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setSelectedSquare(null);
       setFen(chess.fen());
       setLastMove({ from: selectedSquare, to: square });
+      
+      // Start AI game timer on first move
+      if (mode === 'practice' && !isFreePlay && !aiGameStarted) {
+        setAiGameStarted(true);
+        lastTickRef.current = Date.now();
+      }
       
       // Play sound
       if (chess.isCheck()) {
@@ -1213,7 +1236,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
           <div className="w-full max-w-[min(480px,calc(100vw-1rem))] space-y-3 sm:space-y-4">
             <div className="glass-card rounded-lg sm:rounded-xl lg:rounded-2xl p-2 sm:p-3 lg:p-4 shadow-glow">
-              {/* Opponent info bar (shown at top) */}
+              {/* Opponent info bar for multiplayer/free play (shown at top) */}
               {(isFreePlay || isMultiplayer) && opponentConnected && (
                 <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10">
                   <div className="flex items-center gap-2">
@@ -1230,6 +1253,26 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                   }`}>
                     <Clock className="w-4 h-4" />
                     {formatTime(playerColor === 'w' ? blackTimeMs : whiteTimeMs)}
+                  </div>
+                </div>
+              )}
+              
+              {/* AI info bar for practice mode (shown at top - AI plays black) */}
+              {mode === 'practice' && !isFreePlay && (
+                <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-neutral-800 border border-neutral-600" />
+                    <span className="font-semibold text-sm">
+                      🤖 {aiDifficulty === 'novice' ? 'Novice Bot' : aiDifficulty === 'club' ? 'Club Bot' : 'Master Bot'}
+                    </span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-lg ${
+                    chessRef.current?.turn() === 'b' && aiGameStarted
+                      ? 'bg-solana-purple/30 text-white'
+                      : 'bg-white/5 text-neutral-400'
+                  }`}>
+                    <Clock className="w-4 h-4" />
+                    {formatTime(blackTimeMs)}
                   </div>
                 </div>
               )}
@@ -1365,7 +1408,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                 )}
               </div>
               
-              {/* Player info bar (shown at bottom) */}
+              {/* Player info bar for multiplayer/free play (shown at bottom) */}
               {(isFreePlay || isMultiplayer) && opponentConnected && (
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/10">
                   <div className="flex items-center gap-2">
@@ -1382,6 +1425,26 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                   }`}>
                     <Clock className="w-4 h-4" />
                     {formatTime(playerColor === 'w' ? whiteTimeMs : blackTimeMs)}
+                  </div>
+                </div>
+              )}
+              
+              {/* Player info bar for AI practice mode (shown at bottom - you play white) */}
+              {mode === 'practice' && !isFreePlay && (
+                <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/10">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-white border border-neutral-400" />
+                    <span className="font-semibold text-sm truncate max-w-[120px]">
+                      {myUsername || (publicKey ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}` : 'You')}
+                    </span>
+                  </div>
+                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-lg ${
+                    chessRef.current?.turn() === 'w' && aiGameStarted
+                      ? 'bg-solana-purple/30 text-white'
+                      : 'bg-white/5 text-neutral-400'
+                  }`}>
+                    <Clock className="w-4 h-4" />
+                    {formatTime(whiteTimeMs)}
                   </div>
                 </div>
               )}
@@ -1434,6 +1497,54 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     <p className="text-sm text-neutral-400">
                       Train against AI or play online for free.
                     </p>
+                    
+                    {/* AI Difficulty Selector */}
+                    <div className="bg-white/5 rounded-xl p-3 border border-white/10">
+                      <p className="text-xs font-medium uppercase tracking-wider text-neutral-500 mb-2">
+                        AI Difficulty
+                      </p>
+                      <div className="flex rounded-lg border border-white/10 bg-black/40 p-1">
+                        <button
+                          type="button"
+                          onClick={() => { setAiDifficulty('novice'); resetPractice(); }}
+                          className={`flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all ${
+                            aiDifficulty === 'novice'
+                              ? 'bg-gradient-to-r from-green-600 to-green-500 text-white'
+                              : 'text-neutral-400 hover:text-white'
+                          }`}
+                        >
+                          Novice
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setAiDifficulty('club'); resetPractice(); }}
+                          className={`flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all ${
+                            aiDifficulty === 'club'
+                              ? 'bg-gradient-to-r from-yellow-600 to-yellow-500 text-white'
+                              : 'text-neutral-400 hover:text-white'
+                          }`}
+                        >
+                          Club
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setAiDifficulty('master'); resetPractice(); }}
+                          className={`flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all ${
+                            aiDifficulty === 'master'
+                              ? 'bg-gradient-to-r from-red-600 to-red-500 text-white'
+                              : 'text-neutral-400 hover:text-white'
+                          }`}
+                        >
+                          Master
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-neutral-500 mt-2 text-center">
+                        {aiDifficulty === 'novice' && '~1000 ELO • Great for beginners'}
+                        {aiDifficulty === 'club' && '~1400 ELO • Intermediate challenge'}
+                        {aiDifficulty === 'master' && '~1800 ELO • Advanced play'}
+                      </p>
+                    </div>
+                    
                     <motion.button
                       type="button"
                       onClick={resetPractice}
@@ -1442,7 +1553,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-6 rounded-xl transition-all"
                     >
                       <RefreshCw className="h-4 w-4" />
-                      Reset vs AI
+                      New Game vs AI
                     </motion.button>
                     
                     <div className="border-t border-white/10 pt-4 mt-4">
