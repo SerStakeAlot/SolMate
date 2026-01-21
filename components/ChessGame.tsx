@@ -1507,33 +1507,39 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                         <button
                           type="button"
                           onClick={() => { setAiDifficulty('novice'); resetPractice(); }}
-                          className={`flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all ${
-                            aiDifficulty === 'novice'
-                              ? 'bg-gradient-to-r from-green-600 to-green-500 text-white'
-                              : 'text-neutral-400 hover:text-white'
-                          }`}
+                          className="flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all text-white"
+                          style={{
+                            background: aiDifficulty === 'novice' 
+                              ? 'linear-gradient(to right, #16a34a, #22c55e)' 
+                              : 'transparent',
+                            color: aiDifficulty === 'novice' ? 'white' : '#a3a3a3'
+                          }}
                         >
                           Novice
                         </button>
                         <button
                           type="button"
                           onClick={() => { setAiDifficulty('club'); resetPractice(); }}
-                          className={`flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all ${
-                            aiDifficulty === 'club'
-                              ? 'bg-gradient-to-r from-yellow-600 to-yellow-500 text-white'
-                              : 'text-neutral-400 hover:text-white'
-                          }`}
+                          className="flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all text-white"
+                          style={{
+                            background: aiDifficulty === 'club' 
+                              ? 'linear-gradient(to right, #ca8a04, #eab308)' 
+                              : 'transparent',
+                            color: aiDifficulty === 'club' ? 'white' : '#a3a3a3'
+                          }}
                         >
                           Club
                         </button>
                         <button
                           type="button"
                           onClick={() => { setAiDifficulty('master'); resetPractice(); }}
-                          className={`flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all ${
-                            aiDifficulty === 'master'
-                              ? 'bg-gradient-to-r from-red-600 to-red-500 text-white'
-                              : 'text-neutral-400 hover:text-white'
-                          }`}
+                          className="flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all text-white"
+                          style={{
+                            background: aiDifficulty === 'master' 
+                              ? 'linear-gradient(to right, #dc2626, #ef4444)' 
+                              : 'transparent',
+                            color: aiDifficulty === 'master' ? 'white' : '#a3a3a3'
+                          }}
                         >
                           Master
                         </button>
