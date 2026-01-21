@@ -1610,9 +1610,15 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     exit={{ opacity: 0, y: 20, scale: 0.95 }}
                     className="absolute bottom-24 left-2 right-2 z-50 sm:left-auto sm:right-4 sm:w-80"
                   >
-                    <div className="bg-neutral-900 rounded-xl border border-white/20 shadow-2xl overflow-hidden">
+                    <div 
+                      className="rounded-xl border border-white/20 shadow-2xl overflow-hidden"
+                      style={{ backgroundColor: '#171717' }}
+                    >
                       {/* Chat Header */}
-                      <div className="flex items-center justify-between px-4 py-2 border-b border-white/10 bg-white/5">
+                      <div 
+                        className="flex items-center justify-between px-4 py-2 border-b border-white/10"
+                        style={{ backgroundColor: '#1f1f1f' }}
+                      >
                         <span className="font-semibold text-sm">Chat</span>
                         <button
                           onClick={() => setShowChat(false)}
@@ -1623,7 +1629,10 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       </div>
                       
                       {/* Chat Messages */}
-                      <div className="h-48 overflow-y-auto p-3 space-y-2">
+                      <div 
+                        className="h-48 overflow-y-auto p-3 space-y-2"
+                        style={{ backgroundColor: '#171717' }}
+                      >
                         {chatMessages.length === 0 ? (
                           <p className="text-neutral-500 text-sm text-center py-8">
                             No messages yet. Say hi! 👋
@@ -1635,11 +1644,10 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                               className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}
                             >
                               <div
-                                className={`max-w-[80%] px-3 py-1.5 rounded-xl text-sm ${
-                                  msg.sender === 'me'
-                                    ? 'bg-solana-purple/40 text-white'
-                                    : 'bg-white/10 text-neutral-200'
-                                }`}
+                                className="max-w-[80%] px-3 py-1.5 rounded-xl text-sm text-white"
+                                style={{
+                                  backgroundColor: msg.sender === 'me' ? '#9945FF' : '#3f3f46'
+                                }}
                               >
                                 {msg.message}
                               </div>
@@ -1650,7 +1658,10 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       </div>
                       
                       {/* Chat Input */}
-                      <div className="p-2 border-t border-white/10">
+                      <div 
+                        className="p-2 border-t border-white/10"
+                        style={{ backgroundColor: '#1f1f1f' }}
+                      >
                         <form
                           onSubmit={(e) => { e.preventDefault(); sendChat(); }}
                           className="flex gap-2"
@@ -1661,7 +1672,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                             onChange={(e) => setChatInput(e.target.value)}
                             placeholder="Type a message..."
                             maxLength={200}
-                            className="flex-1 bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-solana-purple/50"
+                            className="flex-1 rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none"
+                            style={{ backgroundColor: '#262626', border: '1px solid #404040' }}
                           />
                           <button
                             type="submit"
