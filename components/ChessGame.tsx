@@ -1289,6 +1289,20 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     <span className="font-semibold text-sm truncate max-w-[120px]">
                       {opponentUsername || (opponentWallet ? `${opponentWallet.slice(0, 4)}...${opponentWallet.slice(-4)}` : 'Opponent')}
                     </span>
+                    {/* Opponent's reaction bubble */}
+                    <AnimatePresence>
+                      {incomingReaction && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.5, x: -10 }}
+                          animate={{ opacity: 1, scale: 1, x: 0 }}
+                          exit={{ opacity: 0, scale: 0.5, x: -10 }}
+                        >
+                          <div className="bg-white/20 rounded-full px-2 py-0.5 border border-white/30">
+                            <span className="text-xl">{incomingReaction}</span>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                   <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-lg ${
                     (playerColor === 'w' && chessRef.current?.turn() === 'b') || 
@@ -1310,6 +1324,20 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     <span className="font-semibold text-sm">
                       🤖 {aiDifficulty === 'novice' ? 'Novice Bot' : aiDifficulty === 'club' ? 'Club Bot' : 'Master Bot'}
                     </span>
+                    {/* AI's reaction bubble */}
+                    <AnimatePresence>
+                      {incomingReaction && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.5, x: -10 }}
+                          animate={{ opacity: 1, scale: 1, x: 0 }}
+                          exit={{ opacity: 0, scale: 0.5, x: -10 }}
+                        >
+                          <div className="bg-white/20 rounded-full px-2 py-0.5 border border-white/30">
+                            <span className="text-xl">{incomingReaction}</span>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                   <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-lg ${
                     chessRef.current?.turn() === 'b' && aiGameStarted
@@ -1453,34 +1481,6 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                 )}
               </div>
               
-              {/* Emoji Reactions Display */}
-              <AnimatePresence>
-                {incomingReaction && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.5, y: 20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.5, y: -20 }}
-                    className="absolute top-16 left-4 z-30"
-                  >
-                    <div className="bg-black/80 rounded-xl px-4 py-2 border border-white/20 shadow-lg">
-                      <span className="text-3xl">{incomingReaction}</span>
-                    </div>
-                  </motion.div>
-                )}
-                {outgoingReaction && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.5, y: -20 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.5, y: 20 }}
-                    className="absolute bottom-16 right-4 z-30"
-                  >
-                    <div className="bg-solana-purple/80 rounded-xl px-4 py-2 border border-white/20 shadow-lg">
-                      <span className="text-3xl">{outgoingReaction}</span>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-              
               {/* Emoji Picker Button & Panel */}
               {((isFreePlay || isMultiplayer) && opponentConnected) || (mode === 'practice' && !isFreePlay) ? (
                 <div className="relative mt-2">
@@ -1525,6 +1525,20 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     <span className="font-semibold text-sm truncate max-w-[120px]">
                       {myUsername || (publicKey ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}` : 'You')}
                     </span>
+                    {/* Your reaction bubble */}
+                    <AnimatePresence>
+                      {outgoingReaction && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.5, x: -10 }}
+                          animate={{ opacity: 1, scale: 1, x: 0 }}
+                          exit={{ opacity: 0, scale: 0.5, x: -10 }}
+                        >
+                          <div className="bg-solana-purple/40 rounded-full px-2 py-0.5 border border-solana-purple/50">
+                            <span className="text-xl">{outgoingReaction}</span>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                   <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-lg ${
                     (playerColor === 'w' && chessRef.current?.turn() === 'w') || 
@@ -1546,6 +1560,20 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     <span className="font-semibold text-sm truncate max-w-[120px]">
                       {myUsername || (publicKey ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}` : 'You')}
                     </span>
+                    {/* Your reaction bubble */}
+                    <AnimatePresence>
+                      {outgoingReaction && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.5, x: -10 }}
+                          animate={{ opacity: 1, scale: 1, x: 0 }}
+                          exit={{ opacity: 0, scale: 0.5, x: -10 }}
+                        >
+                          <div className="bg-solana-purple/40 rounded-full px-2 py-0.5 border border-solana-purple/50">
+                            <span className="text-xl">{outgoingReaction}</span>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                   <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-lg ${
                     chessRef.current?.turn() === 'w' && aiGameStarted
