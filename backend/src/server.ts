@@ -499,6 +499,34 @@ io.on('connection', (socket) => {
 
   // ============ END FREE PLAY EVENTS ============
 
+  // ============ EMOJI REACTIONS ============
+  
+  // Send emoji reaction to opponent
+  socket.on('game:reaction', ({ roomId, emoji }) => {
+    // Find the opponent's socket and forward the reaction
+    const player = playerStore.getPlayerBySocket(socket.id);
+    if (!player) return;
+    
+    // First try to find room by player (works for both wager and free play after room creation)
+    let gameRoom = gameRoomManager.getRoomByPlayer(player.id);
+    
+    // If not found by player, try by roomId (free play rooms use roomId directly)
+    if (!gameRoom && roomId) {
+      gameRoom = gameRoomManager.getRoom(roomId);
+    }
+    
+    if (gameRoom) {
+      const isWhite = gameRoom.playerWhite.id === player.id;
+      const opponentSocketId = isWhite ? gameRoom.playerBlack.socketId : gameRoom.playerWhite.socketId;
+      if (opponentSocketId) {
+        io.to(opponentSocketId).emit('game:reaction', { emoji });
+        console.log(`Reaction ${emoji} sent from ${player.id.slice(0, 8)} to opponent`);
+      }
+    }
+  });
+  
+  // ============ END EMOJI REACTIONS ============
+
   // ============ END HOSTED MATCH EVENTS ============
 
   // Disconnect handling

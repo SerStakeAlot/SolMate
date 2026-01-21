@@ -208,6 +208,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [opponentUsername, setOpponentUsername] = useState<string | null>(null);
   const [myUsername, setMyUsername] = useState<string | null>(null);
   
+  // Emoji reactions state
+  const REACTION_EMOJIS = ['👍', '👏', '🔥', '😮', '😂', '😅', '🤔', '💀'];
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [incomingReaction, setIncomingReaction] = useState<string | null>(null);
+  const [outgoingReaction, setOutgoingReaction] = useState<string | null>(null);
+  
   // Timer state (10 minutes = 600000ms)
   const [whiteTimeMs, setWhiteTimeMs] = useState(600000);
   const [blackTimeMs, setBlackTimeMs] = useState(600000);
@@ -384,6 +390,14 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setShowResultModal(true);
     });
     
+    // Receive emoji reaction from opponent
+    newSocket.on('game:reaction', ({ emoji }) => {
+      console.log('Received reaction:', emoji);
+      setIncomingReaction(emoji);
+      // Auto-clear after 2 seconds
+      setTimeout(() => setIncomingReaction(null), 2000);
+    });
+    
     newSocket.on('disconnect', () => {
       console.log('Disconnected from game server');
     });
@@ -504,6 +518,14 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setShowResultModal(true);
     });
     
+    // Receive emoji reaction from opponent
+    newSocket.on('game:reaction', ({ emoji }) => {
+      console.log('Received reaction:', emoji);
+      setIncomingReaction(emoji);
+      // Auto-clear after 2 seconds
+      setTimeout(() => setIncomingReaction(null), 2000);
+    });
+    
     newSocket.on('disconnect', () => {
       console.log('Disconnected from free play server');
     });
@@ -535,6 +557,29 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       move: { from, to, san, promotion }
     });
   }, [socket, isMultiplayer, isFreePlay, gameRoomId, opponentConnected]);
+  
+  // Send emoji reaction
+  const sendReaction = useCallback((emoji: string) => {
+    // Show our own reaction too
+    setOutgoingReaction(emoji);
+    setTimeout(() => setOutgoingReaction(null), 2000);
+    
+    // For AI matches, AI responds with a random reaction
+    if (mode === 'practice' && !isFreePlay) {
+      const aiResponses = ['🤔', '👍', '😮', '🔥'];
+      setTimeout(() => {
+        setIncomingReaction(aiResponses[Math.floor(Math.random() * aiResponses.length)]);
+        setTimeout(() => setIncomingReaction(null), 2000);
+      }, 800 + Math.random() * 1200);
+      return;
+    }
+    
+    // For multiplayer, send via socket
+    if (socket && gameRoomId) {
+      socket.emit('game:reaction', { roomId: gameRoomId, emoji });
+    }
+    setShowEmojiPicker(false);
+  }, [socket, gameRoomId, mode, isFreePlay]);
   
   // Auto-join free play if code is provided via URL
   useEffect(() => {
@@ -1407,6 +1452,70 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                   <span className="text-xs font-bold text-solana-green">+{materialAdvantage}</span>
                 )}
               </div>
+              
+              {/* Emoji Reactions Display */}
+              <AnimatePresence>
+                {incomingReaction && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.5, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.5, y: -20 }}
+                    className="absolute top-16 left-4 z-30"
+                  >
+                    <div className="bg-black/80 rounded-xl px-4 py-2 border border-white/20 shadow-lg">
+                      <span className="text-3xl">{incomingReaction}</span>
+                    </div>
+                  </motion.div>
+                )}
+                {outgoingReaction && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.5, y: -20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.5, y: 20 }}
+                    className="absolute bottom-16 right-4 z-30"
+                  >
+                    <div className="bg-solana-purple/80 rounded-xl px-4 py-2 border border-white/20 shadow-lg">
+                      <span className="text-3xl">{outgoingReaction}</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              
+              {/* Emoji Picker Button & Panel */}
+              {((isFreePlay || isMultiplayer) && opponentConnected) || (mode === 'practice' && !isFreePlay) ? (
+                <div className="relative mt-2">
+                  <button
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-all text-sm"
+                  >
+                    <span>😊</span>
+                    <span className="text-neutral-400">React</span>
+                  </button>
+                  
+                  <AnimatePresence>
+                    {showEmojiPicker && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                        className="absolute bottom-full left-0 mb-2 z-40"
+                      >
+                        <div className="bg-neutral-900 rounded-xl p-2 border border-white/20 shadow-xl flex gap-1">
+                          {REACTION_EMOJIS.map((emoji) => (
+                            <button
+                              key={emoji}
+                              onClick={() => sendReaction(emoji)}
+                              className="text-2xl hover:scale-125 transition-transform p-1 hover:bg-white/10 rounded-lg"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              ) : null}
               
               {/* Player info bar for multiplayer/free play (shown at bottom) */}
               {(isFreePlay || isMultiplayer) && opponentConnected && (
