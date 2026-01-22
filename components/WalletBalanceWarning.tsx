@@ -47,8 +47,8 @@ export function WalletBalanceWarning() {
     return null;
   }
 
-  // Show warning if balance is low (less than 0.6 SOL for a match)
-  if (balance !== null && balance < 0.6) {
+  // Show warning if balance is too low for smallest stake tier (0.05 SOL + fees)
+  if (balance !== null && balance < 0.06) {
     return (
       <AnimatePresence>
         <motion.div
@@ -71,7 +71,7 @@ export function WalletBalanceWarning() {
               <div className="flex-1 pr-4">
                 <h3 className="font-semibold text-white mb-1">Low Balance</h3>
                 <p className="text-sm text-neutral-400 mb-3">
-                  Your wallet has <span className="text-yellow-400 font-mono">{balance.toFixed(4)} SOL</span>. You need at least 0.5 SOL to play.
+                  Your wallet has <span className="text-yellow-400 font-mono">{balance.toFixed(4)} SOL</span>. You need at least 0.05 SOL to play.
                 </p>
               </div>
             </div>
