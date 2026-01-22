@@ -770,6 +770,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setIsFreePlay(true);
       setIsJoiningFreePlay(true);
       setPlayerColor('b');
+      setDynamicPlayerRole('join'); // Important: set role for lobby UI
       // Also update refs immediately to avoid race condition with socket
       joinFreePlayCodeRef.current = code;
       isJoiningFreePlayRef.current = true;
@@ -2086,7 +2087,11 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           Pre-Game Lobby
                         </p>
                         <p className="text-sm text-white mb-3">
-                          <span className="font-semibold">{lobbyOpponentName}</span> has joined!
+                          {(dynamicPlayerRole === 'host' || isCreatingFreePlay) ? (
+                            <><span className="font-semibold">{lobbyOpponentName}</span> has joined!</>
+                          ) : (
+                            <>You joined <span className="font-semibold">{lobbyOpponentName}</span>'s game</>
+                          )}
                         </p>
                         
                         {/* Color Selection UI */}
