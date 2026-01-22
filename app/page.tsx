@@ -244,7 +244,13 @@ export default function Home() {
               Follow us
             </a>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-6 flex-wrap justify-center sm:justify-end">
+            <a 
+              href="/security" 
+              className="text-neutral-400 hover:text-solana-green transition-colors text-sm"
+            >
+              Security Audit
+            </a>
             <a 
               href="/refund" 
               className="text-neutral-400 hover:text-solana-green transition-colors text-sm"
