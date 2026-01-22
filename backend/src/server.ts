@@ -568,6 +568,7 @@ io.on('connection', (socket) => {
     if (!room || room.hostSocketId !== socket.id || !room.guestSocketId || room.ready) return;
     
     room.ready = true;
+    room.currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'; // Initial position
     const roomId = `free_${code}`;
     
     // Determine who is white/black based on hostColor
@@ -611,8 +612,8 @@ io.on('connection', (socket) => {
     io.to(room.hostSocketId).emit('game:start', { whiteTimeMs: 600000, blackTimeMs: 600000 });
     io.to(room.guestSocketId).emit('game:start', { whiteTimeMs: 600000, blackTimeMs: 600000 });
     
-    // Clean up the free play room listing
-    freePlayRooms.delete(code.toUpperCase());
+    // Note: Don't delete the room - keep it for spectators to join
+    // The room will be cleaned up when the game ends or players disconnect
   });
   
   // Cancel free play hosting

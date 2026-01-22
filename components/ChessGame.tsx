@@ -2314,7 +2314,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                         <p className="text-xs font-medium uppercase tracking-wider text-neutral-400 mb-1">
                           {opponentConnected ? 'Game In Progress' : 'Room Code'}
                         </p>
-                        {!opponentConnected && freePlayCode && (
+                        {freePlayCode && (
                           <p className="text-3xl font-bold font-mono text-white">{freePlayCode}</p>
                         )}
                         <div className="flex items-center gap-2 mt-2">
@@ -2323,20 +2323,24 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                             {opponentConnected ? `Playing as ${playerColor === 'w' ? 'White' : 'Black'}` : 'Waiting for opponent...'}
                           </span>
                         </div>
-                        {!opponentConnected && freePlayCode && (
+                        {freePlayCode && (
                           <motion.button
                             type="button"
                             onClick={() => {
                               const shareUrl = `${window.location.origin}/game?freeplay=${freePlayCode}`;
                               if (navigator.share) {
                                 navigator.share({
-                                  title: 'Play Chess with me on SolMate!',
-                                  text: `Join my chess game! Room code: ${freePlayCode}`,
+                                  title: opponentConnected ? 'Watch our chess game on SolMate!' : 'Play Chess with me on SolMate!',
+                                  text: opponentConnected 
+                                    ? `Watch our live chess game! Room code: ${freePlayCode}` 
+                                    : `Join my chess game! Room code: ${freePlayCode}`,
                                   url: shareUrl,
                                 }).catch(() => {});
                               } else {
                                 navigator.clipboard.writeText(shareUrl);
-                                alert('Link copied! Share it with your friend.');
+                                alert(opponentConnected 
+                                  ? 'Spectator link copied! Share it so others can watch.' 
+                                  : 'Link copied! Share it with your friend.');
                               }
                             }}
                             whileHover={{ scale: 1.02 }}
@@ -2344,7 +2348,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                             className="mt-3 w-full flex items-center justify-center gap-2 bg-solana-green/20 hover:bg-solana-green/30 text-solana-green font-semibold py-2 px-4 rounded-lg border border-solana-green/30 transition-all text-sm"
                           >
                             <Share2 className="h-4 w-4" />
-                            Share Invite Link
+                            {opponentConnected ? 'Share Spectator Link' : 'Share Invite Link'}
                           </motion.button>
                         )}
                       </div>
