@@ -142,6 +142,7 @@ class GameRoomManager {
     // Record move
     room.moves.push(move.san);
     room.currentTurn = room.currentTurn === 'w' ? 'b' : 'w';
+    room.currentFen = move.fen; // Track current position for spectators
 
     console.log(`Move made in room ${roomId}: ${move.san}. Total moves: ${room.moves.length}`);
 
@@ -155,6 +156,23 @@ class GameRoomManager {
         currentTurn: room.currentTurn,
       },
     });
+    
+    // Broadcast to spectators for free play games
+    if (roomId.startsWith('free_')) {
+      const code = roomId.replace('free_', '');
+      const freePlayRooms = (global as any).freePlayRooms;
+      if (freePlayRooms) {
+        const freeRoom = freePlayRooms.get(code);
+        if (freeRoom) {
+          freeRoom.currentFen = move.fen;
+          if (freeRoom.spectators && freeRoom.spectators.length > 0) {
+            for (const spectatorId of freeRoom.spectators) {
+              io.to(spectatorId).emit('spectator:move', { move, fen: move.fen });
+            }
+          }
+        }
+      }
+    }
 
     return true;
   }
@@ -203,6 +221,20 @@ class GameRoomManager {
       whiteTimeMs: room.whiteTimeMs,
       blackTimeMs: room.blackTimeMs,
     });
+    
+    // Notify spectators for free play games
+    if (roomId.startsWith('free_')) {
+      const code = roomId.replace('free_', '');
+      const freePlayRooms = (global as any).freePlayRooms;
+      if (freePlayRooms) {
+        const freeRoom = freePlayRooms.get(code);
+        if (freeRoom && freeRoom.spectators && freeRoom.spectators.length > 0) {
+          for (const spectatorId of freeRoom.spectators) {
+            io.to(spectatorId).emit('spectator:gameEnd', { winner, reason });
+          }
+        }
+      }
+    }
 
     // Clean up after a delay
     setTimeout(() => {

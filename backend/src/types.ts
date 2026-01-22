@@ -91,6 +91,7 @@ export interface GameRoom {
   whiteTimeMs: number;
   blackTimeMs: number;
   currentTurn: 'w' | 'b';
+  currentFen?: string; // Current board position for spectators
   startTime: number;
   lastMoveTime: number;
   moves: string[]; // Array of moves in algebraic notation

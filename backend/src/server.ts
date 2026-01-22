@@ -440,6 +440,24 @@ io.on('connection', (socket) => {
       socket.emit('freeplay:error', { error: 'Room not found' });
       return;
     }
+    
+    // If game already started, join as spectator
+    if (room.ready) {
+      if (!room.spectators) room.spectators = [];
+      room.spectators.push(socket.id);
+      console.log(`Free play room ${code} - spectator joined (${room.spectators.length} spectators)`);
+      
+      // Send spectator the current game state
+      socket.emit('freeplay:spectating', {
+        code,
+        fen: room.currentFen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        hostColor: room.hostColor,
+        whitePlayer: room.hostColor === 'w' ? (room.hostWallet?.slice(0, 8) || 'Host') : (room.guestWallet?.slice(0, 8) || 'Guest'),
+        blackPlayer: room.hostColor === 'b' ? (room.hostWallet?.slice(0, 8) || 'Host') : (room.guestWallet?.slice(0, 8) || 'Guest'),
+      });
+      return;
+    }
+    
     if (room.guestSocketId) {
       socket.emit('freeplay:error', { error: 'Room is full' });
       return;
