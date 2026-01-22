@@ -2590,21 +2590,79 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                         <p className="text-sm text-neutral-300 mb-2">
                           {getStakeTierInfo(selectedStakeTier).label}
                         </p>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 mb-3">
                           <Loader2 className="h-4 w-4 text-solana-purple animate-spin" />
                           <span className="text-xs text-neutral-400">Share the match code with your opponent</span>
                         </div>
+                        {/* Share invite link */}
+                        {wagerMatchCode && (
+                          <motion.button
+                            type="button"
+                            onClick={() => {
+                              const shareUrl = `${window.location.origin}/game?mode=spectate&room=${gameRoomId || wagerMatchCode}`;
+                              if (navigator.share) {
+                                navigator.share({
+                                  title: 'Play Chess with me on SolMate!',
+                                  text: `Join my chess match! Code: ${wagerMatchCode}`,
+                                  url: shareUrl,
+                                }).catch(() => {});
+                              } else {
+                                navigator.clipboard.writeText(shareUrl);
+                                alert('Link copied! Share it with your friend.');
+                              }
+                            }}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="w-full flex items-center justify-center gap-2 bg-solana-green/20 hover:bg-solana-green/30 text-solana-green font-semibold py-2 px-4 rounded-lg border border-solana-green/30 transition-all text-sm"
+                          >
+                            <Share2 className="h-4 w-4" />
+                            Share Invite Link
+                          </motion.button>
+                        )}
                       </div>
                     ) : matchCreated && opponentConnected ? (
                       /* Game in progress */
                       <div className="bg-solana-purple/10 border border-solana-purple/30 rounded-xl p-4">
-                        <p className="text-white font-semibold mb-1">Game In Progress</p>
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-white font-semibold">Game In Progress</p>
+                          {spectatorCount > 0 && (
+                            <div className="flex items-center gap-1 bg-solana-purple/20 px-2 py-0.5 rounded-full">
+                              <Eye className="h-3.5 w-3.5 text-solana-purple" />
+                              <span className="text-xs text-solana-purple font-medium">{spectatorCount}</span>
+                            </div>
+                          )}
+                        </div>
                         <p className="text-sm text-neutral-300">
                           {getStakeTierInfo(selectedStakeTier).label}
                         </p>
                         <p className="text-xs text-neutral-400 mt-2">
                           Playing as {playerColor === 'w' ? 'White' : 'Black'}
                         </p>
+                        {/* Share spectator link */}
+                        {gameRoomId && (
+                          <motion.button
+                            type="button"
+                            onClick={() => {
+                              const shareUrl = `${window.location.origin}/game?mode=spectate&room=${gameRoomId}`;
+                              if (navigator.share) {
+                                navigator.share({
+                                  title: 'Watch our chess game on SolMate!',
+                                  text: `Watch our live chess match!`,
+                                  url: shareUrl,
+                                }).catch(() => {});
+                              } else {
+                                navigator.clipboard.writeText(shareUrl);
+                                alert('Spectator link copied! Share it so others can watch.');
+                              }
+                            }}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="mt-3 w-full flex items-center justify-center gap-2 bg-solana-green/20 hover:bg-solana-green/30 text-solana-green font-semibold py-2 px-4 rounded-lg border border-solana-green/30 transition-all text-sm"
+                          >
+                            <Share2 className="h-4 w-4" />
+                            Share Spectator Link
+                          </motion.button>
+                        )}
                       </div>
                     ) : (
                       <>
