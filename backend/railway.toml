@@ -1,8 +1,17 @@
-# Railway/Render/Fly.io deployment config
 [build]
-  command = "npm run build"
+builder = "RAILPACK"
+buildEnvironment = "V3"
 
 [deploy]
-  startCommand = "npm start"
-  healthCheckPath = "/health"
-  healthCheckTimeout = 30
+runtime = "V2"
+numReplicas = 1
+sleepApplication = false
+useLegacyStacker = false
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+startCommand = "npm start"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+
+[deploy.multiRegionConfig."us-east4-eqdc4a"]
+numReplicas = 1

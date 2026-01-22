@@ -20,8 +20,13 @@ class UserStore {
     const dataDir = path.dirname(dbPath);
     const fs = require('fs');
     if (!fs.existsSync(dataDir)) {
+      console.log(`Creating data directory: ${dataDir}`);
       fs.mkdirSync(dataDir, { recursive: true });
     }
+    
+    // Check if database file exists
+    const dbExists = fs.existsSync(dbPath);
+    console.log(`Database path: ${dbPath}, exists: ${dbExists}`);
 
     this.db = new Database(dbPath);
     this.init();

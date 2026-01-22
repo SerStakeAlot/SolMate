@@ -237,6 +237,8 @@ export default function LobbyPage() {
 
   const tierOptions = [
     { value: null, label: "All" },
+    { value: 4, label: "0.05 SOL" },
+    { value: 5, label: "0.1 SOL" },
     { value: 0, label: "0.5 SOL" },
     { value: 1, label: "1 SOL" },
   ];

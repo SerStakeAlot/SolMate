@@ -52,7 +52,7 @@ export default function TermsPage() {
         <section className="glass-card rounded-xl p-6">
           <h2 className="text-xl font-semibold text-white mb-3">5. Staking & Payouts</h2>
           <p className="text-neutral-300 leading-relaxed mb-3">
-            <strong className="text-white">Stakes:</strong> Players stake SOL to participate in matches. Available stake tiers are 0.5 SOL and 1 SOL.
+            <strong className="text-white">Stakes:</strong> Players stake SOL to participate in matches. Available stake tiers are 0.05, 0.1, 0.5 and 1 SOL.
           </p>
           <p className="text-neutral-300 leading-relaxed mb-3">
             <strong className="text-white">Payouts:</strong> Winners receive 90% of the total stake pool. A 10% fee is retained for platform maintenance.

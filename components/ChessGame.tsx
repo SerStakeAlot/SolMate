@@ -212,6 +212,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [isSpectating, setIsSpectating] = useState(false);
   const [spectatorWhitePlayer, setSpectatorWhitePlayer] = useState<string>('');
   const [spectatorBlackPlayer, setSpectatorBlackPlayer] = useState<string>('');
+  const [spectatorCount, setSpectatorCount] = useState(0);
   
   // AI difficulty: 'novice' (depth 1), 'club' (depth 2), 'master' (depth 3)
   type AIDifficulty = 'novice' | 'club' | 'master';
@@ -649,6 +650,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       // Could show a toast/notification
     });
     
+    // Receive spectator count updates (for players)
+    newSocket.on('freeplay:spectatorCount', ({ count }) => {
+      console.log('!!! Spectator count received:', count);
+      setSpectatorCount(count);
+    });
+    
     // Game start notification
     newSocket.on('game:start', ({ whiteTimeMs, blackTimeMs }) => {
       console.log('Game started! White time:', whiteTimeMs, 'Black time:', blackTimeMs);
@@ -712,7 +719,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   }, [isFreePlay, playSound]);
   
   // Send move to opponent
-  const sendMove = useCallback((from: string, to: string, san: string, promotion?: string) => {
+  const sendMove = useCallback((from: string, to: string, san: string, fen: string, promotion?: string) => {
     if (!isMultiplayer && !isFreePlay) {
       console.log('Not multiplayer/freeplay, not sending move');
       return;
@@ -725,10 +732,10 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       console.error('ERROR: gameRoomId not set, cannot send move! Current state:', { isMultiplayer, isFreePlay, opponentConnected });
       return;
     }
-    console.log('Sending move to server:', { roomId: gameRoomId, from, to, san, promotion });
+    console.log('Sending move to server:', { roomId: gameRoomId, from, to, san, fen, promotion });
     socket.emit('game:makeMove', { 
       roomId: gameRoomId,
-      move: { from, to, san, promotion }
+      move: { from, to, san, fen, promotion }
     });
   }, [socket, isMultiplayer, isFreePlay, gameRoomId, opponentConnected]);
   
@@ -857,6 +864,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     setOpponentConnected(false);
     setGameRoomId(null);
     setPlayerColor(null);
+    setSpectatorCount(0);
     // Reset chess board
     chessRef.current = new Chess();
     setFen(chessRef.current.fen());
@@ -1404,7 +1412,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       
       // Send move to opponent in multiplayer or free play
       if (isMultiplayer || isFreePlay) {
-        sendMove(selectedSquare, square, move.san, promotion);
+        sendMove(selectedSquare, square, move.san, chess.fen(), promotion);
       }
     } catch (error) {
       // Invalid move, deselect
@@ -1528,6 +1536,13 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     <span className="font-semibold text-sm truncate max-w-[120px]">
                       {opponentUsername || (opponentWallet ? `${opponentWallet.slice(0, 4)}...${opponentWallet.slice(-4)}` : 'Opponent')}
                     </span>
+                    {/* Spectator count */}
+                    {isFreePlay && spectatorCount > 0 && (
+                      <div className="flex items-center gap-1 bg-solana-purple/30 px-2 py-0.5 rounded-full">
+                        <Eye className="h-3.5 w-3.5 text-solana-purple" />
+                        <span className="text-xs text-solana-purple font-medium">{spectatorCount}</span>
+                      </div>
+                    )}
                     {/* Opponent's reaction bubble */}
                     <AnimatePresence>
                       {incomingReaction && (
@@ -1784,7 +1799,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     initial={{ opacity: 0, y: 20, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                    className="absolute bottom-24 left-2 right-2 z-50 sm:left-auto sm:right-4 sm:w-80"
+                    className="fixed bottom-20 left-2 right-2 z-[9999] sm:absolute sm:bottom-24 sm:left-auto sm:right-4 sm:w-80 sm:z-50"
                   >
                     <div 
                       className="rounded-xl border border-white/20 shadow-2xl overflow-hidden"
@@ -2322,6 +2337,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           <span className={`text-sm ${opponentConnected ? 'text-green-400' : 'text-yellow-400'}`}>
                             {opponentConnected ? `Playing as ${playerColor === 'w' ? 'White' : 'Black'}` : 'Waiting for opponent...'}
                           </span>
+                          {opponentConnected && spectatorCount > 0 && (
+                            <div className="flex items-center gap-1 ml-2 bg-solana-purple/20 px-2 py-0.5 rounded-full">
+                              <Eye className="h-3.5 w-3.5 text-solana-purple" />
+                              <span className="text-xs text-solana-purple font-medium">{spectatorCount}</span>
+                            </div>
+                          )}
                         </div>
                         {freePlayCode && (
                           <motion.button
