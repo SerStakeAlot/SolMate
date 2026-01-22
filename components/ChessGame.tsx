@@ -1223,6 +1223,13 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     const result = chess.move(bestMove);
     setFen(chess.fen());
     setLastMove({ from: bestMove.from, to: bestMove.to });
+    
+    // Start AI game timer on first AI move (when player is black)
+    if (!aiGameStarted) {
+      setAiGameStarted(true);
+      lastTickRef.current = Date.now();
+    }
+    
     // Play sound for AI move
     if (chess.isCheck()) {
       playSound('check');
@@ -1255,7 +1262,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     }
 
     if (mode === 'practice' && !isFreePlay) {
-      if (chess.turn() !== 'w') return;
+      if (chess.turn() !== aiPlayerColor) return;
     }
 
     if (!selectedSquare) {
@@ -1265,7 +1272,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       // In multiplayer or free play, only select your own pieces
       if ((isMultiplayer || isFreePlay) && playerColor && piece.color !== playerColor) return;
       
-      if (mode === 'practice' && !isFreePlay && piece.color !== 'w') return;
+      if (mode === 'practice' && !isFreePlay && piece.color !== aiPlayerColor) return;
       if (mode === 'wager' && !isMultiplayer && !isFreePlay && piece.color !== chess.turn()) return;
       setSelectedSquare(square);
       return;
