@@ -192,6 +192,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [dynamicPlayerRole, setDynamicPlayerRole] = useState<'host' | 'join' | undefined>(playerRole);
   const actualPlayerRole = dynamicPlayerRole || playerRole;
   
+  // Wager match code (can come from prop or be set dynamically)
+  const [wagerMatchCode, setWagerMatchCode] = useState<string>(matchCode || '');
+  
   // Free play state (no blockchain, just WebSocket)
   const [isFreePlay, setIsFreePlay] = useState(false);
   const [freePlayCode, setFreePlayCode] = useState<string>('');
@@ -360,7 +363,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     // Host receives hosted confirmation
     newSocket.on('match:hosted', ({ matchCode: code }) => {
       console.log('Match hosted with code:', code);
-      setMatchCode(code);
+      setWagerMatchCode(code);
       // Host waits for opponent to join
     });
     
@@ -381,7 +384,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     // Guest receives lobby join confirmation
     newSocket.on('match:joinedLobby', ({ matchCode: code, hostWallet, yourColor, stakeTier, matchPubkey }) => {
       console.log('Joined wager lobby! Host:', hostWallet, 'My color:', yourColor);
-      setMatchCode(code);
+      setWagerMatchCode(code);
       setInWagerLobby(true);
       setWagerLobbyHostColor(yourColor === 'w' ? 'b' : 'w'); // hostColor is opposite of my color
       setPlayerColor(yourColor);
@@ -2486,8 +2489,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       <div className="bg-gradient-to-r from-solana-purple/20 to-solana-green/20 rounded-xl p-4 border border-solana-purple/30">
                         <div className="flex items-center justify-between mb-3">
                           <p className="text-xs font-medium uppercase tracking-wider text-neutral-400">Match Lobby</p>
-                          {matchCode && (
-                            <span className="font-mono text-lg text-white">{matchCode}</span>
+                          {wagerMatchCode && (
+                            <span className="font-mono text-lg text-white">{wagerMatchCode}</span>
                           )}
                         </div>
                         
@@ -2514,7 +2517,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                                 type="button"
                                 onClick={() => {
                                   setWagerLobbyHostColor('w');
-                                  socket?.emit('match:setColor', { matchCode, color: 'w' });
+                                  socket?.emit('match:setColor', { matchCode: wagerMatchCode, color: 'w' });
                                 }}
                                 className={`py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all ${
                                   wagerLobbyHostColor === 'w'
@@ -2529,7 +2532,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                                 type="button"
                                 onClick={() => {
                                   setWagerLobbyHostColor('b');
-                                  socket?.emit('match:setColor', { matchCode, color: 'b' });
+                                  socket?.emit('match:setColor', { matchCode: wagerMatchCode, color: 'b' });
                                 }}
                                 className={`py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all ${
                                   wagerLobbyHostColor === 'b'
@@ -2558,7 +2561,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                         {actualPlayerRole === 'host' && (
                           <motion.button
                             type="button"
-                            onClick={() => socket?.emit('match:startGame', { matchCode })}
+                            onClick={() => socket?.emit('match:startGame', { matchCode: wagerMatchCode })}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-solana-purple to-solana-green text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all"
@@ -2580,8 +2583,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       <div className="bg-solana-purple/10 border border-solana-purple/30 rounded-xl p-4">
                         <div className="flex items-center justify-between mb-2">
                           <p className="text-white font-semibold">Waiting for Opponent</p>
-                          {matchCode && (
-                            <span className="font-mono text-lg text-solana-purple">{matchCode}</span>
+                          {wagerMatchCode && (
+                            <span className="font-mono text-lg text-solana-purple">{wagerMatchCode}</span>
                           )}
                         </div>
                         <p className="text-sm text-neutral-300 mb-2">
