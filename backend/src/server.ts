@@ -95,12 +95,36 @@ app.get('/api/username/check/:username', (req, res) => {
   res.json({ available });
 });
 
+// Debug: Check who has a username
+app.get('/api/username/lookup/:username', (req, res) => {
+  const { username } = req.params;
+  const wallet = userStore.getWalletByUsername(username);
+  if (wallet) {
+    // Only show partial wallet for privacy
+    res.json({ 
+      taken: true, 
+      partialWallet: `${wallet.slice(0, 4)}...${wallet.slice(-4)}`,
+      fullWallet: wallet // For debugging
+    });
+  } else {
+    res.json({ taken: false });
+  }
+});
+
 // Set username for a wallet (requires signature verification in production)
 app.post('/api/username', (req, res) => {
   const { walletAddress, username, signature } = req.body;
   
   if (!walletAddress || !username) {
     return res.status(400).json({ error: 'walletAddress and username are required' });
+  }
+
+  // Check if this username (case-insensitive) belongs to this wallet already
+  const existingWallet = userStore.getWalletByUsername(username);
+  if (existingWallet && existingWallet === walletAddress) {
+    // User already has this username (maybe different case), update to new casing
+    const result = userStore.setUsername(walletAddress, username);
+    return res.json({ success: true, username: result.success ? username : userStore.getUsername(walletAddress) });
   }
 
   // TODO: In production, verify signature to prove wallet ownership
@@ -445,7 +469,8 @@ io.on('connection', (socket) => {
     if (room.ready) {
       if (!room.spectators) room.spectators = [];
       room.spectators.push(socket.id);
-      console.log(`Free play room ${code} - spectator joined (${room.spectators.length} spectators)`);
+      const spectatorCount = room.spectators.length;
+      console.log(`Free play room ${code} - spectator joined (${spectatorCount} spectators)`);
       
       // Send spectator the current game state
       socket.emit('freeplay:spectating', {
@@ -455,6 +480,13 @@ io.on('connection', (socket) => {
         whitePlayer: room.hostColor === 'w' ? (room.hostWallet?.slice(0, 8) || 'Host') : (room.guestWallet?.slice(0, 8) || 'Guest'),
         blackPlayer: room.hostColor === 'b' ? (room.hostWallet?.slice(0, 8) || 'Host') : (room.guestWallet?.slice(0, 8) || 'Guest'),
       });
+      
+      // Notify players about updated spectator count
+      console.log(`Emitting spectatorCount=${spectatorCount} to host (${room.hostSocketId}) and guest (${room.guestSocketId})`);
+      io.to(room.hostSocketId).emit('freeplay:spectatorCount', { count: spectatorCount });
+      if (room.guestSocketId) {
+        io.to(room.guestSocketId).emit('freeplay:spectatorCount', { count: spectatorCount });
+      }
       return;
     }
     
@@ -712,6 +744,15 @@ io.on('connection', (socket) => {
           room.guestSocketId = undefined;
           room.guestWallet = undefined;
           console.log(`Free play room ${code} - guest disconnected`);
+        } else if (room.spectators && room.spectators.includes(socket.id)) {
+          // Spectator left - remove from list and notify players
+          room.spectators = room.spectators.filter((id: string) => id !== socket.id);
+          const spectatorCount = room.spectators.length;
+          console.log(`Free play room ${code} - spectator left (${spectatorCount} remaining)`);
+          io.to(room.hostSocketId).emit('freeplay:spectatorCount', { count: spectatorCount });
+          if (room.guestSocketId) {
+            io.to(room.guestSocketId).emit('freeplay:spectatorCount', { count: spectatorCount });
+          }
         }
       }
     }

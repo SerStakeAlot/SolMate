@@ -139,7 +139,7 @@ export default function Home() {
           {
             icon: Trophy,
             title: "Competitive Stakes",
-            description: "Choose from 0.5 or 1 SOL stake tiers",
+            description: "Choose from 0.05, 0.1, 0.5 or 1 SOL stake tiers",
             delay: 0.3,
             gradient: "from-solana-green/20 to-emerald-500/20"
           }

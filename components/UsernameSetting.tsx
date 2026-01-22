@@ -14,6 +14,7 @@ export const UsernameSetting: React.FC<UsernameSettingProps> = ({ onUsernameChan
   const [inputValue, setInputValue] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetchingUsername, setIsFetchingUsername] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
@@ -21,21 +22,36 @@ export const UsernameSetting: React.FC<UsernameSettingProps> = ({ onUsernameChan
   // Fetch current username when wallet connects
   useEffect(() => {
     if (connected && publicKey) {
+      setIsFetchingUsername(true);
       const walletAddress = publicKey.toBase58();
+      console.log('Fetching username for wallet:', walletAddress);
       getUsername(walletAddress).then((username) => {
+        console.log('Fetched username:', username);
         setCurrentUsername(username);
         setInputValue(username || '');
         onUsernameChange?.(username);
+        setIsFetchingUsername(false);
+      }).catch((err) => {
+        console.error('Error fetching username:', err);
+        setIsFetchingUsername(false);
       });
     } else {
       setCurrentUsername(null);
       setInputValue('');
+      setIsFetchingUsername(false);
     }
   }, [connected, publicKey, onUsernameChange]);
 
   // Debounced username availability check
   useEffect(() => {
-    if (!inputValue || inputValue === currentUsername) {
+    // Skip check if still loading current username
+    if (isFetchingUsername) {
+      setIsAvailable(null);
+      return;
+    }
+    
+    // Skip check if no input or if it matches current username (case-insensitive)
+    if (!inputValue || (currentUsername && inputValue.toLowerCase() === currentUsername.toLowerCase())) {
       setIsAvailable(null);
       return;
     }
@@ -55,7 +71,7 @@ export const UsernameSetting: React.FC<UsernameSettingProps> = ({ onUsernameChan
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [inputValue, currentUsername, publicKey]);
+  }, [inputValue, currentUsername, publicKey, isFetchingUsername]);
 
   const handleSave = useCallback(async () => {
     if (!publicKey || !inputValue) return;
@@ -175,7 +191,11 @@ export const UsernameSetting: React.FC<UsernameSettingProps> = ({ onUsernameChan
     <div style={containerStyle}>
       <span style={labelStyle}>Username</span>
       
-      {!isEditing ? (
+      {isFetchingUsername ? (
+        <div style={displayStyle}>
+          <span style={{ color: '#666', fontStyle: 'italic' }}>Loading...</span>
+        </div>
+      ) : !isEditing ? (
         <div style={displayStyle}>
           <span style={usernameStyle}>
             {currentUsername || (
