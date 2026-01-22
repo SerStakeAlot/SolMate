@@ -199,6 +199,14 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [isCreatingFreePlay, setIsCreatingFreePlay] = useState(false);
   const [isJoiningFreePlay, setIsJoiningFreePlay] = useState(false);
   
+  // Free play lobby state (color selection before game starts)
+  const [inLobby, setInLobby] = useState(false);
+  const [lobbyHostColor, setLobbyHostColor] = useState<'w' | 'b'>('w');
+  const [lobbyOpponentName, setLobbyOpponentName] = useState<string>('');
+  const [lobbyOpponentWallet, setLobbyOpponentWallet] = useState<string | null>(null);
+  const [whiteRequest, setWhiteRequest] = useState(false);
+  const [whiteRequestPending, setWhiteRequestPending] = useState(false);
+  
   // AI difficulty: 'novice' (depth 1), 'club' (depth 2), 'master' (depth 3)
   type AIDifficulty = 'novice' | 'club' | 'master';
   const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>('club');
@@ -469,6 +477,64 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setIsCreatingFreePlay(false);
     });
     
+    // Guest joined the lobby (host receives this)
+    newSocket.on('freeplay:guestJoined', ({ code, guestWallet, guest, hostColor }) => {
+      console.log('Guest joined lobby:', guest, 'Host color:', hostColor);
+      setInLobby(true);
+      setLobbyHostColor(hostColor);
+      setLobbyOpponentName(guest);
+      setLobbyOpponentWallet(guestWallet);
+      if (guestWallet) {
+        getUsername(guestWallet).then(name => {
+          if (name) setLobbyOpponentName(name);
+        });
+      }
+    });
+    
+    // Joined lobby as guest
+    newSocket.on('freeplay:joinedLobby', ({ code, hostWallet, host, yourColor }) => {
+      console.log('Joined lobby as guest. Host:', host, 'My color:', yourColor);
+      setInLobby(true);
+      setFreePlayCode(code);
+      setLobbyHostColor(yourColor === 'w' ? 'b' : 'w'); // hostColor is opposite of my color
+      setLobbyOpponentName(host);
+      setLobbyOpponentWallet(hostWallet);
+      setPlayerColor(yourColor);
+      setIsJoiningFreePlay(false);
+      if (hostWallet) {
+        getUsername(hostWallet).then(name => {
+          if (name) setLobbyOpponentName(name);
+        });
+      }
+    });
+    
+    // Colors updated
+    newSocket.on('freeplay:colorsUpdated', ({ hostColor }) => {
+      console.log('Colors updated. Host is now:', hostColor);
+      setLobbyHostColor(hostColor);
+      // Update my color based on my role
+      if (dynamicPlayerRole === 'host' || isCreatingFreePlayRef.current) {
+        setPlayerColor(hostColor);
+      } else {
+        setPlayerColor(hostColor === 'w' ? 'b' : 'w');
+      }
+    });
+    
+    // White request from guest (host receives this)
+    newSocket.on('freeplay:whiteRequest', ({ code }) => {
+      console.log('Guest is requesting white');
+      setWhiteRequest(true);
+    });
+    
+    // Response to white request (guest receives this)
+    newSocket.on('freeplay:whiteRequestResponse', ({ accepted }) => {
+      console.log('White request response:', accepted);
+      setWhiteRequestPending(false);
+      if (!accepted) {
+        // Could show a toast/notification that request was declined
+      }
+    });
+    
     // Free play started (both host and guest)
     newSocket.on('freeplay:started', ({ roomId, yourColor, opponent, opponentWallet: oppWallet }) => {
       console.log('Free play started! Room:', roomId, 'Color:', yourColor, 'Opponent:', opponent, 'OpponentWallet:', oppWallet);
@@ -476,6 +542,11 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setPlayerColor(yourColor);
       setOpponentConnected(true);
       setIsJoiningFreePlay(false);
+      
+      // Clear lobby state
+      setInLobby(false);
+      setWhiteRequest(false);
+      setWhiteRequestPending(false);
       
       // Store opponent wallet for username lookup
       if (oppWallet) {
@@ -668,6 +739,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     setIsFreePlay(true);
     setIsCreatingFreePlay(true);
     setPlayerColor('w');
+    setDynamicPlayerRole('host');
+    setLobbyHostColor('w');
     // Socket connection will be established by the useEffect
     // Emit happens in socket connect handler using refs
   };
@@ -680,6 +753,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     setIsFreePlay(true);
     setIsJoiningFreePlay(true);
     setPlayerColor('b');
+    setDynamicPlayerRole('join');
     // Socket connection will be established by the useEffect
     // Emit happens in socket connect handler using refs
   };
@@ -1913,44 +1987,184 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                   </>
                 ) : (
                   <div className="space-y-4">
-                    <div className="p-4 bg-gradient-to-r from-solana-purple/20 to-solana-green/20 rounded-xl border border-solana-purple/30">
-                      <p className="text-xs font-medium uppercase tracking-wider text-neutral-400 mb-1">
-                        {opponentConnected ? 'Game In Progress' : 'Room Code'}
-                      </p>
-                      {!opponentConnected && freePlayCode && (
-                        <p className="text-3xl font-bold font-mono text-white">{freePlayCode}</p>
-                      )}
-                      <div className="flex items-center gap-2 mt-2">
-                        <Users className={`h-4 w-4 ${opponentConnected ? 'text-green-400' : 'text-yellow-400'}`} />
-                        <span className={`text-sm ${opponentConnected ? 'text-green-400' : 'text-yellow-400'}`}>
-                          {opponentConnected ? `Playing as ${playerColor === 'w' ? 'White' : 'Black'}` : 'Waiting for opponent...'}
-                        </span>
+                    {/* Lobby State - Color Selection */}
+                    {inLobby && !opponentConnected && (
+                      <div className="p-4 bg-gradient-to-r from-solana-purple/20 to-solana-green/20 rounded-xl border border-solana-purple/30">
+                        <p className="text-xs font-medium uppercase tracking-wider text-neutral-400 mb-2">
+                          Pre-Game Lobby
+                        </p>
+                        <p className="text-sm text-white mb-3">
+                          <span className="font-semibold">{lobbyOpponentName}</span> has joined!
+                        </p>
+                        
+                        {/* Color Selection UI */}
+                        <div className="space-y-3">
+                          <p className="text-xs text-neutral-400">Choose your color:</p>
+                          
+                          {/* Host can swap colors */}
+                          {(dynamicPlayerRole === 'host' || isCreatingFreePlay) && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => socket?.emit('freeplay:swapColors', { code: freePlayCode })}
+                                className={`flex-1 py-2 px-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+                                  lobbyHostColor === 'w' 
+                                    ? 'bg-white text-black ring-2 ring-solana-green' 
+                                    : 'bg-white/20 text-white hover:bg-white/30'
+                                }`}
+                              >
+                                <div className="w-4 h-4 rounded-full bg-white border border-neutral-300" />
+                                White
+                              </button>
+                              <button
+                                onClick={() => socket?.emit('freeplay:swapColors', { code: freePlayCode })}
+                                className={`flex-1 py-2 px-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+                                  lobbyHostColor === 'b' 
+                                    ? 'bg-neutral-800 text-white ring-2 ring-solana-green' 
+                                    : 'bg-white/20 text-white hover:bg-white/30'
+                                }`}
+                              >
+                                <div className="w-4 h-4 rounded-full bg-neutral-800 border border-neutral-600" />
+                                Black
+                              </button>
+                            </div>
+                          )}
+                          
+                          {/* Guest sees current assignment with request option */}
+                          {dynamicPlayerRole === 'join' && (
+                            <>
+                              <div className="flex gap-2">
+                                <div className={`flex-1 py-2 px-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 ${
+                                  playerColor === 'w' 
+                                    ? 'bg-white text-black ring-2 ring-solana-green' 
+                                    : 'bg-white/10 text-neutral-500'
+                                }`}>
+                                  <div className="w-4 h-4 rounded-full bg-white border border-neutral-300" />
+                                  White {playerColor === 'w' && '(You)'}
+                                </div>
+                                <div className={`flex-1 py-2 px-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 ${
+                                  playerColor === 'b' 
+                                    ? 'bg-neutral-800 text-white ring-2 ring-solana-green' 
+                                    : 'bg-white/10 text-neutral-500'
+                                }`}>
+                                  <div className="w-4 h-4 rounded-full bg-neutral-800 border border-neutral-600" />
+                                  Black {playerColor === 'b' && '(You)'}
+                                </div>
+                              </div>
+                              
+                              {playerColor === 'b' && !whiteRequestPending && (
+                                <button
+                                  onClick={() => {
+                                    socket?.emit('freeplay:requestWhite', { code: freePlayCode });
+                                    setWhiteRequestPending(true);
+                                  }}
+                                  className="w-full py-2 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm transition-all"
+                                >
+                                  Request to play as White
+                                </button>
+                              )}
+                              {whiteRequestPending && (
+                                <p className="text-xs text-yellow-400 text-center">⏳ Waiting for host to respond...</p>
+                              )}
+                            </>
+                          )}
+                          
+                          {/* White Request from Guest (Host sees this) */}
+                          {whiteRequest && (dynamicPlayerRole === 'host' || isCreatingFreePlay) && (
+                            <div className="p-3 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
+                              <p className="text-sm text-yellow-300 mb-2">
+                                {lobbyOpponentName} wants to play as White
+                              </p>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    socket?.emit('freeplay:respondWhiteRequest', { code: freePlayCode, accepted: true });
+                                    setWhiteRequest(false);
+                                  }}
+                                  className="flex-1 py-1.5 px-3 rounded-lg bg-green-500/30 hover:bg-green-500/40 text-green-400 text-sm font-semibold transition-all flex items-center justify-center gap-1"
+                                >
+                                  <CheckCircle2 className="w-4 h-4" />
+                                  Accept
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    socket?.emit('freeplay:respondWhiteRequest', { code: freePlayCode, accepted: false });
+                                    setWhiteRequest(false);
+                                  }}
+                                  className="flex-1 py-1.5 px-3 rounded-lg bg-red-500/30 hover:bg-red-500/40 text-red-400 text-sm font-semibold transition-all flex items-center justify-center gap-1"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                  Decline
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Start Game Button (Host only) */}
+                        {(dynamicPlayerRole === 'host' || isCreatingFreePlay) && (
+                          <motion.button
+                            type="button"
+                            onClick={() => socket?.emit('freeplay:startGame', { code: freePlayCode })}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="mt-4 w-full flex items-center justify-center gap-2 bg-gradient-to-r from-solana-purple to-solana-green text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all"
+                          >
+                            <Swords className="h-5 w-5" />
+                            Start Game
+                          </motion.button>
+                        )}
+                        
+                        {/* Waiting message for guest */}
+                        {dynamicPlayerRole === 'join' && (
+                          <p className="mt-4 text-sm text-neutral-400 text-center">
+                            Waiting for host to start the game...
+                          </p>
+                        )}
                       </div>
-                      {!opponentConnected && freePlayCode && (
-                        <motion.button
-                          type="button"
-                          onClick={() => {
-                            const shareUrl = `${window.location.origin}/game?freeplay=${freePlayCode}`;
-                            if (navigator.share) {
-                              navigator.share({
-                                title: 'Play Chess with me on SolMate!',
-                                text: `Join my chess game! Room code: ${freePlayCode}`,
-                                url: shareUrl,
-                              }).catch(() => {});
-                            } else {
-                              navigator.clipboard.writeText(shareUrl);
-                              alert('Link copied! Share it with your friend.');
-                            }
-                          }}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="mt-3 w-full flex items-center justify-center gap-2 bg-solana-green/20 hover:bg-solana-green/30 text-solana-green font-semibold py-2 px-4 rounded-lg border border-solana-green/30 transition-all text-sm"
-                        >
-                          <Share2 className="h-4 w-4" />
-                          Share Invite Link
-                        </motion.button>
-                      )}
-                    </div>
+                    )}
+                    
+                    {/* Regular waiting/playing state */}
+                    {!inLobby && (
+                      <div className="p-4 bg-gradient-to-r from-solana-purple/20 to-solana-green/20 rounded-xl border border-solana-purple/30">
+                        <p className="text-xs font-medium uppercase tracking-wider text-neutral-400 mb-1">
+                          {opponentConnected ? 'Game In Progress' : 'Room Code'}
+                        </p>
+                        {!opponentConnected && freePlayCode && (
+                          <p className="text-3xl font-bold font-mono text-white">{freePlayCode}</p>
+                        )}
+                        <div className="flex items-center gap-2 mt-2">
+                          <Users className={`h-4 w-4 ${opponentConnected ? 'text-green-400' : 'text-yellow-400'}`} />
+                          <span className={`text-sm ${opponentConnected ? 'text-green-400' : 'text-yellow-400'}`}>
+                            {opponentConnected ? `Playing as ${playerColor === 'w' ? 'White' : 'Black'}` : 'Waiting for opponent...'}
+                          </span>
+                        </div>
+                        {!opponentConnected && freePlayCode && (
+                          <motion.button
+                            type="button"
+                            onClick={() => {
+                              const shareUrl = `${window.location.origin}/game?freeplay=${freePlayCode}`;
+                              if (navigator.share) {
+                                navigator.share({
+                                  title: 'Play Chess with me on SolMate!',
+                                  text: `Join my chess game! Room code: ${freePlayCode}`,
+                                  url: shareUrl,
+                                }).catch(() => {});
+                              } else {
+                                navigator.clipboard.writeText(shareUrl);
+                                alert('Link copied! Share it with your friend.');
+                              }
+                            }}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="mt-3 w-full flex items-center justify-center gap-2 bg-solana-green/20 hover:bg-solana-green/30 text-solana-green font-semibold py-2 px-4 rounded-lg border border-solana-green/30 transition-all text-sm"
+                          >
+                            <Share2 className="h-4 w-4" />
+                            Share Invite Link
+                          </motion.button>
+                        )}
+                      </div>
+                    )}
+                    
                     <motion.button
                       type="button"
                       onClick={handleCancelFreePlay}
