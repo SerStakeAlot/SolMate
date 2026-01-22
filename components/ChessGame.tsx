@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Trophy, RefreshCw, X, CheckCircle2, XCircle, Wifi, WifiOff, Users, Share2, Clock, MessageCircle, Send, Eye } from 'lucide-react';
+import { Swords, Trophy, RefreshCw, X, CheckCircle2, XCircle, Wifi, WifiOff, Users, Share2, Clock, MessageCircle, Send, Eye, Loader2 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
 import { Chess } from 'chess.js';
@@ -199,7 +199,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [isCreatingFreePlay, setIsCreatingFreePlay] = useState(false);
   const [isJoiningFreePlay, setIsJoiningFreePlay] = useState(false);
   
-  // Free play lobby state (color selection before game starts)
+  // Lobby state for both free play and wager matches (color selection before game starts)
   const [inLobby, setInLobby] = useState(false);
   const [lobbyHostColor, setLobbyHostColor] = useState<'w' | 'b'>('w');
   const [lobbyOpponentName, setLobbyOpponentName] = useState<string>('');
@@ -207,6 +207,11 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [whiteRequest, setWhiteRequest] = useState(false);
   const [whiteRequestPending, setWhiteRequestPending] = useState(false);
   const [swapRequestWantColor, setSwapRequestWantColor] = useState<'w' | 'b' | null>(null);
+  
+  // Wager lobby state
+  const [inWagerLobby, setInWagerLobby] = useState(false);
+  const [wagerLobbyHostColor, setWagerLobbyHostColor] = useState<'w' | 'b'>('w');
+  const [wagerOpponentWallet, setWagerOpponentWallet] = useState<string | null>(null);
   
   // Spectator mode
   const [isSpectating, setIsSpectating] = useState(false);
@@ -355,23 +360,70 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     // Host receives hosted confirmation
     newSocket.on('match:hosted', ({ matchCode: code }) => {
       console.log('Match hosted with code:', code);
+      setMatchCode(code);
       // Host waits for opponent to join
     });
     
-    // Host receives notification when guest joins
-    newSocket.on('match:playerJoined', ({ roomId, guestWallet, yourColor }) => {
-      console.log('Opponent joined! Room:', roomId, 'My color:', yourColor);
-      setGameRoomId(roomId);
-      setPlayerColor(yourColor);
-      setOpponentConnected(true);
+    // Host receives notification when guest joins (enters lobby)
+    newSocket.on('match:playerJoined', ({ matchCode: code, guestWallet, hostColor }) => {
+      console.log('Opponent joined lobby! Guest:', guestWallet, 'Host color:', hostColor);
+      setInWagerLobby(true);
+      setWagerLobbyHostColor(hostColor || 'w');
+      setWagerOpponentWallet(guestWallet);
+      if (guestWallet) {
+        getUsername(guestWallet).then(name => {
+          if (name) setLobbyOpponentName(name);
+          else setLobbyOpponentName(guestWallet.slice(0, 4) + '...' + guestWallet.slice(-4));
+        });
+      }
     });
     
-    // Guest receives join confirmation
-    newSocket.on('match:joined', ({ roomId, yourColor, opponent }) => {
-      console.log('Joined match! Room:', roomId, 'My color:', yourColor, 'Opponent:', opponent);
+    // Guest receives lobby join confirmation
+    newSocket.on('match:joinedLobby', ({ matchCode: code, hostWallet, yourColor, stakeTier, matchPubkey }) => {
+      console.log('Joined wager lobby! Host:', hostWallet, 'My color:', yourColor);
+      setMatchCode(code);
+      setInWagerLobby(true);
+      setWagerLobbyHostColor(yourColor === 'w' ? 'b' : 'w'); // hostColor is opposite of my color
+      setPlayerColor(yourColor);
+      setWagerOpponentWallet(hostWallet);
+      if (hostWallet) {
+        getUsername(hostWallet).then(name => {
+          if (name) setLobbyOpponentName(name);
+          else setLobbyOpponentName(hostWallet.slice(0, 4) + '...' + hostWallet.slice(-4));
+        });
+      }
+    });
+    
+    // Colors updated in wager lobby
+    newSocket.on('match:colorsUpdated', ({ matchCode: code, hostColor }) => {
+      console.log('Wager match colors updated. Host is now:', hostColor);
+      setWagerLobbyHostColor(hostColor);
+      // Update my color based on my role
+      if (actualPlayerRole === 'host') {
+        setPlayerColor(hostColor);
+      } else {
+        setPlayerColor(hostColor === 'w' ? 'b' : 'w');
+      }
+    });
+    
+    // Game started (both host and guest receive this)
+    newSocket.on('match:started', ({ matchCode: code, roomId, yourColor, opponent, stakeTier, matchPubkey, whiteTimeMs: wTime, blackTimeMs: bTime }) => {
+      console.log('Wager match started! Room:', roomId, 'Color:', yourColor, 'Opponent:', opponent);
       setGameRoomId(roomId);
       setPlayerColor(yourColor);
       setOpponentConnected(true);
+      setInWagerLobby(false);
+      
+      // Store opponent wallet for username lookup
+      if (opponent?.walletAddress) {
+        setOpponentWallet(opponent.walletAddress);
+        getUsername(opponent.walletAddress).then(setOpponentUsername);
+      }
+      
+      // Reset timer when game starts
+      setWhiteTimeMs(wTime || 600000);
+      setBlackTimeMs(bTime || 600000);
+      lastTickRef.current = Date.now();
     });
     
     // Join error
@@ -380,10 +432,10 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       alert(`Failed to join match: ${error}`);
     });
     
-    // Game start notification
-    newSocket.on('game:start', ({ whiteTimeMs, blackTimeMs }) => {
-      console.log('Game started! White time:', whiteTimeMs, 'Black time:', blackTimeMs);
-      setOpponentConnected(true);
+    // Start error
+    newSocket.on('match:startError', ({ error }) => {
+      console.error('Failed to start match:', error);
+      alert(`Failed to start match: ${error}`);
     });
     
     // Receive opponent's move
@@ -2429,11 +2481,126 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           {isSubmittingResult ? 'Finalizing...' : 'Processing...'}
                         </p>
                       </div>
-                    ) : matchCreated ? (
+                    ) : inWagerLobby ? (
+                      /* Wager Lobby - Color selection before game starts */
+                      <div className="bg-gradient-to-r from-solana-purple/20 to-solana-green/20 rounded-xl p-4 border border-solana-purple/30">
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-xs font-medium uppercase tracking-wider text-neutral-400">Match Lobby</p>
+                          {matchCode && (
+                            <span className="font-mono text-lg text-white">{matchCode}</span>
+                          )}
+                        </div>
+                        
+                        {/* Stake display */}
+                        <div className="bg-black/20 rounded-lg p-3 mb-3">
+                          <p className="text-sm text-neutral-400">Stake</p>
+                          <p className="text-lg font-bold text-white">{getStakeTierInfo(selectedStakeTier).label}</p>
+                        </div>
+                        
+                        {/* Opponent joined indicator */}
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                          <span className="text-sm text-green-400">
+                            {lobbyOpponentName || 'Opponent'} joined
+                          </span>
+                        </div>
+                        
+                        {/* Color selection (host only) */}
+                        {actualPlayerRole === 'host' && (
+                          <div className="mb-4">
+                            <p className="text-xs font-medium uppercase tracking-wider text-neutral-400 mb-2">Your Color</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setWagerLobbyHostColor('w');
+                                  socket?.emit('match:setColor', { matchCode, color: 'w' });
+                                }}
+                                className={`py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all ${
+                                  wagerLobbyHostColor === 'w'
+                                    ? 'bg-white text-black font-bold ring-2 ring-solana-green'
+                                    : 'bg-white/10 text-white hover:bg-white/20'
+                                }`}
+                              >
+                                <span className="text-xl">♔</span>
+                                White
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setWagerLobbyHostColor('b');
+                                  socket?.emit('match:setColor', { matchCode, color: 'b' });
+                                }}
+                                className={`py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all ${
+                                  wagerLobbyHostColor === 'b'
+                                    ? 'bg-neutral-800 text-white font-bold ring-2 ring-solana-green'
+                                    : 'bg-white/10 text-white hover:bg-white/20'
+                                }`}
+                              >
+                                <span className="text-xl">♚</span>
+                                Black
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Color display (guest only) */}
+                        {actualPlayerRole === 'join' && (
+                          <div className="mb-4 text-center">
+                            <p className="text-sm text-neutral-400 mb-1">You will play as</p>
+                            <p className="text-xl font-bold text-white">
+                              {wagerLobbyHostColor === 'w' ? '♚ Black' : '♔ White'}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* Start Game Button (Host only) */}
+                        {actualPlayerRole === 'host' && (
+                          <motion.button
+                            type="button"
+                            onClick={() => socket?.emit('match:startGame', { matchCode })}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-solana-purple to-solana-green text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all"
+                          >
+                            <Swords className="h-5 w-5" />
+                            Start Game
+                          </motion.button>
+                        )}
+                        
+                        {/* Waiting message for guest */}
+                        {actualPlayerRole === 'join' && (
+                          <p className="text-sm text-neutral-400 text-center py-2">
+                            Waiting for host to start the game...
+                          </p>
+                        )}
+                      </div>
+                    ) : matchCreated && !opponentConnected ? (
+                      /* Waiting for opponent to join */
                       <div className="bg-solana-purple/10 border border-solana-purple/30 rounded-xl p-4">
-                        <p className="text-white font-semibold mb-1">Match Active</p>
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-white font-semibold">Waiting for Opponent</p>
+                          {matchCode && (
+                            <span className="font-mono text-lg text-solana-purple">{matchCode}</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-neutral-300 mb-2">
+                          {getStakeTierInfo(selectedStakeTier).label}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 text-solana-purple animate-spin" />
+                          <span className="text-xs text-neutral-400">Share the match code with your opponent</span>
+                        </div>
+                      </div>
+                    ) : matchCreated && opponentConnected ? (
+                      /* Game in progress */
+                      <div className="bg-solana-purple/10 border border-solana-purple/30 rounded-xl p-4">
+                        <p className="text-white font-semibold mb-1">Game In Progress</p>
                         <p className="text-sm text-neutral-300">
                           {getStakeTierInfo(selectedStakeTier).label}
+                        </p>
+                        <p className="text-xs text-neutral-400 mt-2">
+                          Playing as {playerColor === 'w' ? 'White' : 'Black'}
                         </p>
                       </div>
                     ) : (
