@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Trophy, RefreshCw, X, CheckCircle2, XCircle, Wifi, WifiOff, Users, Share2, Clock, MessageCircle, Send } from 'lucide-react';
+import { Swords, Trophy, RefreshCw, X, CheckCircle2, XCircle, Wifi, WifiOff, Users, Share2, Clock, MessageCircle, Send, Eye } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
 import { Chess } from 'chess.js';
@@ -207,6 +207,11 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [whiteRequest, setWhiteRequest] = useState(false);
   const [whiteRequestPending, setWhiteRequestPending] = useState(false);
   const [swapRequestWantColor, setSwapRequestWantColor] = useState<'w' | 'b' | null>(null);
+  
+  // Spectator mode
+  const [isSpectating, setIsSpectating] = useState(false);
+  const [spectatorWhitePlayer, setSpectatorWhitePlayer] = useState<string>('');
+  const [spectatorBlackPlayer, setSpectatorBlackPlayer] = useState<string>('');
   
   // AI difficulty: 'novice' (depth 1), 'club' (depth 2), 'master' (depth 3)
   type AIDifficulty = 'novice' | 'club' | 'master';
@@ -608,6 +613,40 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setLobbyOpponentName('');
       setLobbyOpponentWallet(null);
       setWhiteRequest(false);
+    });
+    
+    // Spectating mode - joined game in progress
+    newSocket.on('freeplay:spectating', ({ code, fen, hostColor, whitePlayer, blackPlayer }) => {
+      console.log('Spectating game:', code, 'FEN:', fen);
+      setIsSpectating(true);
+      setIsFreePlay(true);
+      setFreePlayCode(code);
+      setSpectatorWhitePlayer(whitePlayer);
+      setSpectatorBlackPlayer(blackPlayer);
+      // Load the current position
+      chessRef.current = new Chess(fen);
+      setFen(fen);
+      setIsJoiningFreePlay(false);
+    });
+    
+    // Spectator receives move
+    newSocket.on('spectator:move', ({ move, fen }) => {
+      console.log('Spectator received move:', move);
+      chessRef.current = new Chess(fen);
+      setFen(fen);
+      setLastMove({ from: move.from, to: move.to });
+      // Play sound
+      if (chessRef.current.isCheck()) {
+        playSound('check');
+      } else {
+        playSound('move');
+      }
+    });
+    
+    // Spectator receives game end
+    newSocket.on('spectator:gameEnd', ({ winner, reason }) => {
+      console.log('Spectator - game ended:', winner, reason);
+      // Could show a toast/notification
     });
     
     // Game start notification
@@ -1286,6 +1325,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     const chess = chessRef.current!;
 
     if (chess.isGameOver()) return;
+    
+    // Spectators cannot make moves
+    if (isSpectating) return;
 
     // In multiplayer or free play, don't allow moves until opponent connects
     if ((isMultiplayer || isFreePlay) && !opponentConnected) {
@@ -2078,6 +2120,47 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       </div>
                     </div>
                   </>
+                ) : isSpectating ? (
+                  // Spectator Mode UI
+                  <div className="space-y-4">
+                    <div className="p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl border border-yellow-500/30">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Eye className="h-5 w-5 text-yellow-400" />
+                        <p className="text-sm font-semibold text-yellow-400">Spectating</p>
+                      </div>
+                      <p className="text-xs text-neutral-400 mb-3">
+                        This game is already in progress. You are watching as a spectator.
+                      </p>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-white border border-neutral-300" />
+                          <span className="text-white">{spectatorWhitePlayer}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-full bg-neutral-800 border border-neutral-600" />
+                          <span className="text-white">{spectatorBlackPlayer}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <motion.button
+                      type="button"
+                      onClick={() => {
+                        setIsSpectating(false);
+                        setIsFreePlay(false);
+                        setFreePlayCode('');
+                        chessRef.current = new Chess();
+                        setFen(chessRef.current.fen());
+                        setLastMove(null);
+                      }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-6 rounded-xl transition-all"
+                    >
+                      <X className="h-4 w-4" />
+                      Stop Watching
+                    </motion.button>
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     {/* Lobby State - Color Selection */}
