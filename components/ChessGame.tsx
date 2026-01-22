@@ -211,6 +211,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   type AIDifficulty = 'novice' | 'club' | 'master';
   const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>('club');
   
+  // AI player color (default white for player)
+  const [aiPlayerColor, setAiPlayerColor] = useState<'w' | 'b'>('w');
+  
   // Opponent info for username display
   const [opponentWallet, setOpponentWallet] = useState<string | null>(null);
   const [opponentUsername, setOpponentUsername] = useState<string | null>(null);
@@ -1191,7 +1194,10 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const playComputerMove = React.useCallback(() => {
     const chess = chessRef.current!;
     if (chess.isGameOver()) return;
-    if (chess.turn() !== 'b') return;
+    
+    // AI plays the opposite color of the player
+    const aiColor = aiPlayerColor === 'w' ? 'b' : 'w';
+    if (chess.turn() !== aiColor) return;
 
     const moves = chess.moves({ verbose: true }) as Array<any>;
     if (moves.length === 0) return;
@@ -1201,14 +1207,14 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     const depth = depthMap[aiDifficulty];
     
     let bestMove = moves[0];
-    let bestValue = Infinity;
+    let bestValue = aiColor === 'b' ? Infinity : -Infinity;
     
     for (const move of moves) {
       chess.move(move);
-      const value = minimax(chess, depth, -Infinity, Infinity, true);
+      const value = minimax(chess, depth, -Infinity, Infinity, aiColor === 'b');
       chess.undo();
       
-      if (value < bestValue) {
+      if (aiColor === 'b' ? value < bestValue : value > bestValue) {
         bestValue = value;
         bestMove = move;
       }
@@ -1227,7 +1233,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     } else {
       playSound('move');
     }
-  }, [playSound, aiDifficulty]);
+  }, [playSound, aiDifficulty, aiPlayerColor]);
 
   const onSquareClick = (square: string) => {
     const chess = chessRef.current!;
@@ -1321,7 +1327,10 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     if (mode !== 'practice') return;
     if (isFreePlay) return; // Don't run AI during free play
     const chess = chessRef.current!;
-    if (chess.turn() !== 'b') return;
+    
+    // AI plays the opposite color of the player
+    const aiColor = aiPlayerColor === 'w' ? 'b' : 'w';
+    if (chess.turn() !== aiColor) return;
     if (chess.isGameOver()) return;
 
     const t = setTimeout(() => {
@@ -1329,7 +1338,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     }, 100);
 
     return () => clearTimeout(t);
-  }, [fen, mode, isFreePlay, playComputerMove]);
+  }, [fen, mode, isFreePlay, playComputerMove, aiPlayerColor]);
 
   const getMatchInfo = () => {
     if (!matchCreated) return null;
@@ -1457,11 +1466,11 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                 </div>
               )}
               
-              {/* AI info bar for practice mode (shown at top - AI plays black) */}
+              {/* AI info bar for practice mode (shown at top) */}
               {mode === 'practice' && !isFreePlay && (
                 <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-neutral-800 border border-neutral-600" />
+                    <div className={`w-3 h-3 rounded-full ${aiPlayerColor === 'w' ? 'bg-neutral-800 border border-neutral-600' : 'bg-white border border-neutral-400'}`} />
                     <span className="font-semibold text-sm">
                       🤖 {aiDifficulty === 'novice' ? 'Novice Bot' : aiDifficulty === 'club' ? 'Club Bot' : 'Master Bot'}
                     </span>
@@ -1481,12 +1490,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     </AnimatePresence>
                   </div>
                   <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-lg ${
-                    chessRef.current?.turn() === 'b' && aiGameStarted
+                    chessRef.current?.turn() === (aiPlayerColor === 'w' ? 'b' : 'w') && aiGameStarted
                       ? 'bg-solana-purple/30 text-white'
                       : 'bg-white/5 text-neutral-400'
                   }`}>
                     <Clock className="w-4 h-4" />
-                    {formatTime(blackTimeMs)}
+                    {formatTime(aiPlayerColor === 'w' ? blackTimeMs : whiteTimeMs)}
                   </div>
                 </div>
               )}
@@ -1494,7 +1503,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
               {/* Opponent's captured pieces (shown at top) */}
               <div className="flex items-center justify-between mb-2 min-h-[28px]">
                 <div className="flex items-center gap-0.5 flex-wrap">
-                  {capturedPieces[playerColor === 'w' ? 'b' : 'w'].map((piece, idx) => (
+                  {/* For AI practice mode, use aiPlayerColor; for multiplayer use playerColor */}
+                  {capturedPieces[((mode === 'practice' && !isFreePlay) ? aiPlayerColor : playerColor) === 'w' ? 'b' : 'w'].map((piece, idx) => (
                     <img
                       key={idx}
                       src={piece.svg}
@@ -1512,7 +1522,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                 <div className="grid h-full w-full grid-cols-8 grid-rows-8">
               {Array.from({ length: 64 }).map((_, i) => {
                 // Flip board for black player - their pieces should be at bottom
-                const flipped = playerColor === 'b';
+                // For AI practice mode, use aiPlayerColor; for multiplayer use playerColor
+                const effectivePlayerColor = (mode === 'practice' && !isFreePlay) ? aiPlayerColor : playerColor;
+                const flipped = effectivePlayerColor === 'b';
                 const row = flipped ? 7 - Math.floor(i / 8) : Math.floor(i / 8);
                 const col = flipped ? 7 - (i % 8) : i % 8;
                 const visualRow = Math.floor(i / 8); // For light/dark square coloring
@@ -1608,7 +1620,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
               {/* Player's captured pieces (shown at bottom) */}
               <div className="flex items-center justify-between mt-2 min-h-[28px]">
                 <div className="flex items-center gap-0.5 flex-wrap">
-                  {capturedPieces[playerColor === 'w' ? 'w' : 'b'].map((piece, idx) => (
+                  {/* For AI practice mode, use aiPlayerColor; for multiplayer use playerColor */}
+                  {capturedPieces[((mode === 'practice' && !isFreePlay) ? aiPlayerColor : playerColor) === 'w' ? 'w' : 'b'].map((piece, idx) => (
                     <img
                       key={idx}
                       src={piece.svg}
@@ -1798,11 +1811,11 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                 </div>
               )}
               
-              {/* Player info bar for AI practice mode (shown at bottom - you play white) */}
+              {/* Player info bar for AI practice mode (shown at bottom) */}
               {mode === 'practice' && !isFreePlay && (
                 <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/10">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-white border border-neutral-400" />
+                    <div className={`w-3 h-3 rounded-full ${aiPlayerColor === 'w' ? 'bg-white border border-neutral-400' : 'bg-neutral-800 border border-neutral-600'}`} />
                     <span className="font-semibold text-sm truncate max-w-[120px]">
                       {myUsername || (publicKey ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}` : 'You')}
                     </span>
@@ -1822,12 +1835,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     </AnimatePresence>
                   </div>
                   <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-lg ${
-                    chessRef.current?.turn() === 'w' && aiGameStarted
+                    chessRef.current?.turn() === aiPlayerColor && aiGameStarted
                       ? 'bg-solana-purple/30 text-white'
                       : 'bg-white/5 text-neutral-400'
                   }`}>
                     <Clock className="w-4 h-4" />
-                    {formatTime(whiteTimeMs)}
+                    {formatTime(aiPlayerColor === 'w' ? whiteTimeMs : blackTimeMs)}
                   </div>
                 </div>
               )}
@@ -1932,6 +1945,39 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                         {aiDifficulty === 'club' && '~1400 ELO • Intermediate challenge'}
                         {aiDifficulty === 'master' && '~1800 ELO • Advanced play'}
                       </p>
+                    </div>
+                    
+                    {/* AI Color Selector */}
+                    <div className="bg-white/5 rounded-xl p-3 border border-white/10">
+                      <p className="text-xs font-medium uppercase tracking-wider text-neutral-500 mb-2">
+                        Play As
+                      </p>
+                      <div className="flex rounded-lg border border-white/10 bg-black/40 p-1">
+                        <button
+                          type="button"
+                          onClick={() => { setAiPlayerColor('w'); resetPractice(); }}
+                          className="flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-2"
+                          style={{
+                            background: aiPlayerColor === 'w' ? '#ffffff' : 'transparent',
+                            color: aiPlayerColor === 'w' ? '#000000' : '#a3a3a3'
+                          }}
+                        >
+                          <div className="w-3 h-3 rounded-full bg-white border border-neutral-300" />
+                          White
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setAiPlayerColor('b'); resetPractice(); }}
+                          className="flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-2"
+                          style={{
+                            background: aiPlayerColor === 'b' ? '#262626' : 'transparent',
+                            color: aiPlayerColor === 'b' ? '#ffffff' : '#a3a3a3'
+                          }}
+                        >
+                          <div className="w-3 h-3 rounded-full bg-neutral-800 border border-neutral-600" />
+                          Black
+                        </button>
+                      </div>
                     </div>
                     
                     <motion.button
