@@ -17,9 +17,9 @@ export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
       return process.env.NEXT_PUBLIC_RPC_ENDPOINT;
     }
     
-    // Use Helius free tier for reliable mainnet RPC
+    // Use Helius for reliable mainnet RPC
     // This avoids stale validator cache issues with public endpoints
-    return 'https://mainnet.helius-rpc.com/?api-key=15319bf4-5b40-4958-ac8d-6313aa55eb92';
+    return 'https://mainnet.helius-rpc.com/?api-key=7ca044d7-5942-4ace-a0d1-e874a6515ba8';
   }, []);
 
   const wallets = useMemo(

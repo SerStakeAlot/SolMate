@@ -333,43 +333,40 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const room = gameRoomManager.getRoom(result.roomId!);
-    if (!room) {
-      socket.emit('match:joinError', { error: 'Room creation failed' });
+    // Guest joins lobby (waiting for host to start)
+    const match = result.match!;
+    const guestColor = match.hostColor === 'w' ? 'b' : 'w';
+    
+    socket.emit('match:joinedLobby', {
+      matchCode: match.matchCode,
+      hostWallet: match.hostWallet,
+      yourColor: guestColor,
+      stakeTier: match.stakeTier,
+      matchPubkey: match.matchPubkey,
+    });
+  });
+
+  // Host sets their color preference
+  socket.on('match:setColor', ({ matchCode, color }) => {
+    const player = playerStore.getPlayerBySocket(socket.id);
+    if (!player) return;
+    
+    hostedMatchManager.setHostColor(matchCode, color, io);
+  });
+
+  // Host starts the game
+  socket.on('match:startGame', ({ matchCode }) => {
+    const player = playerStore.getPlayerBySocket(socket.id);
+    if (!player) {
+      socket.emit('error', { message: 'Player not registered' });
       return;
     }
 
-    // Join socket room
-    socket.join(result.roomId!);
+    const result = hostedMatchManager.startGame(matchCode, socket.id, io);
 
-    // Determine player's color
-    const isWhite = room.playerWhite.walletAddress === walletToUse;
-
-    socket.emit('match:joined', {
-      matchCode: result.match!.matchCode,
-      roomId: result.roomId,
-      yourColor: isWhite ? 'w' : 'b',
-      opponent: {
-        walletAddress: isWhite ? room.playerBlack.walletAddress : room.playerWhite.walletAddress,
-      },
-      stakeTier: room.stakeTier,
-      matchPubkey: result.match!.matchPubkey,
-      whiteTimeMs: room.whiteTimeMs,
-      blackTimeMs: room.blackTimeMs,
-    });
-
-    // Notify the room to start the game (host needs to join socket room)
-    const hostSocketId = result.match!.hostSocketId;
-    const hostSocket = io.sockets.sockets.get(hostSocketId);
-    if (hostSocket) {
-      hostSocket.join(result.roomId!);
+    if (!result.success) {
+      socket.emit('match:startError', { error: result.error });
     }
-
-    // Emit game start to both players
-    io.to(result.roomId!).emit('game:start', {
-      whiteTimeMs: room.whiteTimeMs,
-      blackTimeMs: room.blackTimeMs,
-    });
   });
 
   // Cancel hosted match

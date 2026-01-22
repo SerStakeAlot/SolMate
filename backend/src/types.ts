@@ -75,7 +75,8 @@ export interface HostedMatch {
   stakeTier: number;
   createdAt: number;
   joinDeadline: number;
-  status: 'waiting' | 'active' | 'finished' | 'cancelled';
+  status: 'waiting' | 'lobby' | 'active' | 'finished' | 'cancelled';
+  hostColor: 'w' | 'b'; // Host's chosen color (default white)
   guestWallet?: string;
   guestSocketId?: string;
   roomId?: string; // Game room ID once matched

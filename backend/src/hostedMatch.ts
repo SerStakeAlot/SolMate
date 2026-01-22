@@ -54,6 +54,7 @@ class HostedMatchManager {
       createdAt: Date.now(),
       joinDeadline: Date.now() + joinDeadlineMinutes * 60 * 1000,
       status: 'waiting',
+      hostColor: 'w', // Default: host plays white
     };
 
     this.matches.set(matchCode, match);
@@ -99,20 +100,74 @@ class HostedMatchManager {
       return { success: false, error: 'Cannot join your own match' };
     }
 
-    // Update match
+    // Update match to lobby state (waiting for host to start)
     match.guestWallet = guestWallet;
     match.guestSocketId = guestSocketId;
-    match.status = 'active';
+    match.status = 'lobby';
+
+    console.log(`Match ${matchCode} joined by ${guestWallet.slice(0, 8)}... (in lobby, waiting for host to start)`);
+
+    // Notify host that someone joined
+    io.to(match.hostSocketId).emit('match:playerJoined', {
+      matchCode,
+      guestWallet,
+      hostColor: match.hostColor,
+    });
+
+    // Broadcast match removal from lobby
+    io.emit('lobby:matchRemoved', { matchCode });
+
+    return { success: true, match };
+  }
+
+  // Set host's color preference
+  setHostColor(matchCode: string, color: 'w' | 'b', io: SocketServer): boolean {
+    const match = this.matches.get(matchCode.toUpperCase());
+    if (!match || match.status !== 'lobby') return false;
+    
+    match.hostColor = color;
+    
+    // Notify guest of color change
+    if (match.guestSocketId) {
+      io.to(match.guestSocketId).emit('match:colorsUpdated', {
+        matchCode,
+        hostColor: color,
+      });
+    }
+    
+    return true;
+  }
+
+  // Start the game (host only)
+  startGame(matchCode: string, hostSocketId: string, io: SocketServer): { success: boolean; roomId?: string; error?: string } {
+    const match = this.matches.get(matchCode.toUpperCase());
+    
+    if (!match) {
+      return { success: false, error: 'Match not found' };
+    }
+    
+    if (match.hostSocketId !== hostSocketId) {
+      return { success: false, error: 'Only host can start the game' };
+    }
+    
+    if (match.status !== 'lobby') {
+      return { success: false, error: 'Match is not in lobby state' };
+    }
+    
+    if (!match.guestWallet || !match.guestSocketId) {
+      return { success: false, error: 'No opponent in lobby' };
+    }
 
     // Create game room
     const roomId = uuidv4();
     match.roomId = roomId;
+    match.status = 'active';
 
-    // Host is always white, joiner is always black (consistent with escrow)
-    const whiteWallet = match.hostWallet;
-    const blackWallet = guestWallet;
-    const whiteSocketId = match.hostSocketId;
-    const blackSocketId = guestSocketId;
+    // Assign colors based on host's choice
+    const whiteWallet = match.hostColor === 'w' ? match.hostWallet : match.guestWallet;
+    const blackWallet = match.hostColor === 'w' ? match.guestWallet : match.hostWallet;
+    const whiteSocketId = match.hostColor === 'w' ? match.hostSocketId : match.guestSocketId;
+    const blackSocketId = match.hostColor === 'w' ? match.guestSocketId : match.hostSocketId;
 
     const room = gameRoomManager.createRoomFromHosted(
       roomId,
@@ -124,20 +179,38 @@ class HostedMatchManager {
       io
     );
 
-    console.log(`Match ${matchCode} joined by ${guestWallet.slice(0, 8)}... Room: ${roomId}`);
+    console.log(`Match ${matchCode} started! Room: ${roomId}, Host color: ${match.hostColor}`);
 
-    // Notify host that someone joined (host is always white)
-    io.to(match.hostSocketId).emit('match:playerJoined', {
+    // Join both sockets to the room
+    const hostSocket = io.sockets.sockets.get(match.hostSocketId);
+    const guestSocket = io.sockets.sockets.get(match.guestSocketId);
+    if (hostSocket) hostSocket.join(roomId);
+    if (guestSocket) guestSocket.join(roomId);
+
+    // Notify both players with their colors
+    io.to(match.hostSocketId).emit('match:started', {
       matchCode,
       roomId,
-      guestWallet,
-      yourColor: 'w',
+      yourColor: match.hostColor,
+      opponent: { walletAddress: match.guestWallet },
+      stakeTier: match.stakeTier,
+      matchPubkey: match.matchPubkey,
+      whiteTimeMs: room.whiteTimeMs,
+      blackTimeMs: room.blackTimeMs,
     });
 
-    // Broadcast match removal from lobby
-    io.emit('lobby:matchRemoved', { matchCode });
+    io.to(match.guestSocketId).emit('match:started', {
+      matchCode,
+      roomId,
+      yourColor: match.hostColor === 'w' ? 'b' : 'w',
+      opponent: { walletAddress: match.hostWallet },
+      stakeTier: match.stakeTier,
+      matchPubkey: match.matchPubkey,
+      whiteTimeMs: room.whiteTimeMs,
+      blackTimeMs: room.blackTimeMs,
+    });
 
-    return { success: true, match, roomId };
+    return { success: true, roomId };
   }
 
   // Search matches by code
