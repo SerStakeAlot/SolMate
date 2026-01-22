@@ -1,68 +1,126 @@
 import React from 'react';
 import {
   AbsoluteFill,
+  Img,
   interpolate,
   useCurrentFrame,
   useVideoConfig,
   spring,
   Sequence,
+  staticFile,
+  Easing,
 } from 'remotion';
 
-// Color palette
+// ============================================
+// COLOR PALETTE - Solana inspired
+// ============================================
 const COLORS = {
-  background: '#0a0a0f',
+  background: '#08080c',
   purple: '#9945FF',
+  gold: '#FFD700',
   green: '#14F195',
   white: '#ffffff',
   gray: '#888888',
+  darkPurple: '#1a0a2e',
 };
 
-// Chess piece SVG
-const ChessPiece: React.FC<{ type: 'king' | 'queen' | 'knight'; color: string; size?: number }> = ({ 
-  type, 
-  color, 
-  size = 100 
+// ============================================
+// PARTICLES EFFECT
+// ============================================
+const Particles: React.FC<{ count?: number; color?: string }> = ({ 
+  count = 50, 
+  color = COLORS.purple 
 }) => {
-  const pieces = {
-    king: '♔',
-    queen: '♕',
-    knight: '♘',
-  };
-  return (
-    <span style={{ fontSize: size, color, filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.5))' }}>
-      {pieces[type]}
-    </span>
-  );
-};
-
-// Animated gradient background
-const GradientBackground: React.FC = () => {
   const frame = useCurrentFrame();
-  const rotation = interpolate(frame, [0, 900], [0, 360]);
+  const { width, height } = useVideoConfig();
+  
+  const particles = React.useMemo(() => {
+    return Array.from({ length: count }).map((_, i) => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      size: Math.random() * 4 + 1,
+      speed: Math.random() * 0.5 + 0.2,
+      delay: Math.random() * 100,
+    }));
+  }, [count, width, height]);
   
   return (
-    <AbsoluteFill style={{ backgroundColor: COLORS.background }}>
-      <div
-        style={{
-          position: 'absolute',
-          width: '200%',
-          height: '200%',
-          top: '-50%',
-          left: '-50%',
-          background: `conic-gradient(from ${rotation}deg at 50% 50%, 
-            ${COLORS.purple}22 0deg, 
-            ${COLORS.green}22 120deg, 
-            ${COLORS.purple}22 240deg, 
-            ${COLORS.green}22 360deg)`,
-          filter: 'blur(100px)',
-        }}
-      />
-    </AbsoluteFill>
+    <>
+      {particles.map((p, i) => {
+        const y = (p.y - (frame * p.speed * 2) % (height + 100) + height) % height;
+        const opacity = interpolate(
+          Math.sin((frame + p.delay) * 0.05),
+          [-1, 1],
+          [0.1, 0.6]
+        );
+        return (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              left: p.x,
+              top: y,
+              width: p.size,
+              height: p.size,
+              borderRadius: '50%',
+              backgroundColor: color,
+              opacity,
+              filter: 'blur(1px)',
+              boxShadow: `0 0 ${p.size * 2}px ${color}`,
+            }}
+          />
+        );
+      })}
+    </>
   );
 };
 
-// Logo animation
-const AnimatedLogo: React.FC<{ delay?: number }> = ({ delay = 0 }) => {
+// ============================================
+// LIGHT STREAKS
+// ============================================
+const LightStreaks: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { width, height } = useVideoConfig();
+  
+  return (
+    <>
+      {[0, 1, 2].map((i) => {
+        const progress = ((frame * 0.5 + i * 100) % 300) / 300;
+        const x = interpolate(progress, [0, 1], [-200, width + 200]);
+        const opacity = interpolate(progress, [0, 0.3, 0.7, 1], [0, 0.3, 0.3, 0]);
+        
+        return (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              left: x,
+              top: height * 0.3 + i * 100,
+              width: 300,
+              height: 2,
+              background: `linear-gradient(90deg, transparent, ${COLORS.purple}88, ${COLORS.gold}88, transparent)`,
+              opacity,
+              transform: 'rotate(-15deg)',
+              filter: 'blur(2px)',
+            }}
+          />
+        );
+      })}
+    </>
+  );
+};
+
+// ============================================
+// GLOWING CHESS PIECE
+// ============================================
+const GlowingChessPiece: React.FC<{
+  piece: string;
+  x: number;
+  y: number;
+  color: 'white' | 'gold';
+  delay?: number;
+  size?: number;
+}> = ({ piece, x, y, color, delay = 0, size = 80 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   
@@ -72,69 +130,125 @@ const AnimatedLogo: React.FC<{ delay?: number }> = ({ delay = 0 }) => {
     config: { damping: 12, stiffness: 100 },
   });
   
-  const opacity = interpolate(frame - delay, [0, 15], [0, 1], {
-    extrapolateRight: 'clamp',
-  });
+  const glow = interpolate(
+    Math.sin((frame - delay) * 0.1),
+    [-1, 1],
+    [0.5, 1]
+  );
+  
+  const pieceColor = color === 'white' ? COLORS.white : COLORS.gold;
+  const glowColor = color === 'white' ? COLORS.purple : COLORS.gold;
   
   return (
     <div
       style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
+        position: 'absolute',
+        left: x,
+        top: y,
+        fontSize: size,
+        color: pieceColor,
         transform: `scale(${scale})`,
-        opacity,
+        filter: `drop-shadow(0 0 ${20 * glow}px ${glowColor}) drop-shadow(0 0 ${40 * glow}px ${glowColor}44)`,
+        textShadow: `0 0 30px ${glowColor}`,
       }}
     >
-      <div style={{ fontSize: 120, marginBottom: 20 }}>♟️</div>
-      <h1
-        style={{
-          fontSize: 100,
-          fontWeight: 800,
-          background: `linear-gradient(135deg, ${COLORS.purple}, ${COLORS.green})`,
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          margin: 0,
-          letterSpacing: -2,
-        }}
-      >
-        SolMate
-      </h1>
+      {piece}
     </div>
   );
 };
 
-// Tagline animation
-const AnimatedTagline: React.FC<{ text: string; delay?: number }> = ({ text, delay = 0 }) => {
+// ============================================
+// ANIMATED CHESS BOARD
+// ============================================
+const ChessBoard: React.FC<{ scale?: number; rotation?: number }> = ({ 
+  scale = 1, 
+  rotation = 0 
+}) => {
+  const frame = useCurrentFrame();
+  const tilt = interpolate(frame, [0, 300], [45, 50]);
+  
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(8, 60px)',
+        transform: `perspective(1000px) rotateX(${tilt}deg) rotateZ(${rotation}deg) scale(${scale})`,
+        transformStyle: 'preserve-3d',
+      }}
+    >
+      {Array.from({ length: 64 }).map((_, i) => {
+        const row = Math.floor(i / 8);
+        const col = i % 8;
+        const isLight = (row + col) % 2 === 0;
+        const delay = (row + col) * 2;
+        const opacity = interpolate(frame - delay, [0, 20], [0, 1], {
+          extrapolateRight: 'clamp',
+        });
+        
+        return (
+          <div
+            key={i}
+            style={{
+              width: 60,
+              height: 60,
+              backgroundColor: isLight ? '#2a2a3a' : '#1a1a2a',
+              opacity,
+              border: `1px solid ${COLORS.purple}22`,
+              boxShadow: isLight ? `inset 0 0 20px ${COLORS.purple}11` : 'none',
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
+// ============================================
+// ANIMATED TEXT
+// ============================================
+const AnimatedText: React.FC<{
+  text: string;
+  delay?: number;
+  fontSize?: number;
+  color?: string;
+  gradient?: boolean;
+}> = ({ text, delay = 0, fontSize = 60, color = COLORS.white, gradient = false }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   
   const words = text.split(' ');
   
   return (
-    <div style={{ display: 'flex', gap: 20, justifyContent: 'center' }}>
+    <div style={{ display: 'flex', gap: 20, justifyContent: 'center', flexWrap: 'wrap' }}>
       {words.map((word, i) => {
-        const wordDelay = delay + i * 5;
-        const y = spring({
+        const wordDelay = delay + i * 8;
+        const progress = spring({
           frame: frame - wordDelay,
           fps,
-          config: { damping: 15, stiffness: 150 },
+          config: { damping: 15, stiffness: 100 },
         });
-        const opacity = interpolate(frame - wordDelay, [0, 10], [0, 1], {
+        const opacity = interpolate(frame - wordDelay, [0, 15], [0, 1], {
           extrapolateRight: 'clamp',
         });
         
+        const style: React.CSSProperties = {
+          fontSize,
+          fontWeight: 700,
+          transform: `translateY(${(1 - progress) * 40}px)`,
+          opacity,
+          letterSpacing: -1,
+        };
+        
+        if (gradient) {
+          style.background = `linear-gradient(135deg, ${COLORS.purple}, ${COLORS.gold})`;
+          style.WebkitBackgroundClip = 'text';
+          style.WebkitTextFillColor = 'transparent';
+        } else {
+          style.color = color;
+        }
+        
         return (
-          <span
-            key={i}
-            style={{
-              fontSize: 60,
-              fontWeight: 700,
-              color: i === 1 ? COLORS.green : COLORS.white,
-              transform: `translateY(${(1 - y) * 50}px)`,
-              opacity,
-            }}
-          >
+          <span key={i} style={style}>
             {word}
           </span>
         );
@@ -143,25 +257,121 @@ const AnimatedTagline: React.FC<{ text: string; delay?: number }> = ({ text, del
   );
 };
 
-// Feature card
-const FeatureCard: React.FC<{ 
-  icon: string; 
-  title: string; 
-  description: string; 
-  delay?: number;
-  x?: number;
-}> = ({ icon, title, description, delay = 0, x = 0 }) => {
+// ============================================
+// WALLET CONNECT ANIMATION
+// ============================================
+const WalletConnect: React.FC<{ delay?: number }> = ({ delay = 0 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   
-  const slideIn = spring({
+  const scale = spring({
     frame: frame - delay,
     fps,
-    config: { damping: 15, stiffness: 80 },
+    config: { damping: 12, stiffness: 80 },
   });
   
-  const opacity = interpolate(frame - delay, [0, 20], [0, 1], {
+  const buttonProgress = spring({
+    frame: frame - delay - 30,
+    fps,
+    config: { damping: 15, stiffness: 100 },
+  });
+  
+  const connectingOpacity = interpolate(frame - delay - 60, [0, 10, 50, 60], [0, 1, 1, 0], {
     extrapolateRight: 'clamp',
+  });
+  
+  const connectedOpacity = interpolate(frame - delay - 90, [0, 15], [0, 1], {
+    extrapolateRight: 'clamp',
+  });
+  
+  return (
+    <div
+      style={{
+        transform: `scale(${scale})`,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 20,
+      }}
+    >
+      {/* Phantom-style wallet button */}
+      <div
+        style={{
+          padding: '20px 40px',
+          background: 'linear-gradient(135deg, #ab9ff2, #7c3aed)',
+          borderRadius: 16,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 15,
+          transform: `scale(${buttonProgress})`,
+          boxShadow: '0 10px 40px rgba(124, 58, 237, 0.4)',
+        }}
+      >
+        <span style={{ fontSize: 30 }}>👻</span>
+        <span style={{ color: COLORS.white, fontSize: 24, fontWeight: 600 }}>
+          Connect Phantom
+        </span>
+      </div>
+      
+      {/* Connecting state */}
+      <div style={{ opacity: connectingOpacity, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div
+          style={{
+            width: 20,
+            height: 20,
+            border: `3px solid ${COLORS.purple}`,
+            borderTopColor: 'transparent',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+          }}
+        />
+        <span style={{ color: COLORS.gray, fontSize: 18 }}>Connecting...</span>
+      </div>
+      
+      {/* Connected state */}
+      <div
+        style={{
+          opacity: connectedOpacity,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '12px 24px',
+          backgroundColor: 'rgba(20, 241, 149, 0.1)',
+          borderRadius: 12,
+          border: `1px solid ${COLORS.green}44`,
+        }}
+      >
+        <span style={{ color: COLORS.green, fontSize: 20 }}>✓</span>
+        <span style={{ color: COLORS.green, fontSize: 18, fontWeight: 500 }}>
+          Connected: 7BKq...f87B
+        </span>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// ESCROW LOCK ANIMATION
+// ============================================
+const EscrowAnimation: React.FC<{ delay?: number }> = ({ delay = 0 }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  
+  const progress = spring({
+    frame: frame - delay,
+    fps,
+    config: { damping: 12, stiffness: 60 },
+  });
+  
+  const lockProgress = spring({
+    frame: frame - delay - 60,
+    fps,
+    config: { damping: 15, stiffness: 100 },
+  });
+  
+  const solMovement = interpolate(frame - delay, [0, 40], [0, 1], {
+    extrapolateRight: 'clamp',
+    easing: Easing.out(Easing.cubic),
   });
   
   return (
@@ -170,168 +380,345 @@ const FeatureCard: React.FC<{
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: 40,
-        backgroundColor: 'rgba(255,255,255,0.05)',
-        borderRadius: 24,
-        border: `2px solid ${COLORS.purple}44`,
-        width: 300,
-        transform: `translateX(${(1 - slideIn) * (x > 0 ? 200 : -200)}px)`,
-        opacity,
+        gap: 30,
+        opacity: progress,
       }}
     >
-      <span style={{ fontSize: 60, marginBottom: 20 }}>{icon}</span>
-      <h3 style={{ fontSize: 28, color: COLORS.white, margin: 0, marginBottom: 10 }}>{title}</h3>
-      <p style={{ fontSize: 18, color: COLORS.gray, margin: 0, textAlign: 'center' }}>{description}</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 60 }}>
+        {/* Player 1 */}
+        <div style={{ textAlign: 'center' }}>
+          <div
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              background: `linear-gradient(135deg, ${COLORS.purple}, ${COLORS.darkPurple})`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 40,
+              marginBottom: 10,
+            }}
+          >
+            ♔
+          </div>
+          <span style={{ color: COLORS.white, fontSize: 16 }}>Player 1</span>
+          <div
+            style={{
+              marginTop: 10,
+              padding: '8px 16px',
+              backgroundColor: 'rgba(255,215,0,0.1)',
+              borderRadius: 8,
+              transform: `translateX(${solMovement * 100}px)`,
+              opacity: 1 - solMovement,
+            }}
+          >
+            <span style={{ color: COLORS.gold, fontWeight: 600 }}>0.5 SOL</span>
+          </div>
+        </div>
+        
+        {/* Escrow Lock */}
+        <div
+          style={{
+            width: 120,
+            height: 120,
+            borderRadius: 20,
+            background: `linear-gradient(135deg, ${COLORS.purple}33, ${COLORS.gold}33)`,
+            border: `2px solid ${COLORS.purple}66`,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transform: `scale(${lockProgress})`,
+            boxShadow: `0 0 40px ${COLORS.purple}44`,
+          }}
+        >
+          <span style={{ fontSize: 40 }}>🔒</span>
+          <span style={{ color: COLORS.white, fontSize: 14, marginTop: 5 }}>Escrow</span>
+          <span style={{ color: COLORS.gold, fontSize: 18, fontWeight: 700 }}>1.0 SOL</span>
+        </div>
+        
+        {/* Player 2 */}
+        <div style={{ textAlign: 'center' }}>
+          <div
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              background: `linear-gradient(135deg, ${COLORS.gold}, ${COLORS.purple})`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 40,
+              marginBottom: 10,
+            }}
+          >
+            ♚
+          </div>
+          <span style={{ color: COLORS.white, fontSize: 16 }}>Player 2</span>
+          <div
+            style={{
+              marginTop: 10,
+              padding: '8px 16px',
+              backgroundColor: 'rgba(255,215,0,0.1)',
+              borderRadius: 8,
+              transform: `translateX(${-solMovement * 100}px)`,
+              opacity: 1 - solMovement,
+            }}
+          >
+            <span style={{ color: COLORS.gold, fontWeight: 600 }}>0.5 SOL</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
-// Solana logo
-const SolanaLogo: React.FC<{ size?: number }> = ({ size = 40 }) => (
-  <svg width={size} height={size} viewBox="0 0 128 128" fill="none">
-    <defs>
-      <linearGradient id="solGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#9945FF" />
-        <stop offset="50%" stopColor="#14F195" />
-        <stop offset="100%" stopColor="#00C2FF" />
-      </linearGradient>
-    </defs>
-    <path
-      d="M93.5 42.5H34.5C33.4 42.5 32.3 43 31.5 43.8L21 54.3C19.8 55.5 20.6 57.5 22.3 57.5H81.3C82.4 57.5 83.5 57 84.3 56.2L94.8 45.7C96 44.5 95.2 42.5 93.5 42.5Z"
-      fill="url(#solGrad)"
-    />
-    <path
-      d="M93.5 70.5H34.5C33.4 70.5 32.3 71 31.5 71.8L21 82.3C19.8 83.5 20.6 85.5 22.3 85.5H81.3C82.4 85.5 83.5 85 84.3 84.2L94.8 73.7C96 72.5 95.2 70.5 93.5 70.5Z"
-      fill="url(#solGrad)"
-    />
-    <path
-      d="M22.3 28.5H81.3C82.4 28.5 83.5 29 84.3 29.8L94.8 40.3C96 41.5 95.2 43.5 93.5 43.5H34.5C33.4 43.5 32.3 43 31.5 42.2L21 31.7C19.8 30.5 20.6 28.5 22.3 28.5Z"
-      fill="url(#solGrad)"
-    />
-  </svg>
-);
-
-// Main promo composition
-export const SolMatePromo: React.FC = () => {
+// ============================================
+// CHECKMATE ANIMATION
+// ============================================
+const CheckmateAnimation: React.FC<{ delay?: number }> = ({ delay = 0 }) => {
   const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  
+  const scale = spring({
+    frame: frame - delay,
+    fps,
+    config: { damping: 8, stiffness: 80 },
+  });
+  
+  const glowIntensity = interpolate(
+    Math.sin((frame - delay) * 0.15),
+    [-1, 1],
+    [0.5, 1]
+  );
+  
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        transform: `scale(${scale})`,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 120,
+          filter: `drop-shadow(0 0 ${30 * glowIntensity}px ${COLORS.gold}) drop-shadow(0 0 ${60 * glowIntensity}px ${COLORS.gold}44)`,
+        }}
+      >
+        ♔
+      </div>
+      <h2
+        style={{
+          fontSize: 72,
+          fontWeight: 800,
+          background: `linear-gradient(135deg, ${COLORS.gold}, ${COLORS.purple})`,
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          margin: 0,
+          marginTop: 20,
+          letterSpacing: 4,
+        }}
+      >
+        CHECKMATE
+      </h2>
+    </div>
+  );
+};
+
+// ============================================
+// LOGO REVEAL
+// ============================================
+const LogoReveal: React.FC<{ delay?: number }> = ({ delay = 0 }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  
+  const scale = spring({
+    frame: frame - delay,
+    fps,
+    config: { damping: 10, stiffness: 60 },
+  });
+  
+  const textOpacity = interpolate(frame - delay - 30, [0, 20], [0, 1], {
+    extrapolateRight: 'clamp',
+  });
+  
+  const taglineOpacity = interpolate(frame - delay - 60, [0, 20], [0, 1], {
+    extrapolateRight: 'clamp',
+  });
+  
+  const glowPulse = interpolate(
+    Math.sin((frame - delay) * 0.08),
+    [-1, 1],
+    [0.6, 1]
+  );
+  
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        transform: `scale(${scale})`,
+      }}
+    >
+      {/* Logo image */}
+      <div
+        style={{
+          filter: `drop-shadow(0 0 ${40 * glowPulse}px ${COLORS.purple}88) drop-shadow(0 0 ${80 * glowPulse}px ${COLORS.purple}44)`,
+        }}
+      >
+        <Img
+          src={staticFile('images/solmate-logo.png')}
+          style={{
+            width: 200,
+            height: 200,
+            objectFit: 'contain',
+          }}
+        />
+      </div>
+      
+      {/* Logo text */}
+      <h1
+        style={{
+          fontSize: 100,
+          fontWeight: 800,
+          background: `linear-gradient(135deg, ${COLORS.purple}, ${COLORS.gold})`,
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          margin: 0,
+          marginTop: 20,
+          letterSpacing: -2,
+          opacity: textOpacity,
+        }}
+      >
+        SolMate
+      </h1>
+      
+      {/* Tagline */}
+      <p
+        style={{
+          fontSize: 32,
+          color: COLORS.gray,
+          margin: 0,
+          marginTop: 20,
+          opacity: taglineOpacity,
+          letterSpacing: 2,
+        }}
+      >
+        Where Skill Meets Solana
+      </p>
+    </div>
+  );
+};
+
+// ============================================
+// MAIN PROMO COMPOSITION - 45 seconds (1350 frames @ 30fps)
+// ============================================
+export const SolMatePromo: React.FC = () => {
   const { width, height } = useVideoConfig();
   
   return (
-    <AbsoluteFill style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <GradientBackground />
+    <AbsoluteFill
+      style={{
+        backgroundColor: COLORS.background,
+        fontFamily: 'Inter, system-ui, sans-serif',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Background effects */}
+      <Particles count={60} color={COLORS.purple} />
+      <LightStreaks />
       
-      {/* Scene 1: Logo intro (0-5s) */}
-      <Sequence from={0} durationInFrames={150}>
+      {/* Ambient background glow */}
+      <div
+        style={{
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          background: `radial-gradient(ellipse at 30% 50%, ${COLORS.purple}15 0%, transparent 50%),
+                       radial-gradient(ellipse at 70% 50%, ${COLORS.gold}10 0%, transparent 50%)`,
+        }}
+      />
+      
+      {/* ==========================================
+          SCENE 1: Chess board zoom (0-6s / 0-180 frames)
+          ========================================== */}
+      <Sequence from={0} durationInFrames={180}>
         <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
-          <AnimatedLogo />
+          <ChessBoard scale={1.5} />
+          <GlowingChessPiece piece="♔" x={width/2 - 200} y={height/2 - 100} color="white" delay={30} size={100} />
+          <GlowingChessPiece piece="♛" x={width/2 + 100} y={height/2 - 50} color="gold" delay={45} size={100} />
+          <GlowingChessPiece piece="♘" x={width/2 - 50} y={height/2 + 50} color="white" delay={60} size={80} />
         </AbsoluteFill>
       </Sequence>
       
-      {/* Scene 2: Tagline (5-10s) */}
-      <Sequence from={150} durationInFrames={150}>
-        <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: 40 }}>
-          <AnimatedTagline text="Stake. Compete. Conquer." />
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            gap: 15, 
-            marginTop: 20,
-            opacity: interpolate(frame - 180, [0, 20], [0, 1], { extrapolateRight: 'clamp' })
-          }}>
-            <span style={{ color: COLORS.gray, fontSize: 24 }}>Powered by</span>
-            <SolanaLogo size={30} />
-            <span style={{ color: COLORS.white, fontSize: 24, fontWeight: 600 }}>Solana</span>
-          </div>
-        </AbsoluteFill>
-      </Sequence>
-      
-      {/* Scene 3: Features (10-20s) */}
-      <Sequence from={300} durationInFrames={300}>
+      {/* ==========================================
+          SCENE 2: Taglines (6-14s / 180-420 frames)
+          ========================================== */}
+      <Sequence from={180} durationInFrames={240}>
         <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: 60 }}>
-          <h2 style={{ 
-            fontSize: 48, 
-            color: COLORS.white, 
-            margin: 0,
-            opacity: interpolate(frame - 300, [0, 15], [0, 1], { extrapolateRight: 'clamp' })
-          }}>
-            Why Players Love SolMate
-          </h2>
-          <div style={{ display: 'flex', gap: 40 }}>
-            <FeatureCard 
-              icon="⚡" 
-              title="Instant Payouts" 
-              description="Win and receive SOL directly to your wallet"
-              delay={30}
-              x={-1}
-            />
-            <FeatureCard 
-              icon="🔒" 
-              title="Secure Escrow" 
-              description="Stakes locked in smart contracts"
-              delay={45}
-              x={0}
-            />
-            <FeatureCard 
-              icon="🎯" 
-              title="Fair Play" 
-              description="Decentralized and transparent"
-              delay={60}
-              x={1}
-            />
-          </div>
+          <AnimatedText text="Skill. Strategy. Ownership." fontSize={72} gradient delay={0} />
+          <AnimatedText text="Play Chess. Win On-Chain." fontSize={56} color={COLORS.white} delay={60} />
+          <AnimatedText text="No middlemen. Instant payouts." fontSize={40} color={COLORS.gray} delay={120} />
         </AbsoluteFill>
       </Sequence>
       
-      {/* Scene 4: CTA (20-30s) */}
-      <Sequence from={600} durationInFrames={300}>
+      {/* ==========================================
+          SCENE 3: Wallet connect (14-22s / 420-660 frames)
+          ========================================== */}
+      <Sequence from={420} durationInFrames={240}>
+        <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
+          <WalletConnect delay={0} />
+        </AbsoluteFill>
+      </Sequence>
+      
+      {/* ==========================================
+          SCENE 4: Match & Escrow (22-32s / 660-960 frames)
+          ========================================== */}
+      <Sequence from={660} durationInFrames={300}>
         <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: 40 }}>
-          <div style={{
-            opacity: interpolate(frame - 600, [0, 20], [0, 1], { extrapolateRight: 'clamp' }),
-            transform: `scale(${spring({ frame: frame - 600, fps: 30, config: { damping: 12 } })})`,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
-              <ChessPiece type="knight" color={COLORS.purple} size={150} />
-              <div style={{ textAlign: 'left' }}>
-                <h2 style={{ fontSize: 72, color: COLORS.white, margin: 0, marginBottom: 10 }}>
-                  Ready to Play?
-                </h2>
-                <p style={{ fontSize: 32, color: COLORS.gray, margin: 0 }}>
-                  Challenge players worldwide
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div style={{
-            marginTop: 40,
-            padding: '24px 60px',
-            background: `linear-gradient(135deg, ${COLORS.purple}, ${COLORS.green})`,
-            borderRadius: 20,
-            opacity: interpolate(frame - 660, [0, 20], [0, 1], { extrapolateRight: 'clamp' }),
-            transform: `scale(${spring({ frame: frame - 660, fps: 30, config: { damping: 15 } })})`,
-          }}>
-            <span style={{ fontSize: 36, fontWeight: 700, color: COLORS.white }}>
-              playsolmate.fun
-            </span>
-          </div>
-          
-          <div style={{
-            display: 'flex',
-            gap: 40,
-            marginTop: 30,
-            opacity: interpolate(frame - 720, [0, 20], [0, 1], { extrapolateRight: 'clamp' }),
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 24 }}>🎮</span>
-              <span style={{ color: COLORS.white, fontSize: 20 }}>Free Play Available</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 24 }}>💰</span>
-              <span style={{ color: COLORS.white, fontSize: 20 }}>Starting at 0.05 SOL</span>
-            </div>
-          </div>
+          <AnimatedText text="Funds Locked in Escrow" fontSize={48} color={COLORS.white} delay={0} />
+          <EscrowAnimation delay={30} />
+        </AbsoluteFill>
+      </Sequence>
+      
+      {/* ==========================================
+          SCENE 5: Checkmate (32-38s / 960-1140 frames)
+          ========================================== */}
+      <Sequence from={960} durationInFrames={180}>
+        <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: 40 }}>
+          <CheckmateAnimation delay={0} />
+          <AnimatedText text="Winner takes the match" fontSize={36} color={COLORS.gold} delay={60} />
+        </AbsoluteFill>
+      </Sequence>
+      
+      {/* ==========================================
+          SCENE 6: Trust text (38-42s / 1140-1260 frames)
+          ========================================== */}
+      <Sequence from={1140} durationInFrames={120}>
+        <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
+          <AnimatedText text="Trustless. Transparent. Instant." fontSize={64} gradient delay={0} />
+        </AbsoluteFill>
+      </Sequence>
+      
+      {/* ==========================================
+          SCENE 7: Logo reveal (42-45s / 1260-1350 frames)
+          ========================================== */}
+      <Sequence from={1260} durationInFrames={90}>
+        <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
+          <LogoReveal delay={0} />
         </AbsoluteFill>
       </Sequence>
     </AbsoluteFill>
   );
+};
+
+// ============================================
+// SQUARE VERSION (1:1) - Same content, adjusted
+// ============================================
+export const SolMatePromoSquare: React.FC = () => {
+  return <SolMatePromo />;
 };
