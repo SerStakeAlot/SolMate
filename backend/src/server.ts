@@ -447,44 +447,123 @@ io.on('connection', (socket) => {
     
     room.guestSocketId = socket.id;
     room.guestWallet = playerId;
+    room.hostColor = 'w'; // Default: host is white
+    room.ready = false; // Not started yet
     
-    // Create a simple game room ID
+    console.log(`Free play room ${code} - guest ${playerId.slice(0, 8)} joined lobby`);
+    
+    // Notify host that guest joined (lobby state)
+    io.to(room.hostSocketId).emit('freeplay:guestJoined', {
+      code,
+      guestWallet: playerId !== `guest_${socket.id}` ? playerId : null,
+      guest: playerId?.slice(0, 8) || 'Guest',
+      hostColor: room.hostColor
+    });
+    
+    // Notify guest they're in the lobby
+    socket.emit('freeplay:joinedLobby', {
+      code,
+      hostWallet: room.hostWallet && !room.hostWallet.startsWith('host_') ? room.hostWallet : null,
+      host: room.hostWallet?.slice(0, 8) || 'Host',
+      yourColor: 'b'
+    });
+  });
+  
+  // Host swaps colors
+  socket.on('freeplay:swapColors', ({ code }) => {
+    const room = freePlayRooms.get(code?.toUpperCase());
+    if (!room || room.hostSocketId !== socket.id || room.ready) return;
+    
+    room.hostColor = room.hostColor === 'w' ? 'b' : 'w';
+    console.log(`Room ${code} - host swapped colors, now ${room.hostColor === 'w' ? 'white' : 'black'}`);
+    
+    // Notify both players
+    io.to(room.hostSocketId).emit('freeplay:colorsUpdated', { hostColor: room.hostColor });
+    if (room.guestSocketId) {
+      io.to(room.guestSocketId).emit('freeplay:colorsUpdated', { hostColor: room.hostColor });
+    }
+  });
+  
+  // Guest requests to be white
+  socket.on('freeplay:requestWhite', ({ code }) => {
+    const room = freePlayRooms.get(code?.toUpperCase());
+    if (!room || room.guestSocketId !== socket.id || room.ready) return;
+    
+    console.log(`Room ${code} - guest requesting white`);
+    io.to(room.hostSocketId).emit('freeplay:whiteRequest', { code });
+  });
+  
+  // Host responds to white request
+  socket.on('freeplay:respondWhiteRequest', ({ code, accepted }) => {
+    const room = freePlayRooms.get(code?.toUpperCase());
+    if (!room || room.hostSocketId !== socket.id || room.ready) return;
+    
+    if (accepted) {
+      room.hostColor = 'b'; // Host becomes black
+      console.log(`Room ${code} - host accepted white request`);
+      io.to(room.hostSocketId).emit('freeplay:colorsUpdated', { hostColor: room.hostColor });
+      if (room.guestSocketId) {
+        io.to(room.guestSocketId).emit('freeplay:colorsUpdated', { hostColor: room.hostColor });
+        io.to(room.guestSocketId).emit('freeplay:whiteRequestResponse', { accepted: true });
+      }
+    } else {
+      console.log(`Room ${code} - host declined white request`);
+      if (room.guestSocketId) {
+        io.to(room.guestSocketId).emit('freeplay:whiteRequestResponse', { accepted: false });
+      }
+    }
+  });
+  
+  // Host starts the game
+  socket.on('freeplay:startGame', ({ code }) => {
+    const room = freePlayRooms.get(code?.toUpperCase());
+    if (!room || room.hostSocketId !== socket.id || !room.guestSocketId || room.ready) return;
+    
+    room.ready = true;
     const roomId = `free_${code}`;
     
-    // Create game room for free play - use the player IDs from playerStore
+    // Determine who is white/black based on hostColor
+    const whitePlayer = room.hostColor === 'w' 
+      ? { wallet: room.hostWallet, socketId: room.hostSocketId }
+      : { wallet: room.guestWallet!, socketId: room.guestSocketId };
+    const blackPlayer = room.hostColor === 'w'
+      ? { wallet: room.guestWallet!, socketId: room.guestSocketId }
+      : { wallet: room.hostWallet, socketId: room.hostSocketId };
+    
+    // Create game room
     const gameRoom = gameRoomManager.createRoomFromHosted(
       roomId,
       code,
-      'FREE_PLAY', // No match pubkey
-      -1, // Free tier indicator
-      { wallet: room.hostWallet, socketId: room.hostSocketId },
-      { wallet: playerId, socketId: socket.id },
+      'FREE_PLAY',
+      -1,
+      whitePlayer,
+      blackPlayer,
       io
     );
     
-    console.log(`Free play room ${code} - guest ${playerId.slice(0, 8)} joined. Room: ${roomId}`);
+    console.log(`Free play room ${code} - game started! Host is ${room.hostColor === 'w' ? 'white' : 'black'}`);
     
-    // Notify host - include full wallet address for username lookup
+    // Notify host
     io.to(room.hostSocketId).emit('freeplay:started', {
       roomId,
-      yourColor: 'w',
-      opponentWallet: playerId !== `guest_${socket.id}` ? playerId : null,
-      opponent: playerId?.slice(0, 8) || 'Guest'
+      yourColor: room.hostColor,
+      opponentWallet: room.guestWallet && !room.guestWallet.startsWith('guest_') ? room.guestWallet : null,
+      opponent: room.guestWallet?.slice(0, 8) || 'Guest'
     });
     
-    // Notify guest - include full wallet address for username lookup
-    socket.emit('freeplay:started', {
+    // Notify guest
+    io.to(room.guestSocketId).emit('freeplay:started', {
       roomId,
-      yourColor: 'b',
+      yourColor: room.hostColor === 'w' ? 'b' : 'w',
       opponentWallet: room.hostWallet && !room.hostWallet.startsWith('host_') ? room.hostWallet : null,
       opponent: room.hostWallet?.slice(0, 8) || 'Host'
     });
     
     // Emit game start to both
     io.to(room.hostSocketId).emit('game:start', { whiteTimeMs: 600000, blackTimeMs: 600000 });
-    socket.emit('game:start', { whiteTimeMs: 600000, blackTimeMs: 600000 });
+    io.to(room.guestSocketId).emit('game:start', { whiteTimeMs: 600000, blackTimeMs: 600000 });
     
-    // Clean up the free play room listing (game has started)
+    // Clean up the free play room listing
     freePlayRooms.delete(code.toUpperCase());
   });
   
