@@ -10,7 +10,13 @@
     "lint": "next lint",
     "anchor:build": "cd anchor && anchor build",
     "anchor:test": "cd anchor && anchor test",
-    "anchor:deploy": "cd anchor && anchor deploy --provider.cluster devnet"
+    "anchor:deploy": "cd anchor && anchor deploy --provider.cluster devnet",
+    "video:studio": "remotion studio remotion/index.ts",
+    "video:render": "remotion render remotion/index.ts SolMatePromo out/solmate-promo.mp4",
+    "video:render:intro": "remotion render remotion/index.ts SolMateIntro out/solmate-intro.mp4",
+    "video:render:features": "remotion render remotion/index.ts SolMateFeatures out/solmate-features.mp4",
+    "video:render:square": "remotion render remotion/index.ts SolMatePromoSquare out/solmate-square.mp4",
+    "video:render:vertical": "remotion render remotion/index.ts SolMatePromoVertical out/solmate-vertical.mp4"
   },
   "keywords": [
     "solana",
@@ -38,10 +44,13 @@
   },
   "devDependencies": {
     "@netlify/plugin-nextjs": "^5.15.5",
+    "@remotion/cli": "^4.0.409",
+    "@remotion/player": "^4.0.409",
     "@types/node": "^25.0.3",
     "@types/react": "^19.2.7",
     "autoprefixer": "^10.4.23",
     "postcss": "^8.5.6",
+    "remotion": "^4.0.409",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3"
   }
