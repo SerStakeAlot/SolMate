@@ -484,16 +484,46 @@ io.on('connection', (socket) => {
     }
   });
   
-  // Guest requests to be white
+  // Guest requests to swap colors (can request either color)
+  socket.on('freeplay:requestSwap', ({ code, wantColor }) => {
+    const room = freePlayRooms.get(code?.toUpperCase());
+    if (!room || room.guestSocketId !== socket.id || room.ready) return;
+    
+    console.log(`Room ${code} - guest requesting to play as ${wantColor === 'w' ? 'white' : 'black'}`);
+    io.to(room.hostSocketId).emit('freeplay:swapRequest', { code, wantColor });
+  });
+  
+  // Guest requests to be white (legacy - still support it)
   socket.on('freeplay:requestWhite', ({ code }) => {
     const room = freePlayRooms.get(code?.toUpperCase());
     if (!room || room.guestSocketId !== socket.id || room.ready) return;
     
     console.log(`Room ${code} - guest requesting white`);
-    io.to(room.hostSocketId).emit('freeplay:whiteRequest', { code });
+    io.to(room.hostSocketId).emit('freeplay:swapRequest', { code, wantColor: 'w' });
   });
   
-  // Host responds to white request
+  // Host responds to swap request
+  socket.on('freeplay:respondSwapRequest', ({ code, accepted }) => {
+    const room = freePlayRooms.get(code?.toUpperCase());
+    if (!room || room.hostSocketId !== socket.id || room.ready) return;
+    
+    if (accepted) {
+      room.hostColor = room.hostColor === 'w' ? 'b' : 'w'; // Swap colors
+      console.log(`Room ${code} - host accepted swap request, host is now ${room.hostColor === 'w' ? 'white' : 'black'}`);
+      io.to(room.hostSocketId).emit('freeplay:colorsUpdated', { hostColor: room.hostColor });
+      if (room.guestSocketId) {
+        io.to(room.guestSocketId).emit('freeplay:colorsUpdated', { hostColor: room.hostColor });
+        io.to(room.guestSocketId).emit('freeplay:swapRequestResponse', { accepted: true });
+      }
+    } else {
+      console.log(`Room ${code} - host declined swap request`);
+      if (room.guestSocketId) {
+        io.to(room.guestSocketId).emit('freeplay:swapRequestResponse', { accepted: false });
+      }
+    }
+  });
+  
+  // Host responds to white request (legacy - map to swap response)
   socket.on('freeplay:respondWhiteRequest', ({ code, accepted }) => {
     const room = freePlayRooms.get(code?.toUpperCase());
     if (!room || room.hostSocketId !== socket.id || room.ready) return;
@@ -645,6 +675,28 @@ io.on('connection', (socket) => {
     console.log(`Client disconnected: ${socket.id}`);
     
     const player = playerStore.getPlayerBySocket(socket.id);
+    
+    // Handle free play lobby disconnect
+    const freePlayRooms = (global as any).freePlayRooms;
+    if (freePlayRooms) {
+      for (const [code, room] of freePlayRooms.entries()) {
+        if (room.hostSocketId === socket.id) {
+          // Host left - notify guest if present
+          if (room.guestSocketId) {
+            io.to(room.guestSocketId).emit('freeplay:hostLeft', { code });
+          }
+          freePlayRooms.delete(code);
+          console.log(`Free play room ${code} deleted - host disconnected`);
+        } else if (room.guestSocketId === socket.id) {
+          // Guest left - notify host
+          io.to(room.hostSocketId).emit('freeplay:guestLeft', { code });
+          room.guestSocketId = undefined;
+          room.guestWallet = undefined;
+          console.log(`Free play room ${code} - guest disconnected`);
+        }
+      }
+    }
+    
     if (player) {
       // Remove from matchmaking
       matchmaking.removeFromQueue(player.id);

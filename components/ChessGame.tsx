@@ -206,6 +206,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [lobbyOpponentWallet, setLobbyOpponentWallet] = useState<string | null>(null);
   const [whiteRequest, setWhiteRequest] = useState(false);
   const [whiteRequestPending, setWhiteRequestPending] = useState(false);
+  const [swapRequestWantColor, setSwapRequestWantColor] = useState<'w' | 'b' | null>(null);
   
   // AI difficulty: 'novice' (depth 1), 'club' (depth 2), 'master' (depth 3)
   type AIDifficulty = 'novice' | 'club' | 'master';
@@ -523,15 +524,32 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       }
     });
     
-    // White request from guest (host receives this)
-    newSocket.on('freeplay:whiteRequest', ({ code }) => {
-      console.log('Guest is requesting white');
+    // Swap request from guest (host receives this)
+    newSocket.on('freeplay:swapRequest', ({ code, wantColor }) => {
+      console.log('Guest is requesting to play as', wantColor === 'w' ? 'white' : 'black');
       setWhiteRequest(true);
+      setSwapRequestWantColor(wantColor);
     });
     
-    // Response to white request (guest receives this)
+    // Legacy: White request from guest (host receives this)
+    newSocket.on('freeplay:whiteRequest', ({ code }) => {
+      console.log('Guest is requesting white (legacy event)');
+      setWhiteRequest(true);
+      setSwapRequestWantColor('w');
+    });
+    
+    // Response to swap request (guest receives this)
+    newSocket.on('freeplay:swapRequestResponse', ({ accepted }) => {
+      console.log('Swap request response:', accepted);
+      setWhiteRequestPending(false);
+      if (!accepted) {
+        // Could show a toast/notification that request was declined
+      }
+    });
+    
+    // Legacy: Response to white request (guest receives this)
     newSocket.on('freeplay:whiteRequestResponse', ({ accepted }) => {
-      console.log('White request response:', accepted);
+      console.log('White request response (legacy):', accepted);
       setWhiteRequestPending(false);
       if (!accepted) {
         // Could show a toast/notification that request was declined
@@ -569,6 +587,27 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       console.error('Free play error:', error);
       alert(`Free play error: ${error}`);
       setIsJoiningFreePlay(false);
+    });
+    
+    // Host left the lobby (guest receives this)
+    newSocket.on('freeplay:hostLeft', ({ code }) => {
+      console.log('Host left the lobby');
+      alert('The host has left the game.');
+      setInLobby(false);
+      setFreePlayCode('');
+      setLobbyOpponentName('');
+      setLobbyOpponentWallet(null);
+      setPlayerColor(null);
+      setDynamicPlayerRole(undefined);
+    });
+    
+    // Guest left the lobby (host receives this)
+    newSocket.on('freeplay:guestLeft', ({ code }) => {
+      console.log('Guest left the lobby');
+      setInLobby(true); // Stay in lobby, waiting for new guest
+      setLobbyOpponentName('');
+      setLobbyOpponentWallet(null);
+      setWhiteRequest(false);
     });
     
     // Game start notification
@@ -2085,6 +2124,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           {/* Guest sees current assignment with request option */}
                           {dynamicPlayerRole === 'join' && (
                             <>
+                              <p className="text-xs text-neutral-500 mb-1">
+                                Host controls color selection. You can request to swap:
+                              </p>
                               <div className="flex gap-2">
                                 <div className={`flex-1 py-2 px-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 ${
                                   playerColor === 'w' 
@@ -2104,15 +2146,15 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                                 </div>
                               </div>
                               
-                              {playerColor === 'b' && !whiteRequestPending && (
+                              {!whiteRequestPending && (
                                 <button
                                   onClick={() => {
-                                    socket?.emit('freeplay:requestWhite', { code: freePlayCode });
+                                    socket?.emit('freeplay:requestSwap', { code: freePlayCode, wantColor: playerColor === 'w' ? 'b' : 'w' });
                                     setWhiteRequestPending(true);
                                   }}
                                   className="w-full py-2 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm transition-all"
                                 >
-                                  Request to play as White
+                                  Request to play as {playerColor === 'w' ? 'Black' : 'White'}
                                 </button>
                               )}
                               {whiteRequestPending && (
@@ -2121,17 +2163,18 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                             </>
                           )}
                           
-                          {/* White Request from Guest (Host sees this) */}
+                          {/* Swap Request from Guest (Host sees this) */}
                           {whiteRequest && (dynamicPlayerRole === 'host' || isCreatingFreePlay) && (
                             <div className="p-3 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
                               <p className="text-sm text-yellow-300 mb-2">
-                                {lobbyOpponentName} wants to play as White
+                                {lobbyOpponentName} wants to play as {swapRequestWantColor === 'w' ? 'White' : 'Black'}
                               </p>
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => {
-                                    socket?.emit('freeplay:respondWhiteRequest', { code: freePlayCode, accepted: true });
+                                    socket?.emit('freeplay:respondSwapRequest', { code: freePlayCode, accepted: true });
                                     setWhiteRequest(false);
+                                    setSwapRequestWantColor(null);
                                   }}
                                   className="flex-1 py-1.5 px-3 rounded-lg bg-green-500/30 hover:bg-green-500/40 text-green-400 text-sm font-semibold transition-all flex items-center justify-center gap-1"
                                 >
@@ -2140,8 +2183,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                                 </button>
                                 <button
                                   onClick={() => {
-                                    socket?.emit('freeplay:respondWhiteRequest', { code: freePlayCode, accepted: false });
+                                    socket?.emit('freeplay:respondSwapRequest', { code: freePlayCode, accepted: false });
                                     setWhiteRequest(false);
+                                    setSwapRequestWantColor(null);
                                   }}
                                   className="flex-1 py-1.5 px-3 rounded-lg bg-red-500/30 hover:bg-red-500/40 text-red-400 text-sm font-semibold transition-all flex items-center justify-center gap-1"
                                 >
