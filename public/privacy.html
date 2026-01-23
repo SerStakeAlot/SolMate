@@ -42,8 +42,62 @@
     <h2 style="color:white;margin-top:30px;">5. Third-Party Services</h2>
     <p>We integrate with Solana Blockchain for transaction processing and wallet providers like Phantom and Solflare. These services have their own privacy policies.</p>
     
-    <h2 style="color:white;margin-top:30px;">6. Data Security</h2>
-    <p>We implement secure WebSocket connections for real-time gameplay, no storage of private keys, and smart contract security audits.</p>
+    <h2 style="color:white;margin-top:30px;">6. Security Certificate</h2>
+    <p style="margin-bottom:15px;">SolMate implements enterprise-grade security measures to protect our platform and users:</p>
+    
+    <div style="background:#111;border:1px solid #333;border-radius:8px;padding:20px;margin:15px 0;">
+      <h3 style="color:#14F195;margin-top:0;font-size:16px;">🛡️ Infrastructure Protection</h3>
+      <ul style="margin-bottom:20px;">
+        <li><b>Cloudflare CDN & DDoS Protection</b> – All traffic proxied through Cloudflare's global network</li>
+        <li><b>Web Application Firewall (WAF)</b> – Automated protection against common attacks</li>
+        <li><b>Bot Management</b> – AI-powered bot detection and mitigation</li>
+        <li><b>SSL/TLS Encryption</b> – All connections encrypted with TLS 1.2+</li>
+      </ul>
+      
+      <h3 style="color:#14F195;font-size:16px;">🔒 Application Security</h3>
+      <ul style="margin-bottom:20px;">
+        <li><b>Rate Limiting</b> – API abuse prevention (100 req/min general, 10 req/min sensitive endpoints)</li>
+        <li><b>WebSocket Connection Limits</b> – Max 5 connections per IP address</li>
+        <li><b>Input Validation</b> – Server-side validation of all user inputs</li>
+        <li><b>Payload Size Limits</b> – Protection against oversized request attacks</li>
+      </ul>
+      
+      <h3 style="color:#14F195;font-size:16px;">🌐 HTTP Security Headers</h3>
+      <ul style="margin-bottom:20px;">
+        <li><b>Strict-Transport-Security (HSTS)</b> – Forces HTTPS for 1 year with preload</li>
+        <li><b>Content-Security-Policy (CSP)</b> – Prevents XSS and injection attacks</li>
+        <li><b>X-Frame-Options: DENY</b> – Blocks clickjacking attempts</li>
+        <li><b>X-Content-Type-Options: nosniff</b> – Prevents MIME-type sniffing</li>
+        <li><b>X-XSS-Protection</b> – Browser XSS filter enabled</li>
+        <li><b>Referrer-Policy</b> – Controls referrer information leakage</li>
+        <li><b>Permissions-Policy</b> – Disables camera, microphone, geolocation access</li>
+      </ul>
+      
+      <h3 style="color:#14F195;font-size:16px;">⛓️ Blockchain Security</h3>
+      <ul style="margin-bottom:20px;">
+        <li><b>Audited Smart Contract</b> – Escrow program security reviewed</li>
+        <li><b>PDA-Based Escrow</b> – Funds held in Program Derived Addresses, not admin wallets</li>
+        <li><b>Immutable On-Chain Logic</b> – Contract code cannot be modified post-deployment</li>
+        <li><b>Transaction Verification</b> – All payouts verified on-chain before processing</li>
+      </ul>
+      
+      <h3 style="color:#14F195;font-size:16px;">🔐 Authentication & Authorization</h3>
+      <ul style="margin-bottom:0;">
+        <li><b>Wallet Signature Verification</b> – Cryptographic proof of wallet ownership</li>
+        <li><b>No Password Storage</b> – Authentication via wallet signatures only</li>
+        <li><b>Session Management</b> – Secure WebSocket session handling</li>
+      </ul>
+    </div>
+    
+    <p style="color:#888;font-size:14px;margin-top:15px;">
+      <b>Security Verification:</b> You can verify our security headers by running:<br>
+      <code style="background:#222;padding:4px 8px;border-radius:4px;font-size:12px;">curl -I https://playsolmate.fun</code>
+    </p>
+    
+    <p style="color:#888;font-size:14px;">
+      <b>Last Security Review:</b> January 2026<br>
+      <b>Program Address:</b> <a href="https://solscan.io/account/H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV" target="_blank" style="color:#a855f7;">H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV</a>
+    </p>
     
     <h2 style="color:white;margin-top:30px;">7. Your Rights</h2>
     <p>You have the right to disconnect your wallet at any time and request information about data we hold. Note: Blockchain transactions cannot be deleted.</p>
