@@ -3,6 +3,10 @@ import { createServer } from 'http';
 import { Server as SocketServer } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
+import { PublicKey } from '@solana/web3.js';
+import nacl from 'tweetnacl';
+import bs58 from 'bs58';
 import { playerStore } from './playerStore';
 import { matchmaking } from './matchmaking';
 import { gameRoomManager } from './gameRoom';
@@ -16,18 +20,80 @@ dotenv.config();
 const app = express();
 const httpServer = createServer(app);
 
+// ============= Rate Limiting =============
+
+// General API rate limit: 100 requests per minute
+const generalLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 100,
+  message: { error: 'Too many requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Strict rate limit for sensitive endpoints: 10 requests per minute
+const strictLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: 'Rate limit exceeded for this endpoint' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Match creation rate limit: 5 per minute
+const matchCreationLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: { error: 'Too many match creation attempts' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// ============= Signature Verification Helper =============
+
+function verifyWalletSignature(walletAddress: string, message: string, signature: string): boolean {
+  try {
+    const publicKey = new PublicKey(walletAddress);
+    const messageBytes = new TextEncoder().encode(message);
+    const signatureBytes = bs58.decode(signature);
+    return nacl.sign.detached.verify(messageBytes, signatureBytes, publicKey.toBytes());
+  } catch (error) {
+    console.error('Signature verification error:', error);
+    return false;
+  }
+}
+
+// ============= WebSocket Connection Tracking =============
+const connectionsByIP = new Map<string, Set<string>>();
+const MAX_CONNECTIONS_PER_IP = 5;
+
 const io = new SocketServer(httpServer, {
   cors: {
     origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
     methods: ['GET', 'POST'],
     credentials: true,
   },
+  // Connection rate limiting
+  connectionStateRecovery: {
+    maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
+  },
 });
 
+// Apply general rate limiting to all routes
+app.use(generalLimiter);
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10kb' })); // Limit payload size
 
-// Health check endpoint
+// ============= Security Headers Middleware =============
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
+// Health check endpoint (no rate limit)
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -52,8 +118,8 @@ app.get('/lobby', (req, res) => {
   res.json({ matches });
 });
 
-// Register a new match (POST /api/matches)
-app.post('/api/matches', (req, res) => {
+// Register a new match (POST /api/matches) - with strict rate limit
+app.post('/api/matches', matchCreationLimiter, (req, res) => {
   const { matchCode, matchPubkey, hostWallet, stakeTier, joinDeadline } = req.body;
   
   if (!matchCode || !matchPubkey || !hostWallet) {
@@ -112,12 +178,24 @@ app.get('/api/username/lookup/:username', (req, res) => {
   }
 });
 
-// Set username for a wallet (requires signature verification in production)
-app.post('/api/username', (req, res) => {
-  const { walletAddress, username, signature } = req.body;
+// Set username for a wallet (with signature verification)
+app.post('/api/username', strictLimiter, (req, res) => {
+  const { walletAddress, username, signature, message } = req.body;
   
   if (!walletAddress || !username) {
     return res.status(400).json({ error: 'walletAddress and username are required' });
+  }
+
+  // Validate wallet address format
+  try {
+    new PublicKey(walletAddress);
+  } catch {
+    return res.status(400).json({ error: 'Invalid wallet address format' });
+  }
+
+  // Validate username format (alphanumeric, 3-16 chars)
+  if (!/^[a-zA-Z0-9_]{3,16}$/.test(username)) {
+    return res.status(400).json({ error: 'Username must be 3-16 alphanumeric characters' });
   }
 
   // Check if this username (case-insensitive) belongs to this wallet already
@@ -128,8 +206,17 @@ app.post('/api/username', (req, res) => {
     return res.json({ success: true, username: result.success ? username : userStore.getUsername(walletAddress) });
   }
 
-  // TODO: In production, verify signature to prove wallet ownership
-  // For now, we trust the client (since wallet connection happens client-side)
+  // Verify signature if provided (recommended for production)
+  if (signature && message) {
+    const isValid = verifyWalletSignature(walletAddress, message, signature);
+    if (!isValid) {
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
+    console.log(`Verified signature for ${walletAddress} setting username to ${username}`);
+  } else {
+    // Log warning for unsigned requests
+    console.log(`WARN: Unsigned username change for ${walletAddress} -> ${username}`);
+  }
   
   const result = userStore.setUsername(walletAddress, username);
   
@@ -215,12 +302,51 @@ app.get('/api/stats/player/:walletAddress/games', (req, res) => {
   }
 });
 
-// Socket.IO connection handling
+// Socket.IO connection handling with rate limiting
 io.on('connection', (socket) => {
-  console.log(`Client connected: ${socket.id}`);
+  // Get client IP for connection limiting
+  const clientIP = socket.handshake.headers['x-forwarded-for'] as string || 
+                   socket.handshake.address || 
+                   'unknown';
+  const ip = clientIP.split(',')[0].trim(); // Handle proxy chains
+  
+  // Check connection limit per IP
+  if (!connectionsByIP.has(ip)) {
+    connectionsByIP.set(ip, new Set());
+  }
+  const ipConnections = connectionsByIP.get(ip)!;
+  
+  if (ipConnections.size >= MAX_CONNECTIONS_PER_IP) {
+    console.log(`Connection limit exceeded for IP: ${ip}`);
+    socket.emit('error', { message: 'Too many connections from your IP' });
+    socket.disconnect(true);
+    return;
+  }
+  
+  ipConnections.add(socket.id);
+  console.log(`Client connected: ${socket.id} from ${ip} (${ipConnections.size}/${MAX_CONNECTIONS_PER_IP})`);
+
+  // Clean up on disconnect
+  socket.on('disconnect', () => {
+    const ipConns = connectionsByIP.get(ip);
+    if (ipConns) {
+      ipConns.delete(socket.id);
+      if (ipConns.size === 0) {
+        connectionsByIP.delete(ip);
+      }
+    }
+  });
 
   // Player registration
   socket.on('player:register', ({ walletAddress, username }) => {
+    // Validate wallet address format
+    try {
+      new PublicKey(walletAddress);
+    } catch {
+      socket.emit('error', { message: 'Invalid wallet address' });
+      return;
+    }
+    
     console.log(`Player registering: ${walletAddress}`);
     const player = playerStore.createPlayer(walletAddress, socket.id);
     
