@@ -2,6 +2,7 @@ import { GameRoom, ChessMove, TimeUpdate, GAME_DURATION_MS } from './types';
 import { Server as SocketServer } from 'socket.io';
 import { timeControl } from './timeControl';
 import { playerStore } from './playerStore';
+import { statsStore } from './statsStore';
 
 class GameRoomManager {
   private rooms: Map<string, GameRoom> = new Map();
@@ -191,6 +192,37 @@ class GameRoomManager {
 
     // Stop time control
     timeControl.stopRoom(roomId);
+
+    // Calculate game duration
+    const durationSeconds = Math.round((Date.now() - room.startTime) / 1000);
+
+    // Record to stats database
+    try {
+      // stakeTier can be a number or 'free' string from free play
+      const tierValue = room.stakeTier;
+      const stakeAmount = typeof tierValue === 'string' ? 0 : 
+                          tierValue === 0.05 ? 0.05 : 
+                          tierValue === 0.1 ? 0.1 : 
+                          tierValue || 0;
+      
+      const result = winner === 'w' ? 'white' : winner === 'b' ? 'black' : 'draw';
+      const winnerWallet = winner === 'w' ? room.playerWhite.walletAddress :
+                          winner === 'b' ? room.playerBlack.walletAddress : null;
+
+      statsStore.recordGame({
+        gameId: roomId,
+        whiteWallet: room.playerWhite.walletAddress,
+        blackWallet: room.playerBlack.walletAddress,
+        winnerWallet,
+        result: result as 'white' | 'black' | 'draw',
+        stakeAmount,
+        matchPubkey: room.matchPubkey,
+        durationSeconds,
+        totalMoves: room.moves.length,
+      });
+    } catch (error) {
+      console.error('Failed to record game stats:', error);
+    }
 
     // Record game results for skill-based matchmaking
     if (winner !== 'draw') {
