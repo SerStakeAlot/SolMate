@@ -8,6 +8,7 @@ import { matchmaking } from './matchmaking';
 import { gameRoomManager } from './gameRoom';
 import { hostedMatchManager } from './hostedMatch';
 import { userStore } from './userStore';
+import { statsStore } from './statsStore';
 import { ChessMove } from './types';
 
 dotenv.config();
@@ -136,6 +137,81 @@ app.post('/api/username', (req, res) => {
     res.json({ success: true, username });
   } else {
     res.status(400).json({ success: false, error: result.error });
+  }
+});
+
+// ============= Stats API Endpoints =============
+
+// Get platform-wide statistics
+app.get('/api/stats', (req, res) => {
+  try {
+    const stats = statsStore.getPlatformStats();
+    res.json(stats);
+  } catch (error) {
+    console.error('Error fetching platform stats:', error);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// Get player statistics
+app.get('/api/stats/player/:walletAddress', (req, res) => {
+  try {
+    const { walletAddress } = req.params;
+    const stats = statsStore.getPlayerStats(walletAddress);
+    if (!stats) {
+      return res.json({ 
+        walletAddress,
+        gamesPlayed: 0,
+        gamesWon: 0,
+        gamesLost: 0,
+        gamesDrawn: 0,
+        wagerGamesPlayed: 0,
+        netProfit: 0,
+        winRate: 0,
+      });
+    }
+    res.json(stats);
+  } catch (error) {
+    console.error('Error fetching player stats:', error);
+    res.status(500).json({ error: 'Failed to fetch player stats' });
+  }
+});
+
+// Get leaderboard
+app.get('/api/stats/leaderboard', (req, res) => {
+  try {
+    const minGames = parseInt(req.query.minGames as string) || 3;
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+    const leaderboard = statsStore.getLeaderboard(minGames, limit);
+    res.json({ leaderboard });
+  } catch (error) {
+    console.error('Error fetching leaderboard:', error);
+    res.status(500).json({ error: 'Failed to fetch leaderboard' });
+  }
+});
+
+// Get recent games
+app.get('/api/stats/games', (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+    const games = statsStore.getRecentGames(limit);
+    res.json({ games });
+  } catch (error) {
+    console.error('Error fetching recent games:', error);
+    res.status(500).json({ error: 'Failed to fetch games' });
+  }
+});
+
+// Get player's game history
+app.get('/api/stats/player/:walletAddress/games', (req, res) => {
+  try {
+    const { walletAddress } = req.params;
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+    const games = statsStore.getPlayerGames(walletAddress, limit);
+    res.json({ games });
+  } catch (error) {
+    console.error('Error fetching player games:', error);
+    res.status(500).json({ error: 'Failed to fetch player games' });
   }
 });
 

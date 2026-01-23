@@ -4,12 +4,39 @@ import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Shield, Zap, Trophy, ChevronRight, Sparkles, User } from "lucide-react";
+import { Shield, Zap, Trophy, ChevronRight, Sparkles, User, Users, Gamepad2, Coins } from "lucide-react";
 import { UsernameSetting } from "@/components/UsernameSetting";
+import { useState, useEffect } from "react";
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-production.up.railway.app';
+
+interface PlatformStats {
+  totalGames: number;
+  uniquePlayers: number;
+  totalSolWagered: number;
+}
 
 export default function Home() {
   const router = useRouter();
   const { connected } = useWallet();
+  const [stats, setStats] = useState<PlatformStats | null>(null);
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/stats`);
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch stats:', err);
+      }
+    }
+    fetchStats();
+    const interval = setInterval(fetchStats, 60000); // Refresh every minute
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 sm:px-6">
@@ -204,6 +231,46 @@ export default function Home() {
           </div>
         </a>
       </motion.section>
+
+      {/* Live Stats Section */}
+      {stats && (stats.totalGames > 0 || stats.uniquePlayers > 0) && (
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mb-8"
+        >
+          <div className="glass-card rounded-2xl p-6 sm:p-8">
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <div className="w-2 h-2 rounded-full bg-solana-green animate-pulse" />
+              <span className="text-sm text-neutral-400 uppercase tracking-wider font-medium">Live Platform Stats</span>
+            </div>
+            <div className="grid grid-cols-3 gap-4 sm:gap-8">
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Gamepad2 className="w-5 h-5 text-solana-purple" />
+                </div>
+                <p className="text-2xl sm:text-3xl font-bold text-white">{stats.totalGames.toLocaleString()}</p>
+                <p className="text-xs sm:text-sm text-neutral-400">Games Played</p>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Users className="w-5 h-5 text-solana-green" />
+                </div>
+                <p className="text-2xl sm:text-3xl font-bold text-white">{stats.uniquePlayers.toLocaleString()}</p>
+                <p className="text-xs sm:text-sm text-neutral-400">Players</p>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Coins className="w-5 h-5 text-yellow-500" />
+                </div>
+                <p className="text-2xl sm:text-3xl font-bold text-white">{stats.totalSolWagered.toFixed(1)} <span className="text-lg">◎</span></p>
+                <p className="text-xs sm:text-sm text-neutral-400">SOL Wagered</p>
+              </div>
+            </div>
+          </div>
+        </motion.section>
+      )}
 
       {/* CTA Section */}
       <motion.section
