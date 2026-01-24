@@ -158,6 +158,22 @@ class GameRoomManager {
       },
     });
     
+    // Broadcast to spectators for wager matches
+    if (room.spectators && room.spectators.length > 0) {
+      for (const spectatorId of room.spectators) {
+        io.to(spectatorId).emit('spectator:move', { 
+          move, 
+          fen: move.fen,
+          timeUpdate: {
+            whiteTimeMs: room.whiteTimeMs,
+            blackTimeMs: room.blackTimeMs,
+            currentTurn: room.currentTurn,
+          },
+        });
+      }
+      console.log(`Broadcasted move to ${room.spectators.length} spectators in room ${roomId}`);
+    }
+    
     // Broadcast to spectators for free play games
     if (roomId.startsWith('free_')) {
       const code = roomId.replace('free_', '');
@@ -254,6 +270,14 @@ class GameRoomManager {
       blackTimeMs: room.blackTimeMs,
     });
     
+    // Notify spectators for wager matches
+    if (room.spectators && room.spectators.length > 0) {
+      for (const spectatorId of room.spectators) {
+        io.to(spectatorId).emit('spectator:gameEnd', { winner, reason });
+      }
+      console.log(`Notified ${room.spectators.length} spectators of game end in room ${roomId}`);
+    }
+    
     // Notify spectators for free play games
     if (roomId.startsWith('free_')) {
       const code = roomId.replace('free_', '');
@@ -330,6 +354,51 @@ class GameRoomManager {
 
   getActiveRoomCount(): number {
     return Array.from(this.rooms.values()).filter(r => r.status === 'active').length;
+  }
+
+  // Add a spectator to a wager room
+  addSpectator(roomId: string, socketId: string): boolean {
+    const room = this.rooms.get(roomId);
+    if (!room) {
+      return false;
+    }
+
+    if (!room.spectators) {
+      room.spectators = [];
+    }
+
+    // Prevent duplicate spectators
+    if (!room.spectators.includes(socketId)) {
+      room.spectators.push(socketId);
+      console.log(`Spectator ${socketId} joined wager room ${roomId} (${room.spectators.length} spectators)`);
+    }
+    return true;
+  }
+
+  // Remove a spectator from a wager room
+  removeSpectator(roomId: string, socketId: string): void {
+    const room = this.rooms.get(roomId);
+    if (!room || !room.spectators) {
+      return;
+    }
+
+    room.spectators = room.spectators.filter(id => id !== socketId);
+    console.log(`Spectator ${socketId} left wager room ${roomId} (${room.spectators.length} spectators remaining)`);
+  }
+
+  // Remove spectator from all rooms (on disconnect)
+  removeSpectatorFromAllRooms(socketId: string): void {
+    for (const [roomId, room] of this.rooms.entries()) {
+      if (room.spectators && room.spectators.includes(socketId)) {
+        this.removeSpectator(roomId, socketId);
+      }
+    }
+  }
+
+  // Get spectator count for a room
+  getSpectatorCount(roomId: string): number {
+    const room = this.rooms.get(roomId);
+    return room?.spectators?.length || 0;
   }
 
   // Create room from hosted match (already has colors assigned)

@@ -31,31 +31,56 @@ export function Navigation() {
             <span className="text-lg font-bold tracking-tight text-gradient">SolMate</span>
           </Link>
           
-          <div className="flex items-center gap-3">
-            {connected && (
-              <div className="hidden sm:flex items-center gap-1 p-1 rounded-xl bg-white/5">
-                <Link
-                  href="/play"
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                    pathname === '/play'
-                      ? 'bg-gradient-to-r from-solana-purple to-solana-green text-white shadow-glow-sm'
-                      : 'text-neutral-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  Play
-                </Link>
-                <Link
-                  href="/lobby"
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                    pathname === '/lobby'
-                      ? 'bg-gradient-to-r from-solana-purple to-solana-green text-white shadow-glow-sm'
-                      : 'text-neutral-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  Lobby
-                </Link>
-              </div>
-            )}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Mobile Learn link */}
+            <Link
+              href="/learn"
+              className={`sm:hidden px-3 py-2 text-sm font-medium rounded-lg transition-all ${
+                pathname === '/learn'
+                  ? 'bg-gradient-to-r from-solana-purple to-solana-green text-white'
+                  : 'text-neutral-400 hover:text-white bg-white/5'
+              }`}
+            >
+              Learn
+            </Link>
+            
+            {/* Desktop nav links */}
+            <div className="hidden sm:flex items-center gap-1 p-1 rounded-xl bg-white/5">
+              {connected && (
+                <>
+                  <Link
+                    href="/play"
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                      pathname === '/play'
+                        ? 'bg-gradient-to-r from-solana-purple to-solana-green text-white shadow-glow-sm'
+                        : 'text-neutral-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    Play
+                  </Link>
+                  <Link
+                    href="/lobby"
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                      pathname === '/lobby'
+                        ? 'bg-gradient-to-r from-solana-purple to-solana-green text-white shadow-glow-sm'
+                        : 'text-neutral-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    Lobby
+                  </Link>
+                </>
+              )}
+              <Link
+                href="/learn"
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                  pathname === '/learn'
+                    ? 'bg-gradient-to-r from-solana-purple to-solana-green text-white shadow-glow-sm'
+                    : 'text-neutral-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                Learn
+              </Link>
+            </div>
             <a
               href="https://x.com/SolMateChess"
               target="_blank"

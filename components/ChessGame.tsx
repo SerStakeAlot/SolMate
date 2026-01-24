@@ -120,6 +120,7 @@ type ChessGameProps = {
   matchCode?: string;
   initialStakeTier?: number;
   freePlayJoinCode?: string; // Auto-join free play via shareable link
+  spectateRoomId?: string; // Spectate a wager match by room ID
 };
 
 const BACKEND_URL = 'https://solmate-production.up.railway.app';
@@ -155,6 +156,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   matchCode,
   initialStakeTier = 4,
   freePlayJoinCode,
+  spectateRoomId,
 }) => {
   const wallet = useWallet();
   const { connection } = useConnection();
@@ -217,10 +219,13 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [wagerOpponentWallet, setWagerOpponentWallet] = useState<string | null>(null);
   
   // Spectator mode
-  const [isSpectating, setIsSpectating] = useState(false);
+  const [isSpectating, setIsSpectating] = useState(!!spectateRoomId);
   const [spectatorWhitePlayer, setSpectatorWhitePlayer] = useState<string>('');
   const [spectatorBlackPlayer, setSpectatorBlackPlayer] = useState<string>('');
   const [spectatorCount, setSpectatorCount] = useState(0);
+  const [spectatorStakeTier, setSpectatorStakeTier] = useState<number | null>(null);
+  const [spectatorWhiteTime, setSpectatorWhiteTime] = useState<number>(10 * 60 * 1000);
+  const [spectatorBlackTime, setSpectatorBlackTime] = useState<number>(10 * 60 * 1000);
   
   // AI difficulty: 'novice' (depth 1), 'club' (depth 2), 'master' (depth 3)
   type AIDifficulty = 'novice' | 'club' | 'master';
@@ -772,6 +777,102 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       newSocket.disconnect();
     };
   }, [isFreePlay, playSound]);
+  
+  // WebSocket connection for WAGER SPECTATING mode
+  useEffect(() => {
+    if (!spectateRoomId) return;
+    
+    console.log('Connecting to game server to spectate wager match:', spectateRoomId);
+    
+    const newSocket = io(BACKEND_URL, {
+      transports: ['websocket', 'polling'],
+    });
+    
+    newSocket.on('connect', () => {
+      console.log('Connected for wager spectating, socket id:', newSocket.id);
+      
+      // Join as spectator immediately
+      newSocket.emit('spectator:joinWager', { roomId: spectateRoomId });
+    });
+    
+    // Spectator successfully joined
+    newSocket.on('spectator:joined', ({ roomId, fen, whitePlayer, blackPlayer, whiteTimeMs, blackTimeMs, currentTurn, stakeTier, moves }) => {
+      console.log('Joined as spectator:', roomId, 'FEN:', fen, 'Stake tier:', stakeTier);
+      setIsSpectating(true);
+      setGameRoomId(roomId);
+      setSpectatorWhitePlayer(whitePlayer);
+      setSpectatorBlackPlayer(blackPlayer);
+      setSpectatorStakeTier(stakeTier);
+      setSpectatorWhiteTime(whiteTimeMs);
+      setSpectatorBlackTime(blackTimeMs);
+      // Load the current position
+      chessRef.current = new Chess(fen);
+      setFen(fen);
+      // If there are moves, show the last one
+      if (moves && moves.length > 0) {
+        const lastMove = moves[moves.length - 1];
+        setLastMove({ from: lastMove.from, to: lastMove.to });
+      }
+    });
+    
+    // Spectator error
+    newSocket.on('spectator:error', ({ error }) => {
+      console.error('Spectator error:', error);
+      alert(`Unable to spectate: ${error}`);
+    });
+    
+    // Spectator receives move
+    newSocket.on('spectator:move', ({ move, fen, timeUpdate, whiteTimeMs, blackTimeMs }) => {
+      console.log('Spectator received move:', move);
+      chessRef.current = new Chess(fen);
+      setFen(fen);
+      setLastMove({ from: move.from, to: move.to });
+      // Update time from either direct props or timeUpdate object
+      if (timeUpdate) {
+        setSpectatorWhiteTime(timeUpdate.whiteTimeMs);
+        setSpectatorBlackTime(timeUpdate.blackTimeMs);
+      } else if (whiteTimeMs !== undefined) {
+        setSpectatorWhiteTime(whiteTimeMs);
+        if (blackTimeMs !== undefined) setSpectatorBlackTime(blackTimeMs);
+      }
+      // Play sound
+      if (chessRef.current.isCheck()) {
+        playSound('check');
+      } else {
+        playSound('move');
+      }
+    });
+    
+    // Spectator receives time updates
+    newSocket.on('spectator:timeUpdate', ({ whiteTimeMs, blackTimeMs }) => {
+      setSpectatorWhiteTime(whiteTimeMs);
+      setSpectatorBlackTime(blackTimeMs);
+    });
+    
+    // Spectator receives game end
+    newSocket.on('spectator:gameEnd', ({ winner, reason }) => {
+      console.log('Spectator - wager game ended:', winner, reason);
+      setGameWinner(winner);
+      setShowResultModal(true);
+    });
+    
+    // Receive spectator count updates
+    newSocket.on('game:spectatorCount', ({ count }) => {
+      console.log('Wager spectator count:', count);
+      setSpectatorCount(count);
+    });
+    
+    newSocket.on('disconnect', () => {
+      console.log('Disconnected from wager spectating');
+    });
+    
+    setSocket(newSocket);
+    
+    return () => {
+      newSocket.emit('spectator:leaveWager', { roomId: spectateRoomId });
+      newSocket.disconnect();
+    };
+  }, [spectateRoomId, playSound]);
   
   // Send move to opponent
   const sendMove = useCallback((from: string, to: string, san: string, fen: string, promotion?: string) => {
@@ -1677,6 +1778,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                 )}
               </div>
               
+              {/* Chess Board with Coordinates */}
+              <div className="relative">
               <div className="aspect-square w-full overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/10">
                 <div className="grid h-full w-full grid-cols-8 grid-rows-8">
               {Array.from({ length: 64 }).map((_, i) => {
@@ -1697,6 +1800,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                 const isLegal = legalDestinations.has(square);
                 const isLastMove = lastMove !== null && (lastMove.from === square || lastMove.to === square);
                 const isKingInCheck = kingInCheck === square;
+                
+                // Coordinate labels
+                const showRank = visualCol === 0; // Left edge - show rank numbers
+                const showFile = visualRow === 7; // Bottom edge - show file letters
+                const rank = flipped ? visualRow + 1 : 8 - visualRow;
+                const file = flipped ? FILES[7 - visualCol] : FILES[visualCol];
 
                 // Determine background color with priority: check > selected > lastMove > default
                 let bgStyle: React.CSSProperties = {
@@ -1770,11 +1879,48 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                         }}
                       />
                     )}
+                    {/* Rank numbers on left edge - top left corner */}
+                    {showRank && (
+                      <span 
+                        className="pointer-events-none select-none"
+                        style={{ 
+                          position: 'absolute',
+                          top: '2px',
+                          left: '3px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          color: isLight ? '#525252' : '#d4d4d4',
+                          zIndex: 5,
+                        }}
+                      >
+                        {rank}
+                      </span>
+                    )}
+                    {/* File letters on bottom edge - bottom right corner */}
+                    {showFile && (
+                      <span 
+                        className="pointer-events-none select-none"
+                        style={{ 
+                          position: 'absolute',
+                          bottom: '2px',
+                          right: '3px',
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          color: isLight ? '#525252' : '#d4d4d4',
+                          zIndex: 5,
+                        }}
+                      >
+                        {file}
+                      </span>
+                    )}
                   </motion.button>
                 );
               })}
             </div>
           </div>
+          </div> {/* End of board with coordinates wrapper */}
           
               {/* Player's captured pieces (shown at bottom) */}
               <div className="flex items-center justify-between mt-2 min-h-[28px]">
@@ -2196,21 +2342,47 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     <div className="p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl border border-yellow-500/30">
                       <div className="flex items-center gap-2 mb-2">
                         <Eye className="h-5 w-5 text-yellow-400" />
-                        <p className="text-sm font-semibold text-yellow-400">Spectating</p>
+                        <p className="text-sm font-semibold text-yellow-400">
+                          {spectatorStakeTier !== null ? 'Spectating Wager Match' : 'Spectating'}
+                        </p>
                       </div>
+                      {spectatorStakeTier !== null && (
+                        <p className="text-xs text-solana-green font-semibold mb-2">
+                          💰 {spectatorStakeTier === 0 ? '0.5' : spectatorStakeTier === 1 ? '1' : spectatorStakeTier === 4 ? '0.01' : '?'} SOL per player
+                        </p>
+                      )}
                       <p className="text-xs text-neutral-400 mb-3">
                         This game is already in progress. You are watching as a spectator.
                       </p>
                       <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-white border border-neutral-300" />
-                          <span className="text-white">{spectatorWhitePlayer}</span>
+                        <div className="flex items-center gap-2 justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-white border border-neutral-300" />
+                            <span className="text-white">{spectatorWhitePlayer}</span>
+                          </div>
+                          {spectatorStakeTier !== null && (
+                            <span className="text-neutral-400 text-xs font-mono">
+                              {formatTime(spectatorWhiteTime)}
+                            </span>
+                          )}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-neutral-800 border border-neutral-600" />
-                          <span className="text-white">{spectatorBlackPlayer}</span>
+                        <div className="flex items-center gap-2 justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-full bg-neutral-800 border border-neutral-600" />
+                            <span className="text-white">{spectatorBlackPlayer}</span>
+                          </div>
+                          {spectatorStakeTier !== null && (
+                            <span className="text-neutral-400 text-xs font-mono">
+                              {formatTime(spectatorBlackTime)}
+                            </span>
+                          )}
                         </div>
                       </div>
+                      {spectatorCount > 0 && (
+                        <p className="text-xs text-neutral-500 mt-2">
+                          👀 {spectatorCount} watching
+                        </p>
+                      )}
                     </div>
                     
                     <motion.button
@@ -2219,9 +2391,14 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                         setIsSpectating(false);
                         setIsFreePlay(false);
                         setFreePlayCode('');
+                        setSpectatorStakeTier(null);
                         chessRef.current = new Chess();
                         setFen(chessRef.current.fen());
                         setLastMove(null);
+                        // Redirect back home for wager spectators
+                        if (spectateRoomId) {
+                          window.location.href = '/';
+                        }
                       }}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -2599,7 +2776,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           <motion.button
                             type="button"
                             onClick={() => {
-                              const shareUrl = `${window.location.origin}/game?mode=spectate&room=${gameRoomId || wagerMatchCode}`;
+                              const shareUrl = `${window.location.origin}/game?mode=join&code=${wagerMatchCode}&tier=${selectedStakeTier}`;
                               if (navigator.share) {
                                 navigator.share({
                                   title: 'Play Chess with me on SolMate!',
