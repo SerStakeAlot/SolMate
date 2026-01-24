@@ -250,7 +250,7 @@ function GameRoom({ socket, roomId, yourColor, opponent, stakeTier, onExit }: Ga
             </div>
           </div>
 
-          {/* Chess Board */}
+          {/* Chess Board with Coordinates */}
           <div className="aspect-square w-full rounded-2xl overflow-hidden shadow-glow border-4 border-white/10">
             {board.map((row, rowIndex) => (
               <div key={rowIndex} className="flex h-[12.5%]">
@@ -258,6 +258,12 @@ function GameRoom({ socket, roomId, yourColor, opponent, stakeTier, onExit }: Ga
                   const square = squareFromRowCol(rowIndex, colIndex, isFlipped);
                   const isLight = (rowIndex + colIndex) % 2 === 0;
                   const isSelected = selectedSquare === square;
+                  
+                  // Coordinate labels - show on left edge (rank) and bottom edge (file)
+                  const showRank = colIndex === 0;
+                  const showFile = rowIndex === 7;
+                  const rank = isFlipped ? rowIndex + 1 : 8 - rowIndex;
+                  const file = isFlipped ? FILES[7 - colIndex] : FILES[colIndex];
 
                   return (
                     <button
@@ -276,6 +282,42 @@ function GameRoom({ socket, roomId, yourColor, opponent, stakeTier, onExit }: Ga
                           alt={`${piece.color}${piece.type}`}
                           className="w-[80%] h-[80%] object-contain drop-shadow-lg"
                         />
+                      )}
+                      {/* Rank numbers on left edge - top left corner */}
+                      {showRank && (
+                        <span 
+                          className="pointer-events-none select-none"
+                          style={{ 
+                            position: 'absolute',
+                            top: '2px',
+                            left: '3px',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            lineHeight: 1,
+                            color: isLight ? '#525252' : '#d4d4d4',
+                            zIndex: 5,
+                          }}
+                        >
+                          {rank}
+                        </span>
+                      )}
+                      {/* File letters on bottom edge - bottom right corner */}
+                      {showFile && (
+                        <span 
+                          className="pointer-events-none select-none"
+                          style={{ 
+                            position: 'absolute',
+                            bottom: '2px',
+                            right: '3px',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            lineHeight: 1,
+                            color: isLight ? '#525252' : '#d4d4d4',
+                            zIndex: 5,
+                          }}
+                        >
+                          {file}
+                        </span>
                       )}
                     </button>
                   );

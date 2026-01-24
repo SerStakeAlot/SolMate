@@ -479,6 +479,59 @@ io.on('connection', (socket) => {
     gameRoomManager.endGame(roomId, winner, reason, io);
   });
 
+  // Spectator joins a wager match
+  socket.on('spectator:joinWager', ({ roomId }) => {
+    const room = gameRoomManager.getRoom(roomId);
+    if (!room) {
+      socket.emit('spectator:error', { error: 'Game not found' });
+      return;
+    }
+
+    if (room.status !== 'active') {
+      socket.emit('spectator:error', { error: 'Game is not active' });
+      return;
+    }
+
+    // Add as spectator
+    gameRoomManager.addSpectator(roomId, socket.id);
+    
+    // Join the socket room to receive broadcasts
+    socket.join(roomId);
+
+    // Send current game state to spectator
+    socket.emit('spectator:joined', {
+      roomId,
+      fen: room.currentFen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      whitePlayer: room.playerWhite.walletAddress?.slice(0, 8) || 'White',
+      blackPlayer: room.playerBlack.walletAddress?.slice(0, 8) || 'Black',
+      whiteTimeMs: room.whiteTimeMs,
+      blackTimeMs: room.blackTimeMs,
+      currentTurn: room.currentTurn,
+      stakeTier: room.stakeTier,
+      moves: room.moves || [],
+    });
+
+    // Notify players about spectator count
+    const spectatorCount = gameRoomManager.getSpectatorCount(roomId);
+    io.to(room.playerWhite.socketId).emit('game:spectatorCount', { count: spectatorCount });
+    io.to(room.playerBlack.socketId).emit('game:spectatorCount', { count: spectatorCount });
+    
+    console.log(`Spectator joined wager match ${roomId}, ${spectatorCount} total spectators`);
+  });
+
+  // Spectator leaves a wager match
+  socket.on('spectator:leaveWager', ({ roomId }) => {
+    gameRoomManager.removeSpectator(roomId, socket.id);
+    socket.leave(roomId);
+    
+    const room = gameRoomManager.getRoom(roomId);
+    if (room) {
+      const spectatorCount = gameRoomManager.getSpectatorCount(roomId);
+      io.to(room.playerWhite.socketId).emit('game:spectatorCount', { count: spectatorCount });
+      io.to(room.playerBlack.socketId).emit('game:spectatorCount', { count: spectatorCount });
+    }
+  });
+
   // Get queue status
   socket.on('matchmaking:getStatus', () => {
     const status = matchmaking.getAllQueueStatus();
@@ -955,6 +1008,9 @@ io.on('connection', (socket) => {
         }
       }
     }
+
+    // Clean up wager match spectators
+    gameRoomManager.removeSpectatorFromAllRooms(socket.id);
     
     if (player) {
       // Remove from matchmaking

@@ -4,12 +4,12 @@ import { ChessGame } from "@/components/ChessGame";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
-type PlayMode = "join" | "host" | "computer";
+type PlayMode = "join" | "host" | "computer" | "spectate";
 
 type ChessMode = "practice" | "wager";
 
 const normalizeMode = (value: string | null): PlayMode | null => {
-  if (value === "join" || value === "host" || value === "computer") return value;
+  if (value === "join" || value === "host" || value === "computer" || value === "spectate") return value;
   return null;
 };
 
@@ -20,17 +20,21 @@ function GameContent() {
   const codeParam = searchParams.get("code");
   const tierParam = searchParams.get("tier");
   const freePlayCode = searchParams.get("freeplay"); // Join free play via link
+  const spectateRoom = searchParams.get("room"); // Spectate wager match by room ID
 
+  const isSpectating = playMode === "spectate" && spectateRoom;
   const initialMode: ChessMode = (playMode === "computer" || freePlayCode) ? "practice" : "wager";
   const stakeTier = tierParam ? parseInt(tierParam, 10) : 4; // Default to test tier
   const title =
-    freePlayCode
-      ? "Free Online Match"
-      : playMode === "join"
-        ? "Active Match (Black)"
-        : playMode === "host"
-          ? "Staked Match (White)"
-          : "Practice Mode";
+    isSpectating
+      ? "Spectating Match"
+      : freePlayCode
+        ? "Free Online Match"
+        : playMode === "join"
+          ? "Active Match (Black)"
+          : playMode === "host"
+            ? "Staked Match (White)"
+            : "Practice Mode";
   
   // Determine player role for multiplayer
   const playerRole = playMode === "host" ? "host" : playMode === "join" ? "join" : undefined;
@@ -42,24 +46,27 @@ function GameContent() {
           <span className="text-gradient">{title}</span>
         </h1>
         <p className="text-neutral-500 text-sm mt-2">
-          {playMode === "computer" 
-            ? "Train your tactics" 
-            : playMode === "join" 
-              ? "You are playing as Black" 
-              : playMode === "host"
-                ? "You are playing as White - waiting for opponent"
-                : "May the best strategist win"}
+          {isSpectating
+            ? "Watch the match live"
+            : playMode === "computer" 
+              ? "Train your tactics" 
+              : playMode === "join" 
+                ? "You are playing as Black" 
+                : playMode === "host"
+                  ? "You are playing as White - waiting for opponent"
+                  : "May the best strategist win"}
         </p>
       </div>
 
       <ChessGame
         initialMode={initialMode}
-        showModeSelector={playMode === "computer" && !freePlayCode}
+        showModeSelector={playMode === "computer" && !freePlayCode && !isSpectating}
         matchPubkey={matchParam || undefined}
         playerRole={playerRole as "host" | "join" | undefined}
         matchCode={codeParam || undefined}
         initialStakeTier={stakeTier}
         freePlayJoinCode={freePlayCode || undefined}
+        spectateRoomId={spectateRoom || undefined}
       />
     </main>
   );

@@ -100,6 +100,7 @@ export interface GameRoom {
   gameStarted?: boolean; // Whether the clock has started (first move made)
   winner?: 'w' | 'b' | 'draw';
   endReason?: 'checkmate' | 'timeout' | 'resignation' | 'draw';
+  spectators?: string[]; // Socket IDs of spectators watching this game
 }
 
 export interface ChessMove {
