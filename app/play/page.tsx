@@ -3,18 +3,15 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Users, Swords, Bot, Zap, ArrowLeft, ArrowRight } from "lucide-react";
+import { Users, Swords, ArrowLeft, ArrowRight } from "lucide-react";
 
-type PlayMode = "multiplayer" | "join" | "host" | "computer";
+type PlayMode = "join" | "host";
 
 export default function PlayPage() {
   const router = useRouter();
   const [mode, setMode] = useState<PlayMode | null>(null);
 
   const gameHref = useMemo(() => {
-    if (mode === 'multiplayer') {
-      return '/multiplayer';
-    }
     if (mode === 'join') {
       return '/lobby';
     }
@@ -25,26 +22,12 @@ export default function PlayPage() {
 
   const modeOptions = [
     {
-      id: "multiplayer" as const,
-      title: "Multiplayer",
-      description: "Real-time matches with 10min timer",
-      icon: Zap,
-      featured: true,
-      gradient: "from-solana-purple via-violet-500 to-solana-green",
-    },
-    {
-      id: "computer" as const,
-      title: "Practice",
-      description: "Train your tactics",
-      icon: Bot,
-      featured: false,
-    },
-    {
       id: "join" as const,
       title: "Join Match",
       description: "Browse and join open staked matches",
       icon: Users,
-      featured: false,
+      featured: true,
+      gradient: "from-solana-purple via-violet-500 to-solana-green",
     },
     {
       id: "host" as const,
@@ -71,7 +54,7 @@ export default function PlayPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mb-8 sm:mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5 mb-8 sm:mb-10 max-w-2xl">
           {modeOptions.map((option, index) => (
             <motion.button
               key={option.id}
