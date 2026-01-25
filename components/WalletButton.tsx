@@ -87,18 +87,22 @@ export const WalletButton: React.FC = () => {
   const walletButtonStyle: React.CSSProperties = {
     width: '100%',
     padding: '14px 16px',
-    backgroundColor: '#252525',
-    border: '1px solid #333',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255, 255, 255, 0.12)',
     borderRadius: '12px',
     color: '#ffffff',
-    fontSize: '16px',
-    fontWeight: 600,
+    fontSize: '15px',
+    fontWeight: 500,
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
     cursor: 'pointer',
     marginBottom: '10px',
     textAlign: 'left',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05) inset',
   };
 
   const closeButtonStyle: React.CSSProperties = {
@@ -121,24 +125,40 @@ export const WalletButton: React.FC = () => {
   const connectButtonStyle: React.CSSProperties = {
     position: 'relative',
     zIndex: 101,
-    backgroundColor: '#000',
+    backgroundColor: 'transparent',
     color: '#fff',
     fontWeight: 600,
     borderRadius: '12px',
     padding: '10px 20px',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+    border: '1px solid rgba(255, 255, 255, 0.15)',
     cursor: 'pointer',
     fontSize: '14px',
+    background: 'rgba(255, 255, 255, 0.04)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05) inset',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   };
 
   return (
     <>
       <div className="relative group" style={{ zIndex: 100, position: 'relative' }}>
-        <div className="absolute -inset-0.5 bg-gradient-to-r from-solana-purple to-solana-green rounded-xl blur opacity-60 group-hover:opacity-100 transition duration-300 pointer-events-none" />
         {connected && publicKey ? (
           <button
             onClick={handleDisconnect}
             style={connectButtonStyle}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset, 0 0 20px rgba(153, 69, 255, 0.15)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05) inset';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
           >
             {shortenAddress(publicKey.toBase58())}
           </button>
@@ -146,7 +166,26 @@ export const WalletButton: React.FC = () => {
           <button
             onClick={handleConnect}
             disabled={connecting}
-            style={connectButtonStyle}
+            style={{
+              ...connectButtonStyle,
+              ...(connecting ? { opacity: 0.7, cursor: 'not-allowed' } : {})
+            }}
+            onMouseEnter={(e) => {
+              if (!connecting) {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #9945FF 0%, #14F195 100%)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                e.currentTarget.style.boxShadow = '0 8px 32px rgba(153, 69, 255, 0.4), 0 4px 16px rgba(20, 241, 149, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.15) inset';
+                e.currentTarget.style.transform = 'translateY(-2px) scale(1.01)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!connecting) {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05) inset';
+                e.currentTarget.style.transform = 'translateY(0) scale(1)';
+              }
+            }}
           >
             {connecting ? 'Connecting...' : 'Connect Wallet'}
           </button>
@@ -179,9 +218,21 @@ export const WalletButton: React.FC = () => {
                     key={wallet.adapter.name}
                     style={{
                       ...walletButtonStyle,
-                      opacity: isInstalled ? 1 : 0.7,
+                      opacity: isInstalled ? 1 : 0.6,
                     }}
                     onClick={() => handleSelectWallet(wallet.adapter.name)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                      e.currentTarget.style.borderColor = 'rgba(153, 69, 255, 0.4)';
+                      e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset, 0 0 20px rgba(153, 69, 255, 0.2)';
+                      e.currentTarget.style.transform = 'translateY(-1px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05) inset';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
                   >
                     {wallet.adapter.icon && (
                       <img 

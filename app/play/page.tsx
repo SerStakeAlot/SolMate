@@ -92,24 +92,24 @@ export default function PlayPage() {
               <div className={`absolute inset-0 ${
                 option.featured
                   ? `bg-gradient-to-br ${option.gradient} opacity-20`
-                  : "bg-white/[0.03]"
+                  : "bg-white/[0.03] backdrop-blur-sm"
               }`} />
               
               {/* Border glow for selected */}
               <div className={`absolute inset-0 rounded-2xl transition-all duration-300 ${
                 mode === option.id
-                  ? "ring-2 ring-solana-purple shadow-glow"
-                  : "ring-1 ring-white/10 group-hover:ring-white/20"
+                  ? "ring-2 ring-solana-purple shadow-glow border border-solana-purple/50"
+                  : "ring-1 ring-white/10 group-hover:ring-white/25 border border-white/10 group-hover:border-white/20"
               }`} />
               
               {/* Content */}
               <div className="relative p-4 sm:p-6">
                 <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-3 sm:mb-4 transition-all duration-300 ${
                   option.featured
-                    ? "bg-gradient-to-br from-solana-purple to-solana-green"
+                    ? "bg-gradient-to-br from-solana-purple to-solana-green shadow-lg shadow-solana-purple/30"
                     : mode === option.id
-                    ? "bg-solana-purple/20"
-                    : "bg-white/5 group-hover:bg-white/10"
+                    ? "bg-solana-purple/20 ring-2 ring-solana-purple/50"
+                    : "bg-white/5 group-hover:bg-white/10 border border-white/10 group-hover:border-white/20"
                 }`}>
                   <option.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${
                     option.featured || mode === option.id
@@ -142,7 +142,7 @@ export default function PlayPage() {
             onClick={() => router.push("/")}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="flex items-center justify-center gap-2 px-6 py-3.5 text-base font-medium bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white rounded-xl transition-all border border-white/10"
+            className="btn-secondary flex items-center justify-center gap-2 px-6 py-3.5 text-base font-medium text-neutral-300 hover:text-white rounded-xl"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -154,10 +154,10 @@ export default function PlayPage() {
             onClick={() => router.push(gameHref)}
             whileHover={mode ? { scale: 1.02 } : {}}
             whileTap={mode ? { scale: 0.98 } : {}}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3.5 text-base font-bold rounded-xl transition-all ${
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2.5 px-8 py-3.5 text-base font-semibold rounded-xl ${
               mode
-                ? "btn-glow text-white shadow-glow"
-                : "bg-white/5 text-neutral-600 cursor-not-allowed border border-white/5"
+                ? "btn-glow text-white"
+                : "btn-secondary text-neutral-600 cursor-not-allowed"
             }`}
           >
             Continue
