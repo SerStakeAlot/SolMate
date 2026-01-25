@@ -279,14 +279,14 @@ export default function LobbyPage() {
         <div className="mb-8 flex items-center justify-between">
           <button
             onClick={() => router.push("/play")}
-            className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors group"
+            className="btn-ghost flex items-center gap-2 px-4 py-2 text-sm text-neutral-400 hover:text-white group"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             Back to modes
           </button>
           <button
             onClick={() => setRefreshKey((k) => k + 1)}
-            className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white transition-colors group"
+            className="btn-ghost flex items-center gap-2 px-4 py-2 text-sm text-neutral-400 hover:text-white group"
           >
             <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
             Refresh
@@ -314,7 +314,7 @@ export default function LobbyPage() {
             <button
               onClick={handleSearch}
               disabled={searchCode.length !== 4}
-              className="btn-glow px-6 py-3 rounded-xl text-sm font-bold text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-glow px-6 py-3 rounded-xl text-sm font-semibold text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Search className="w-4 h-4" />
               Search
@@ -350,7 +350,7 @@ export default function LobbyPage() {
                   <button
                     onClick={() => handleJoinHostedMatch(searchResult)}
                     disabled={joiningMatch === searchResult.matchCode || isOwnMatch(searchResult.hostWallet)}
-                    className="btn-glow px-5 py-2.5 rounded-xl text-sm font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="btn-glow px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {joiningMatch === searchResult.matchCode ? "Joining..." : "Join Match"}
                   </button>
@@ -372,8 +372,8 @@ export default function LobbyPage() {
                   onClick={() => setSelectedTier(tier.value)}
                   className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                     selectedTier === tier.value
-                      ? "bg-gradient-to-r from-solana-purple to-solana-green text-white shadow-glow-sm"
-                      : "bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white"
+                      ? "btn-glow text-white"
+                      : "btn-secondary text-neutral-400 hover:text-white"
                   }`}
                 >
                   {tier.label}
@@ -477,7 +477,7 @@ export default function LobbyPage() {
                             <button
                               onClick={() => handleJoinHostedMatch(match)}
                               disabled={isJoining}
-                              className="btn-glow px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="btn-glow px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {isJoining ? "Joining..." : "Join Match"}
                             </button>
@@ -515,7 +515,7 @@ export default function LobbyPage() {
                 <p className="text-neutral-400 mb-6">No open matches found</p>
                 <button
                   onClick={() => router.push("/play")}
-                  className="btn-glow inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-bold text-white"
+                  className="btn-glow inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold text-white"
                 >
                   Create a Match
                 </button>
@@ -602,7 +602,7 @@ export default function LobbyPage() {
                             <button
                               onClick={() => handleJoinMatch(match.pubkey, match.account.stakeTier)}
                               disabled={isJoining}
-                              className="btn-glow px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="btn-glow px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               {isJoining ? "Joining..." : "Join Match"}
                             </button>

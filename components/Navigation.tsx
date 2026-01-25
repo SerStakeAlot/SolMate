@@ -36,10 +36,10 @@ export function Navigation() {
             {/* Mobile Learn link - more visible */}
             <Link
               href="/learn"
-              className={`sm:hidden flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg transition-all ${
+              className={`sm:hidden flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg transition-all ${
                 pathname === '/learn'
-                  ? 'bg-gradient-to-r from-solana-purple to-solana-green text-white'
-                  : 'text-white bg-solana-purple/80 hover:bg-solana-purple'
+                  ? 'btn-glow text-white'
+                  : 'btn-secondary text-white'
               }`}
             >
               <BookOpen className="w-4 h-4" />
@@ -47,15 +47,15 @@ export function Navigation() {
             </Link>
             
             {/* Desktop nav links */}
-            <div className="hidden sm:flex items-center gap-1 p-1 rounded-xl bg-white/5">
+            <div className="hidden sm:flex items-center gap-1.5 p-1.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
               {connected && (
                 <>
                   <Link
                     href="/play"
                     className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
                       pathname === '/play'
-                        ? 'bg-gradient-to-r from-solana-purple to-solana-green text-white shadow-glow-sm'
-                        : 'text-neutral-400 hover:text-white hover:bg-white/5'
+                        ? 'btn-glow text-white'
+                        : 'text-neutral-400 hover:text-white btn-ghost'
                     }`}
                   >
                     Play
@@ -64,8 +64,8 @@ export function Navigation() {
                     href="/lobby"
                     className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
                       pathname === '/lobby'
-                        ? 'bg-gradient-to-r from-solana-purple to-solana-green text-white shadow-glow-sm'
-                        : 'text-neutral-400 hover:text-white hover:bg-white/5'
+                        ? 'btn-glow text-white'
+                        : 'text-neutral-400 hover:text-white btn-ghost'
                     }`}
                   >
                     Lobby
@@ -76,8 +76,8 @@ export function Navigation() {
                 href="/learn"
                 className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
                   pathname === '/learn'
-                    ? 'bg-gradient-to-r from-solana-purple to-solana-green text-white shadow-glow-sm'
-                    : 'text-neutral-400 hover:text-white hover:bg-white/5'
+                    ? 'btn-glow text-white'
+                    : 'text-neutral-400 hover:text-white btn-ghost'
                 }`}
               >
                 <BookOpen className="w-4 h-4" />
@@ -88,9 +88,9 @@ export function Navigation() {
               href="https://x.com/SolMateChess"
               target="_blank"
               rel="noopener noreferrer"
-              style={{ display: 'flex', alignItems: 'center', padding: '8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '8px', color: 'white', zIndex: 9999, position: 'relative' }}
+              className="btn-secondary flex items-center justify-center p-2.5 rounded-lg text-white hover:text-white transition-all"
             >
-              <svg style={{ width: '22px', height: '22px' }} fill="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
               </svg>
             </a>
