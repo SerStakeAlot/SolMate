@@ -229,6 +229,7 @@ Before rendering a new video:
 3. ✅ Check, Checkmate & Stalemate (`CheckmateBasics`)
 4. ✅ Chess Notation (`ChessNotation`)
 5. ✅ Opening Principles (`OpeningPrinciples`)
+6. ✅ Italian Game (`ItalianGame`) - Classic opening walkthrough
 
 ## 📋 Planned Videos (from Learn page)
 
@@ -247,7 +248,7 @@ Before rendering a new video:
 - [ ] Philidor Position
 
 ### Openings (optional video intros)
-- [ ] Italian Game
+- [x] Italian Game
 - [ ] Sicilian Defense
 - [ ] Queen's Gambit
 - [ ] etc.

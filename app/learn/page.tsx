@@ -44,6 +44,7 @@ const OPENINGS: Lesson[] = [
       'Bishop targets weak f7 pawn',
       'Prepares quick castling'
     ],
+    videoId: 'ItalianGame',
   },
   {
     id: 'sicilian-defense',
@@ -388,6 +389,7 @@ const videoFiles: Record<string, string> = {
   'CheckmateBasics': '/videos/checkmate-basics.mp4',
   'ChessNotation': '/videos/chess-notation.mp4',
   'OpeningPrinciples': '/videos/opening-principles.mp4',
+  'ItalianGame': '/videos/italian-game.mp4',
 };
 
 function VideoModal({ lesson, onClose }: VideoModalProps) {
@@ -631,14 +633,9 @@ export default function LearnPage() {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-solana-purple/20 to-solana-green/20">
-            <BookOpen className="h-6 w-6 text-solana-green" />
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold">
-            <span className="text-gradient">Learn Chess</span>
-          </h1>
-        </div>
+        <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+          <span className="text-gradient">Learn Chess</span>
+        </h1>
         <p className="text-neutral-400 text-lg">
           Master the game from openings to endgames
         </p>
@@ -676,7 +673,6 @@ export default function LearnPage() {
         transition={{ delay: 0.15 }}
         className="mb-6 flex items-center gap-2"
       >
-        <span className="text-sm text-neutral-500">Difficulty:</span>
         <div className="flex gap-1">
           {(['all', 'beginner', 'intermediate', 'advanced'] as const).map((diff) => (
             <button

@@ -210,10 +210,7 @@ export default function Home() {
                 </div>
                 <div className="text-center sm:text-left">
                   <h3 className="text-lg sm:text-xl font-bold text-white mb-1 flex items-center gap-2 justify-center sm:justify-start">
-                    $SOLMATE Token
-                    <span className="px-2 py-0.5 text-xs bg-solana-green/20 text-solana-green rounded-full border border-solana-green/30">
-                      LIVE
-                    </span>
+                    SOLMATE Token
                   </h3>
                   <p className="text-sm text-neutral-400">
                     Trade the official SolMate token on Pump.fun
@@ -295,22 +292,9 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-neutral-800 py-8 mb-8">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <p className="text-neutral-500 text-sm">
-              © 2026 SolMate. All rights reserved.
-            </p>
-            <a
-              href="https://x.com/SolMateChess"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 text-white hover:bg-white/20 transition-all text-sm font-medium"
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-              </svg>
-              Follow us
-            </a>
-          </div>
+          <p className="text-neutral-500 text-sm">
+            © 2026 SolMate. All rights reserved.
+          </p>
           <div className="flex items-center gap-6 flex-wrap justify-center sm:justify-end">
             <a 
               href="/security" 
