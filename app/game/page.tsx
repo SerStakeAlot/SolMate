@@ -42,10 +42,10 @@ function GameContent() {
   return (
     <main className="mx-auto w-full max-w-7xl px-2 sm:px-4 py-4 sm:py-8">
       <div className="mb-4 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+        <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">
           <span className="text-gradient">{title}</span>
         </h1>
-        <p className="text-neutral-500 text-sm mt-2">
+        <p className="text-neutral-400 text-sm mt-2 font-medium">
           {isSpectating
             ? "Watch the match live"
             : playMode === "computer" 

@@ -69,13 +69,13 @@ export default function Home() {
             </motion.div>
           </div>
           
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold mb-4 sm:mb-6 tracking-tight">
+          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold mb-4 sm:mb-6 tracking-tight">
             <span className="text-gradient">Stake.</span>{" "}
             <span className="text-white">Compete.</span>{" "}
             <span className="text-gradient">Conquer.</span>
           </h1>
           
-          <p className="text-base sm:text-xl text-neutral-400 max-w-2xl mx-auto leading-relaxed px-2">
+          <p className="text-base sm:text-lg text-neutral-400 max-w-2xl mx-auto leading-relaxed px-2 font-medium">
             The premier chess battleground on Solana. Challenge opponents in tactical duels 
             with real stakes and instant payouts.
           </p>
@@ -181,8 +181,8 @@ export default function Home() {
             <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform`}>
               <feature.icon className="h-7 w-7 text-white" />
             </div>
-            <h3 className="text-xl font-bold mb-3 text-white">{feature.title}</h3>
-            <p className="text-neutral-400 leading-relaxed">
+            <h3 className="font-display text-lg font-semibold mb-2 text-white">{feature.title}</h3>
+            <p className="text-neutral-400 leading-relaxed text-sm">
               {feature.description}
             </p>
           </motion.div>
@@ -209,10 +209,10 @@ export default function Home() {
                   <Sparkles className="w-6 h-6 text-white" />
                 </div>
                 <div className="text-center sm:text-left">
-                  <h3 className="text-lg sm:text-xl font-bold text-white mb-1 flex items-center gap-2 justify-center sm:justify-start">
+                  <h3 className="font-display text-lg sm:text-xl font-bold text-white mb-1 flex items-center gap-2 justify-center sm:justify-start">
                     SOLMATE Token
                   </h3>
-                  <p className="text-sm text-neutral-400">
+                  <p className="text-sm text-neutral-400 font-medium">
                     Trade the official SolMate token on Pump.fun
                   </p>
                 </div>
@@ -239,30 +239,30 @@ export default function Home() {
         >
           <div className="glass-card rounded-2xl p-6 sm:p-8">
             <div className="flex items-center justify-center gap-2 mb-6">
-              <div className="w-2 h-2 rounded-full bg-solana-green animate-pulse" />
-              <span className="text-sm text-neutral-400 uppercase tracking-wider font-medium">Live Platform Stats</span>
+              <div className="status-dot status-dot-online" />
+              <span className="stat-label">Live Platform Stats</span>
             </div>
             <div className="grid grid-cols-3 gap-4 sm:gap-8">
               <div className="text-center">
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <Gamepad2 className="w-5 h-5 text-solana-purple" />
                 </div>
-                <p className="text-2xl sm:text-3xl font-bold text-white">{stats.totalGames.toLocaleString()}</p>
-                <p className="text-xs sm:text-sm text-neutral-400">Games Played</p>
+                <p className="font-display text-2xl sm:text-3xl font-bold text-white tabular-nums">{stats.totalGames.toLocaleString()}</p>
+                <p className="stat-label mt-1">Games Played</p>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <Users className="w-5 h-5 text-solana-green" />
                 </div>
-                <p className="text-2xl sm:text-3xl font-bold text-white">{stats.uniquePlayers.toLocaleString()}</p>
-                <p className="text-xs sm:text-sm text-neutral-400">Players</p>
+                <p className="font-display text-2xl sm:text-3xl font-bold text-white tabular-nums">{stats.uniquePlayers.toLocaleString()}</p>
+                <p className="stat-label mt-1">Players</p>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <Coins className="w-5 h-5 text-yellow-500" />
                 </div>
-                <p className="text-2xl sm:text-3xl font-bold text-white">{stats.totalSolWagered.toFixed(1)} <span className="text-lg">◎</span></p>
-                <p className="text-xs sm:text-sm text-neutral-400">SOL Wagered</p>
+                <p className="font-display text-2xl sm:text-3xl font-bold text-white tabular-nums">{stats.totalSolWagered.toFixed(1)} <span className="text-lg">◎</span></p>
+                <p className="stat-label mt-1">SOL Wagered</p>
               </div>
             </div>
           </div>
@@ -279,10 +279,10 @@ export default function Home() {
         <div className="border-gradient p-10 text-center">
           <div className="absolute inset-0 bg-gradient-to-r from-solana-purple/5 via-transparent to-solana-green/5" />
           <div className="relative z-10">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            <h2 className="font-display text-2xl md:text-4xl font-bold mb-4">
               Ready to <span className="text-gradient">dominate</span>?
             </h2>
-            <p className="text-neutral-400 max-w-xl mx-auto">
+            <p className="text-neutral-400 max-w-xl mx-auto text-sm sm:text-base">
               Join thousands of players competing in strategic chess battles with real SOL stakes on the fastest blockchain.
             </p>
           </div>

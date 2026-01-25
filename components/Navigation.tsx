@@ -29,10 +29,23 @@ export function Navigation() {
                 className="h-9 w-9 sm:h-10 sm:w-10 object-contain relative z-10"
               />
             </div>
-            <span className="hidden xs:inline text-lg font-bold tracking-tight text-gradient">SolMate</span>
+            <span className="hidden xs:inline font-display text-lg font-bold tracking-tight text-gradient">SolMate</span>
           </Link>
           
           <div className="flex items-center gap-1.5 sm:gap-3">
+            {/* X (Twitter) button */}
+            <a
+              href="https://x.com/SolMateChess"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary flex items-center justify-center p-2.5 rounded-lg text-white hover:text-white transition-all relative z-10 min-w-[40px] min-h-[40px]"
+              aria-label="Follow on X (Twitter)"
+            >
+              <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+            </a>
+            
             {/* Mobile Learn link - more visible */}
             <Link
               href="/learn"
@@ -84,16 +97,6 @@ export function Navigation() {
                 Learn
               </Link>
             </div>
-            <a
-              href="https://x.com/SolMateChess"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary flex items-center justify-center p-2.5 rounded-lg text-white hover:text-white transition-all"
-            >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-              </svg>
-            </a>
             <WalletButton />
           </div>
         </div>

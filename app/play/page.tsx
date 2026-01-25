@@ -63,10 +63,10 @@ export default function PlayPage() {
         transition={{ duration: 0.5 }}
       >
         <div className="mb-6 sm:mb-10">
-          <h1 className="text-2xl sm:text-4xl font-bold mb-2 sm:mb-3">
+          <h1 className="font-display text-2xl sm:text-4xl font-bold mb-2 sm:mb-3">
             Select <span className="text-gradient">Mode</span>
           </h1>
-          <p className="text-base sm:text-lg text-neutral-400">
+          <p className="text-sm sm:text-base text-neutral-400 font-medium">
             Choose your path to victory
           </p>
         </div>
@@ -118,8 +118,8 @@ export default function PlayPage() {
                   }`} />
                 </div>
                 
-                <h3 className="text-base sm:text-xl font-bold mb-1 sm:mb-2 text-white">{option.title}</h3>
-                <p className={`text-xs sm:text-sm ${
+                <h3 className="font-display text-base sm:text-lg font-semibold mb-1 sm:mb-2 text-white">{option.title}</h3>
+                <p className={`text-xs sm:text-sm font-medium ${
                   option.featured ? "text-neutral-300" : "text-neutral-500"
                 } line-clamp-2`}>
                   {option.description}

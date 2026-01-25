@@ -633,10 +633,10 @@ export default function LearnPage() {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h1 className="text-3xl sm:text-4xl font-bold mb-2">
+        <h1 className="font-display text-2xl sm:text-4xl font-bold mb-2">
           <span className="text-gradient">Learn Chess</span>
         </h1>
-        <p className="text-neutral-400 text-lg">
+        <p className="text-neutral-400 text-sm sm:text-base font-medium">
           Master the game from openings to endgames
         </p>
       </motion.div>
