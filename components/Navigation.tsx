@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletButton } from './WalletButton';
+import { BookOpen } from 'lucide-react';
 
 export function Navigation() {
   const pathname = usePathname();
@@ -41,9 +42,7 @@ export function Navigation() {
                   : 'text-white bg-solana-purple/80 hover:bg-solana-purple'
               }`}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
+              <BookOpen className="w-4 h-4" />
               Learn
             </Link>
             
@@ -75,12 +74,13 @@ export function Navigation() {
               )}
               <Link
                 href="/learn"
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
                   pathname === '/learn'
                     ? 'bg-gradient-to-r from-solana-purple to-solana-green text-white shadow-glow-sm'
                     : 'text-neutral-400 hover:text-white hover:bg-white/5'
                 }`}
               >
+                <BookOpen className="w-4 h-4" />
                 Learn
               </Link>
             </div>

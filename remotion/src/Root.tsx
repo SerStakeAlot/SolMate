@@ -5,6 +5,7 @@ import { SpecialMoves } from "./videos/SpecialMoves";
 import { CheckmateBasics } from "./videos/CheckmateBasics";
 import { ChessNotation } from "./videos/ChessNotation";
 import { OpeningPrinciples } from "./videos/OpeningPrinciples";
+import { ItalianGame } from "./videos/ItalianGame";
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -44,6 +45,14 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="OpeningPrinciples"
         component={OpeningPrinciples}
+        durationInFrames={900} // 30 seconds at 30fps
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+      <Composition
+        id="ItalianGame"
+        component={ItalianGame}
         durationInFrames={900} // 30 seconds at 30fps
         fps={30}
         width={1920}

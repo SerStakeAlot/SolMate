@@ -1,5 +1,6 @@
 import { Composition } from 'remotion';
 import { SolMatePromo, SolMatePromoSquare } from './compositions/SolMatePromo';
+import { ItalianGame } from './src/videos/ItalianGame';
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -32,6 +33,16 @@ export const RemotionRoot: React.FC = () => {
         fps={30}
         width={1080}
         height={1920}
+      />
+      
+      {/* Italian Game Opening - 30 seconds @ 30fps = 900 frames */}
+      <Composition
+        id="ItalianGame"
+        component={ItalianGame}
+        durationInFrames={900}
+        fps={30}
+        width={1920}
+        height={1080}
       />
     </>
   );
