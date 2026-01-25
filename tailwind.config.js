@@ -24,6 +24,24 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Menlo', 'Monaco', 'monospace'],
+      },
+      fontSize: {
+        'xxs': ['0.625rem', { lineHeight: '0.875rem' }],
+        'xs': ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.01em' }],
+        'sm': ['0.875rem', { lineHeight: '1.25rem', letterSpacing: '0.01em' }],
+        'base': ['1rem', { lineHeight: '1.5rem', letterSpacing: '-0.01em' }],
+        'lg': ['1.125rem', { lineHeight: '1.75rem', letterSpacing: '-0.01em' }],
+        'xl': ['1.25rem', { lineHeight: '1.75rem', letterSpacing: '-0.02em' }],
+        '2xl': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.02em' }],
+        '3xl': ['1.875rem', { lineHeight: '2.25rem', letterSpacing: '-0.02em' }],
+        '4xl': ['2.25rem', { lineHeight: '2.5rem', letterSpacing: '-0.03em' }],
+        '5xl': ['3rem', { lineHeight: '1', letterSpacing: '-0.03em' }],
+        '6xl': ['3.75rem', { lineHeight: '1', letterSpacing: '-0.04em' }],
+      },
       colors: {
         primary: {
           50: '#faf5ff',
@@ -64,6 +82,10 @@ module.exports = {
         'gradient': 'gradient 8s ease infinite',
         'float': 'float 6s ease-in-out infinite',
         'shimmer': 'shimmer 2s linear infinite',
+        'fade-in': 'fadeIn 0.5s ease-out',
+        'slide-up': 'slideUp 0.4s ease-out',
+        'scale-in': 'scaleIn 0.3s ease-out',
+        'glow-pulse': 'glowPulse 2s ease-in-out infinite',
       },
       keyframes: {
         gradient: {
@@ -78,6 +100,37 @@ module.exports = {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
         },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        slideUp: {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        scaleIn: {
+          '0%': { opacity: '0', transform: 'scale(0.95)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
+        glowPulse: {
+          '0%, 100%': { boxShadow: '0 0 20px rgba(153, 69, 255, 0.3)' },
+          '50%': { boxShadow: '0 0 40px rgba(153, 69, 255, 0.5), 0 0 60px rgba(20, 241, 149, 0.3)' },
+        },
+      },
+      borderRadius: {
+        '4xl': '2rem',
+        '5xl': '2.5rem',
+      },
+      spacing: {
+        '18': '4.5rem',
+        '22': '5.5rem',
+      },
+      transitionDuration: {
+        '400': '400ms',
+      },
+      transitionTimingFunction: {
+        'bounce-in': 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+        'smooth': 'cubic-bezier(0.4, 0, 0.2, 1)',
       },
       backdropBlur: {
         xs: '2px',

@@ -253,10 +253,10 @@ export default function LobbyPage() {
         {/* Header */}
         <header className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-10">
           <div>
-            <h1 className="text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">
+            <h1 className="font-display text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">
               Match <span className="text-gradient">Lobby</span>
             </h1>
-            <p className="text-sm sm:text-lg text-neutral-400">
+            <p className="text-sm sm:text-base text-neutral-400 font-medium">
               Join an open match or create your own
             </p>
           </div>

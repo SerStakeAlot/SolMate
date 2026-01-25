@@ -1940,17 +1940,17 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                 )}
               </div>
               
-              {/* Emoji Picker & Chat Buttons */}
+              {/* Emoji Picker & Chat Buttons - Premium Styled */}
               {((isFreePlay || isMultiplayer) && opponentConnected) || (mode === 'practice' && !isFreePlay) ? (
                 <div className="flex items-center gap-2 mt-2">
-                  {/* React Button */}
+                  {/* React Button - Premium */}
                   <div className="relative">
                     <button
                       onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowChat(false); }}
-                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-all text-sm"
+                      className="btn-secondary flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-white hover:text-white transition-all"
                     >
-                      <span>😊</span>
-                      <span className="text-neutral-400">React</span>
+                      <span className="text-base">😊</span>
+                      <span>React</span>
                     </button>
                     
                     <AnimatePresence>
@@ -1959,14 +1959,20 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           initial={{ opacity: 0, scale: 0.9, y: 10 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                          transition={{ duration: 0.15 }}
                           className="absolute bottom-full left-0 mb-2 z-40"
                         >
-                          <div className="bg-neutral-900 rounded-xl p-2 border border-white/20 shadow-xl flex gap-1">
+                          <div className="glass-card rounded-xl p-3 border border-white/20 shadow-2xl flex gap-2 flex-wrap max-w-[200px]">
                             {REACTION_EMOJIS.map((emoji) => (
                               <button
                                 key={emoji}
                                 onClick={() => sendReaction(emoji)}
-                                className="text-2xl hover:scale-125 transition-transform p-1 hover:bg-white/10 rounded-lg"
+                                className="text-2xl hover:scale-125 active:scale-110 transition-transform p-2 hover:bg-white/10 rounded-lg touch-manipulation"
+                                style={{
+                                  touchAction: 'manipulation',
+                                  WebkitTapHighlightColor: 'rgba(153, 69, 255, 0.3)'
+                                }}
+                                aria-label={`React with ${emoji}`}
                               >
                                 {emoji}
                               </button>
@@ -1977,85 +1983,133 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     </AnimatePresence>
                   </div>
                   
-                  {/* Chat Button */}
+                  {/* Chat Button - Premium */}
                   <button
                     onClick={() => { setShowChat(!showChat); setShowEmojiPicker(false); }}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-all text-sm relative"
+                    className={`btn-secondary flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm relative transition-all ${
+                      showChat ? 'ring-2 ring-solana-purple/50' : ''
+                    }`}
                   >
                     <MessageCircle className="w-4 h-4" />
-                    <span className="text-neutral-400">Chat</span>
+                    <span className="text-white">Chat</span>
                     {unreadCount > 0 && !showChat && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                      <motion.span 
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-lg ring-2 ring-red-500/30"
+                      >
                         {unreadCount > 9 ? '9+' : unreadCount}
-                      </span>
+                      </motion.span>
                     )}
                   </button>
                 </div>
               ) : null}
               
-              {/* Chat Popup */}
+              {/* Chat Popup - Premium Styled */}
               <AnimatePresence>
                 {showChat && (
                   <motion.div
                     initial={{ opacity: 0, y: 20, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                    className="fixed bottom-20 left-2 right-2 z-[9999] sm:absolute sm:bottom-24 sm:left-auto sm:right-4 sm:w-80 sm:z-50"
+                    transition={{ duration: 0.2 }}
+                    className="fixed z-[10000]"
+                    style={{ 
+                      bottom: '16px',
+                      right: '16px',
+                      width: 'calc(100vw - 32px)',
+                      maxWidth: '380px'
+                    }}
                   >
                     <div 
-                      className="rounded-xl border border-white/20 shadow-2xl overflow-hidden"
-                      style={{ backgroundColor: '#171717' }}
+                      className="glass-card rounded-2xl border border-white/20 shadow-2xl overflow-hidden flex flex-col"
+                      style={{ 
+                        backgroundColor: 'rgba(23, 23, 23, 0.98)',
+                        backdropFilter: 'blur(20px)',
+                        WebkitBackdropFilter: 'blur(20px)',
+                        maxHeight: 'min(400px, calc(100vh - 120px))'
+                      }}
                     >
-                      {/* Chat Header */}
+                      {/* Chat Header - Premium */}
                       <div 
-                        className="flex items-center justify-between px-4 py-2 border-b border-white/10"
-                        style={{ backgroundColor: '#1f1f1f' }}
+                        className="flex items-center justify-between px-4 py-3 border-b border-white/10"
+                        style={{ 
+                          backgroundColor: 'rgba(31, 31, 31, 0.8)',
+                          backdropFilter: 'blur(10px)'
+                        }}
                       >
-                        <span className="font-semibold text-sm">Chat</span>
+                        <div className="flex items-center gap-2">
+                          <MessageCircle className="w-4 h-4 text-solana-purple" />
+                          <span className="font-semibold text-sm text-white">Chat</span>
+                        </div>
                         <button
                           onClick={() => setShowChat(false)}
-                          className="text-neutral-400 hover:text-white transition-colors"
+                          className="btn-ghost p-1.5 rounded-lg text-neutral-400 hover:text-white transition-all hover:bg-white/10"
+                          aria-label="Close chat"
                         >
                           <X className="w-4 h-4" />
                         </button>
                       </div>
                       
-                      {/* Chat Messages */}
+                      {/* Chat Messages - Premium Styled */}
                       <div 
-                        className="h-48 overflow-y-auto p-3 space-y-2"
-                        style={{ backgroundColor: '#171717' }}
+                        className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[150px] max-h-[250px] chat-container"
+                        style={{ 
+                          backgroundColor: 'rgba(23, 23, 23, 0.5)',
+                          WebkitOverflowScrolling: 'touch'
+                        }}
                       >
                         {chatMessages.length === 0 ? (
-                          <p className="text-neutral-500 text-sm text-center py-8">
-                            No messages yet. Say hi! 👋
-                          </p>
+                          <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <MessageCircle className="w-12 h-12 text-neutral-600 mb-3" />
+                            <p className="text-neutral-500 text-sm">
+                              No messages yet. Say hi! 👋
+                            </p>
+                          </div>
                         ) : (
                           chatMessages.map((msg, idx) => (
-                            <div
+                            <motion.div
                               key={idx}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.2 }}
                               className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}
                             >
                               <div
-                                className="max-w-[80%] px-3 py-1.5 rounded-xl text-sm text-white"
+                                className={`max-w-[75%] sm:max-w-[80%] px-4 py-2.5 rounded-xl text-sm text-white shadow-lg ${
+                                  msg.sender === 'me' 
+                                    ? 'bg-gradient-to-r from-solana-purple to-solana-green rounded-br-sm' 
+                                    : 'glass-card border border-white/10 rounded-bl-sm'
+                                }`}
                                 style={{
-                                  backgroundColor: msg.sender === 'me' ? '#9945FF' : '#3f3f46'
+                                  backgroundColor: msg.sender === 'me' 
+                                    ? 'linear-gradient(135deg, #9945FF 0%, #14F195 100%)' 
+                                    : 'rgba(63, 63, 70, 0.6)',
+                                  wordBreak: 'break-word'
                                 }}
                               >
                                 {msg.message}
                               </div>
-                            </div>
+                            </motion.div>
                           ))
                         )}
                         <div ref={chatEndRef} />
                       </div>
                       
-                      {/* Chat Input */}
+                      {/* Chat Input - Premium Styled */}
                       <div 
-                        className="p-2 border-t border-white/10"
-                        style={{ backgroundColor: '#1f1f1f' }}
+                        className="p-3 border-t border-white/10"
+                        style={{ 
+                          backgroundColor: 'rgba(31, 31, 31, 0.9)',
+                          backdropFilter: 'blur(10px)'
+                        }}
                       >
                         <form
-                          onSubmit={(e) => { e.preventDefault(); sendChat(); }}
+                          onSubmit={(e) => { 
+                            e.preventDefault(); 
+                            e.stopPropagation();
+                            sendChat(); 
+                          }}
                           className="flex gap-2"
                         >
                           <input
@@ -2064,13 +2118,24 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                             onChange={(e) => setChatInput(e.target.value)}
                             placeholder="Type a message..."
                             maxLength={200}
-                            className="flex-1 rounded-lg px-3 py-2 text-sm text-white placeholder-neutral-500 focus:outline-none"
-                            style={{ backgroundColor: '#262626', border: '1px solid #404040' }}
+                            className="flex-1 rounded-xl px-4 py-2.5 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-solana-purple/50 transition-all"
+                            style={{ 
+                              backgroundColor: 'rgba(38, 38, 38, 0.8)', 
+                              border: '1px solid rgba(255, 255, 255, 0.1)',
+                              backdropFilter: 'blur(10px)'
+                            }}
+                            autoFocus
                           />
                           <button
                             type="submit"
                             disabled={!chatInput.trim()}
-                            className="bg-solana-purple hover:bg-solana-purple/80 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg px-3 py-2 transition-colors"
+                            className="btn-glow disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl px-4 py-2.5 transition-all min-w-[48px] min-h-[44px] flex items-center justify-center touch-manipulation"
+                            style={{
+                              touchAction: 'manipulation',
+                              WebkitTapHighlightColor: 'rgba(153, 69, 255, 0.3)',
+                              minHeight: '44px'
+                            }}
+                            aria-label="Send message"
                           >
                             <Send className="w-4 h-4" />
                           </button>
