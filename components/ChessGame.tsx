@@ -316,6 +316,28 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     return () => clearInterval(interval);
   }, [opponentConnected, isFreePlay, fen, mode, aiGameStarted]); // fen changes on each move
 
+  // Check for timeout - end game when timer hits 0
+  useEffect(() => {
+    // Only check for AI games that have started
+    if (mode !== 'practice' || isFreePlay || !aiGameStarted) return;
+    
+    const chess = chessRef.current;
+    if (!chess || chess.isGameOver() || gameWinner) return;
+    
+    // Check if either player ran out of time
+    if (whiteTimeMs === 0) {
+      // White ran out of time, black wins
+      console.log('White ran out of time! Black wins.');
+      setGameWinner('b');
+      setShowResultModal(true);
+    } else if (blackTimeMs === 0) {
+      // Black ran out of time, white wins
+      console.log('Black ran out of time! White wins.');
+      setGameWinner('w');
+      setShowResultModal(true);
+    }
+  }, [whiteTimeMs, blackTimeMs, mode, isFreePlay, aiGameStarted, gameWinner]);
+
   // WebSocket connection for multiplayer
   useEffect(() => {
     if (!isMultiplayer || !publicKey) return;
@@ -1438,6 +1460,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     const chess = chessRef.current!;
     if (chess.isGameOver()) return;
     
+    // Don't make AI moves if game ended due to timeout
+    if (gameWinner) return;
+    
     // AI plays the opposite color of the player
     const aiColor = aiPlayerColor === 'w' ? 'b' : 'w';
     if (chess.turn() !== aiColor) return;
@@ -1483,12 +1508,15 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     } else {
       playSound('move');
     }
-  }, [playSound, aiDifficulty, aiPlayerColor]);
+  }, [playSound, aiDifficulty, aiPlayerColor, gameWinner]);
 
   const onSquareClick = (square: string) => {
     const chess = chessRef.current!;
 
     if (chess.isGameOver()) return;
+    
+    // Don't allow moves if game ended due to timeout
+    if (gameWinner) return;
     
     // Spectators cannot make moves
     if (isSpectating) return;
