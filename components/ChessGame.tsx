@@ -316,10 +316,14 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     return () => clearInterval(interval);
   }, [opponentConnected, isFreePlay, fen, mode, aiGameStarted]); // fen changes on each move
 
-  // Check for timeout - end game when timer hits 0
+  // Check for timeout - end game when timer hits 0 (AI, free play, and wager matches)
   useEffect(() => {
-    // Only check for AI games that have started
-    if (mode !== 'practice' || isFreePlay || !aiGameStarted) return;
+    // Determine if game is active and should check timeout
+    const isAiGame = mode === 'practice' && !isFreePlay && aiGameStarted;
+    const isFreePlayGame = isFreePlay && opponentConnected;
+    const isWagerGame = isMultiplayer && opponentConnected;
+    
+    if (!isAiGame && !isFreePlayGame && !isWagerGame) return;
     
     const chess = chessRef.current;
     if (!chess || chess.isGameOver() || gameWinner) return;
@@ -330,13 +334,23 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       console.log('White ran out of time! Black wins.');
       setGameWinner('b');
       setShowResultModal(true);
+      
+      // Notify server for multiplayer games
+      if ((isFreePlayGame || isWagerGame) && socket) {
+        socket.emit('game:timeout', { loser: 'w' });
+      }
     } else if (blackTimeMs === 0) {
       // Black ran out of time, white wins
       console.log('Black ran out of time! White wins.');
       setGameWinner('w');
       setShowResultModal(true);
+      
+      // Notify server for multiplayer games
+      if ((isFreePlayGame || isWagerGame) && socket) {
+        socket.emit('game:timeout', { loser: 'b' });
+      }
     }
-  }, [whiteTimeMs, blackTimeMs, mode, isFreePlay, aiGameStarted, gameWinner]);
+  }, [whiteTimeMs, blackTimeMs, mode, isFreePlay, aiGameStarted, gameWinner, opponentConnected, isMultiplayer, socket]);
 
   // WebSocket connection for multiplayer
   useEffect(() => {
