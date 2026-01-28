@@ -14,28 +14,45 @@ export const WalletButton: React.FC = () => {
   const { connected, publicKey, wallets, select, disconnect, connecting, connect, wallet } = useWallet();
   const [showModal, setShowModal] = useState(false);
   const [isMobileAndroid, setIsMobileAndroid] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<string>('');
 
   useEffect(() => {
     setIsMobileAndroid(isAndroid());
-  }, []);
+    // Log available wallets on mount
+    console.log('Available wallets:', wallets.map(w => ({ 
+      name: w.adapter.name, 
+      readyState: w.readyState,
+      url: w.adapter.url 
+    })));
+  }, [wallets]);
 
   const handleConnect = useCallback(() => {
     setShowModal(true);
+    setConnectionStatus('');
   }, []);
 
   // Effect to auto-connect when wallet is selected
   useEffect(() => {
     if (wallet && !connected && !connecting) {
-      console.log('Wallet selected, attempting auto-connect:', wallet.adapter.name);
-      connect().catch((error) => {
-        console.log('Auto-connect error:', error?.message || error);
-      });
+      console.log('Wallet selected, attempting auto-connect:', wallet.adapter.name, 'readyState:', wallet.readyState);
+      setConnectionStatus('Connecting...');
+      
+      connect()
+        .then(() => {
+          console.log('Connected successfully!');
+          setConnectionStatus('Connected!');
+        })
+        .catch((error) => {
+          console.log('Auto-connect error:', error?.message || error, error);
+          setConnectionStatus(`Error: ${error?.message || 'Connection failed'}`);
+        });
     }
   }, [wallet, connected, connecting, connect]);
 
   const handleSelectWallet = useCallback(async (walletName: WalletName) => {
     console.log('Selected wallet:', walletName, 'isMobileAndroid:', isMobileAndroid);
     setShowModal(false);
+    setConnectionStatus('Selecting wallet...');
     
     try {
       // Select the wallet - this will trigger the useEffect above to connect
@@ -43,6 +60,7 @@ export const WalletButton: React.FC = () => {
       console.log('Wallet selected, waiting for connection...');
     } catch (error: any) {
       console.log('Selection error:', error?.message || error);
+      setConnectionStatus(`Selection error: ${error?.message || 'Failed'}`);
       
       // If wallet not detected, try to open the wallet's website/app store
       const selectedWallet = wallets.find(w => w.adapter.name === walletName);
@@ -57,6 +75,7 @@ export const WalletButton: React.FC = () => {
 
   const handleDisconnect = useCallback(() => {
     disconnect();
+    setConnectionStatus('');
   }, [disconnect]);
 
   const shortenAddress = (address: string) => {
@@ -204,6 +223,24 @@ export const WalletButton: React.FC = () => {
           >
             {connecting ? 'Connecting...' : 'Connect Wallet'}
           </button>
+        )}
+        {/* Connection status for debugging */}
+        {connectionStatus && !connected && (
+          <div style={{ 
+            position: 'absolute', 
+            top: '100%', 
+            left: '50%', 
+            transform: 'translateX(-50%)',
+            marginTop: '8px',
+            fontSize: '10px', 
+            color: connectionStatus.includes('Error') ? '#ff6b6b' : '#14F195',
+            whiteSpace: 'nowrap',
+            background: 'rgba(0,0,0,0.8)',
+            padding: '4px 8px',
+            borderRadius: '4px'
+          }}>
+            {connectionStatus}
+          </div>
         )}
       </div>
 
