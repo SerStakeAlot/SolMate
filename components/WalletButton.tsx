@@ -37,12 +37,19 @@ export const WalletButton: React.FC = () => {
       console.log('Wallet selected, attempting auto-connect:', wallet.adapter.name, 'readyState:', wallet.readyState);
       setConnectionStatus('Connecting...');
       
+      // Add timeout for mobile wallet adapter which can hang in TWAs
+      const timeoutId = setTimeout(() => {
+        setConnectionStatus('Connection timed out - try Phantom or Solflare instead');
+      }, 10000); // 10 second timeout
+      
       connect()
         .then(() => {
+          clearTimeout(timeoutId);
           console.log('Connected successfully!');
           setConnectionStatus('Connected!');
         })
         .catch((error) => {
+          clearTimeout(timeoutId);
           console.log('Auto-connect error:', error?.message || error, error);
           setConnectionStatus(`Error: ${error?.message || 'Connection failed'}`);
         });
@@ -262,25 +269,23 @@ export const WalletButton: React.FC = () => {
             </button>
             <div style={modalTitleStyle}>Connect Wallet</div>
             {isMobileAndroid && (
-              <div style={{ fontSize: '11px', color: '#14F195', textAlign: 'center', marginBottom: '12px', padding: '8px', background: 'rgba(20, 241, 149, 0.1)', borderRadius: '8px' }}>
-                📱 Mobile detected - tap your wallet
+              <div style={{ fontSize: '11px', color: '#ffd93d', textAlign: 'center', marginBottom: '12px', padding: '8px', background: 'rgba(255, 217, 61, 0.1)', borderRadius: '8px' }}>
+                ⚠️ On Seeker? Try Phantom app for best results
               </div>
             )}
             <div>
-              {wallets.map((wallet) => {
+              {wallets
+                .filter(w => !w.adapter.name.includes('Mobile')) // Hide Mobile Wallet Adapter - it doesn't work well in TWA
+                .map((wallet) => {
                 const isInstalled = wallet.readyState === WalletReadyState.Installed || 
                                     wallet.readyState === WalletReadyState.Loadable;
-                // On Android, prioritize showing the Mobile Wallet Adapter
-                const isMobileWallet = wallet.adapter.name.includes('Mobile');
-                const showAsReady = isMobileAndroid && isMobileWallet ? true : isInstalled;
                 
                 return (
                   <button
                     key={wallet.adapter.name}
                     style={{
                       ...walletButtonStyle,
-                      opacity: showAsReady ? 1 : 0.6,
-                      ...(isMobileAndroid && isMobileWallet ? { border: '1px solid rgba(20, 241, 149, 0.4)' } : {}),
+                      opacity: isInstalled ? 1 : 0.6,
                     }}
                     onClick={() => handleSelectWallet(wallet.adapter.name)}
                     onMouseEnter={(e) => {
@@ -291,7 +296,7 @@ export const WalletButton: React.FC = () => {
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                      e.currentTarget.style.borderColor = isMobileAndroid && isMobileWallet ? 'rgba(20, 241, 149, 0.4)' : 'rgba(255, 255, 255, 0.12)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
                       e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05) inset';
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
@@ -305,17 +310,14 @@ export const WalletButton: React.FC = () => {
                     )}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                       <span>{wallet.adapter.name}</span>
-                      {isMobileAndroid && isMobileWallet && (
-                        <span style={{ fontSize: '11px', color: '#14F195' }}>Recommended for Seeker</span>
-                      )}
-                      {!showAsReady && !isMobileWallet && (
+                      {!isInstalled && (
                         <span style={{ fontSize: '11px', color: '#888' }}>Tap to install</span>
                       )}
                     </div>
                   </button>
                 );
               })}
-              {wallets.length === 0 && (
+              {wallets.filter(w => !w.adapter.name.includes('Mobile')).length === 0 && (
                 <p style={{ color: '#888', textAlign: 'center', fontSize: '14px' }}>
                   No wallet detected. Please install Phantom or Solflare.
                 </p>
