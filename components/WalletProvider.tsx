@@ -4,6 +4,12 @@ import React, { FC, ReactNode, useMemo } from 'react';
 import { ConnectionProvider, WalletProvider as SolanaWalletProvider } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
+import { 
+  SolanaMobileWalletAdapter, 
+  createDefaultAddressSelector, 
+  createDefaultAuthorizationResultCache,
+  createDefaultWalletNotFoundHandler 
+} from '@solana-mobile/wallet-adapter-mobile';
 
 // We no longer use the library's modal - using custom modal in WalletButton.tsx
 
@@ -24,6 +30,18 @@ export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
   const wallets = useMemo(
     () => [
+      // Mobile Wallet Adapter for Solana mobile wallets (Seeker, Saga, etc.)
+      new SolanaMobileWalletAdapter({
+        appIdentity: {
+          name: 'SolMate',
+          uri: 'https://playsolmate.fun',
+          icon: 'https://playsolmate.fun/images/logo.png',
+        },
+        authorizationResultCache: createDefaultAuthorizationResultCache(),
+        chain: 'mainnet-beta',
+        addressSelector: createDefaultAddressSelector(),
+        onWalletNotFound: createDefaultWalletNotFoundHandler(),
+      }),
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
     ],

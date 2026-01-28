@@ -20,14 +20,20 @@ export const WalletButton: React.FC = () => {
       // Select the wallet first
       select(walletName);
       
-      // Give the adapter a moment to initialize, then connect
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Give the adapter more time to initialize on mobile
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       // Now try to connect
       await connect();
       console.log('Connected successfully!');
     } catch (error: any) {
       console.log('Connection error:', error?.message || error);
+      
+      // If it's a user rejection, that's fine - they cancelled
+      if (error?.message?.includes('User rejected') || error?.message?.includes('cancelled')) {
+        console.log('User cancelled connection');
+        return;
+      }
       
       // If wallet not detected, try to open the wallet's website/app store
       const selectedWallet = wallets.find(w => w.adapter.name === walletName);
