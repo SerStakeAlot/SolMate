@@ -28,29 +28,42 @@ export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
     return 'https://mainnet.helius-rpc.com/?api-key=REDACTED_HELIUS_API_KEY';
   }, []);
 
+  // Check if we're on Android mobile
+  const isAndroidMobile = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent);
+
   const wallets = useMemo(
-    () => [
-      // Mobile Wallet Adapter for Solana mobile wallets (Seeker, Saga, etc.)
-      new SolanaMobileWalletAdapter({
-        appIdentity: {
-          name: 'SolMate',
-          uri: 'https://playsolmate.fun',
-          icon: 'https://playsolmate.fun/images/logo.png',
-        },
-        authorizationResultCache: createDefaultAuthorizationResultCache(),
-        chain: 'mainnet-beta',
-        addressSelector: createDefaultAddressSelector(),
-        onWalletNotFound: createDefaultWalletNotFoundHandler(),
-      }),
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-    ],
+    () => {
+      const walletList = [
+        new PhantomWalletAdapter(),
+        new SolflareWalletAdapter(),
+      ];
+      
+      // Only add Mobile Wallet Adapter on Android
+      // This adapter handles the mobile wallet protocol for Seeker/Saga
+      if (typeof window !== 'undefined' && /android/i.test(navigator.userAgent)) {
+        walletList.unshift(
+          new SolanaMobileWalletAdapter({
+            appIdentity: {
+              name: 'SolMate',
+              uri: 'https://playsolmate.fun',
+              icon: 'https://playsolmate.fun/images/logo.png',
+            },
+            authorizationResultCache: createDefaultAuthorizationResultCache(),
+            chain: 'mainnet-beta',
+            addressSelector: createDefaultAddressSelector(),
+            onWalletNotFound: createDefaultWalletNotFoundHandler(),
+          })
+        );
+      }
+      
+      return walletList;
+    },
     []
   );
 
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <SolanaWalletProvider wallets={wallets} autoConnect={false}>
+      <SolanaWalletProvider wallets={wallets} autoConnect>
         {children}
       </SolanaWalletProvider>
     </ConnectionProvider>

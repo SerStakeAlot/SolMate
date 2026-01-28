@@ -23,30 +23,26 @@ export const WalletButton: React.FC = () => {
     setShowModal(true);
   }, []);
 
+  // Effect to auto-connect when wallet is selected
+  useEffect(() => {
+    if (wallet && !connected && !connecting) {
+      console.log('Wallet selected, attempting auto-connect:', wallet.adapter.name);
+      connect().catch((error) => {
+        console.log('Auto-connect error:', error?.message || error);
+      });
+    }
+  }, [wallet, connected, connecting, connect]);
+
   const handleSelectWallet = useCallback(async (walletName: WalletName) => {
     console.log('Selected wallet:', walletName, 'isMobileAndroid:', isMobileAndroid);
     setShowModal(false);
     
     try {
-      // Select the wallet first
+      // Select the wallet - this will trigger the useEffect above to connect
       select(walletName);
-      
-      // Give the adapter more time to initialize on mobile
-      const timeout = isMobileAndroid ? 500 : 300;
-      await new Promise(resolve => setTimeout(resolve, timeout));
-      
-      // Now try to connect
-      console.log('Attempting to connect...');
-      await connect();
-      console.log('Connected successfully!');
+      console.log('Wallet selected, waiting for connection...');
     } catch (error: any) {
-      console.log('Connection error:', error?.message || error);
-      
-      // If it's a user rejection, that's fine - they cancelled
-      if (error?.message?.includes('User rejected') || error?.message?.includes('cancelled')) {
-        console.log('User cancelled connection');
-        return;
-      }
+      console.log('Selection error:', error?.message || error);
       
       // If wallet not detected, try to open the wallet's website/app store
       const selectedWallet = wallets.find(w => w.adapter.name === walletName);
@@ -57,7 +53,7 @@ export const WalletButton: React.FC = () => {
         }
       }
     }
-  }, [select, connect, wallets, isMobileAndroid]);
+  }, [select, wallets, isMobileAndroid]);
 
   const handleDisconnect = useCallback(() => {
     disconnect();
