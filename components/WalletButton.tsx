@@ -269,16 +269,16 @@ export const WalletButton: React.FC = () => {
             </button>
             <div style={modalTitleStyle}>Connect Wallet</div>
             {isMobileAndroid && (
-              <div style={{ fontSize: '11px', color: '#ffd93d', textAlign: 'center', marginBottom: '12px', padding: '8px', background: 'rgba(255, 217, 61, 0.1)', borderRadius: '8px' }}>
-                ⚠️ On Seeker? Try Phantom app for best results
+              <div style={{ fontSize: '11px', color: '#14F195', textAlign: 'center', marginBottom: '12px', padding: '8px', background: 'rgba(20, 241, 149, 0.1)', borderRadius: '8px' }}>
+                📱 {wallets.length} wallet(s) detected
               </div>
             )}
             <div>
-              {wallets
-                .filter(w => !w.adapter.name.includes('Mobile')) // Hide Mobile Wallet Adapter - it doesn't work well in TWA
-                .map((wallet) => {
+              {/* Show all wallets - wallet-standard will auto-detect Seeker if it injects itself */}
+              {wallets.map((wallet) => {
                 const isInstalled = wallet.readyState === WalletReadyState.Installed || 
                                     wallet.readyState === WalletReadyState.Loadable;
+                const isMobileAdapter = wallet.adapter.name.includes('Mobile');
                 
                 return (
                   <button
@@ -286,6 +286,8 @@ export const WalletButton: React.FC = () => {
                     style={{
                       ...walletButtonStyle,
                       opacity: isInstalled ? 1 : 0.6,
+                      // Highlight installed/detected wallets
+                      ...(isInstalled && !isMobileAdapter ? { border: '1px solid rgba(20, 241, 149, 0.4)' } : {}),
                     }}
                     onClick={() => handleSelectWallet(wallet.adapter.name)}
                     onMouseEnter={(e) => {
@@ -296,7 +298,7 @@ export const WalletButton: React.FC = () => {
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                      e.currentTarget.style.borderColor = isInstalled && !isMobileAdapter ? 'rgba(20, 241, 149, 0.4)' : 'rgba(255, 255, 255, 0.12)';
                       e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05) inset';
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
@@ -310,14 +312,20 @@ export const WalletButton: React.FC = () => {
                     )}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                       <span>{wallet.adapter.name}</span>
-                      {!isInstalled && (
+                      {isInstalled && (
+                        <span style={{ fontSize: '11px', color: '#14F195' }}>Detected ✓</span>
+                      )}
+                      {!isInstalled && isMobileAdapter && (
+                        <span style={{ fontSize: '11px', color: '#ffd93d' }}>For native apps</span>
+                      )}
+                      {!isInstalled && !isMobileAdapter && (
                         <span style={{ fontSize: '11px', color: '#888' }}>Tap to install</span>
                       )}
                     </div>
                   </button>
                 );
               })}
-              {wallets.filter(w => !w.adapter.name.includes('Mobile')).length === 0 && (
+              {wallets.length === 0 && (
                 <p style={{ color: '#888', textAlign: 'center', fontSize: '14px' }}>
                   No wallet detected. Please install Phantom or Solflare.
                 </p>
