@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletName, WalletReadyState } from '@solana/wallet-adapter-base';
+import { transact } from '@solana-mobile/mobile-wallet-adapter-protocol-web3js';
 
 // Check if running on Android mobile
 const isAndroid = () => {
@@ -15,6 +16,7 @@ export const WalletButton: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [isMobileAndroid, setIsMobileAndroid] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<string>('');
+  const [mwaPublicKey, setMwaPublicKey] = useState<string | null>(null);
 
   useEffect(() => {
     setIsMobileAndroid(isAndroid());
@@ -29,6 +31,42 @@ export const WalletButton: React.FC = () => {
   const handleConnect = useCallback(() => {
     setShowModal(true);
     setConnectionStatus('');
+  }, []);
+
+  // Direct MWA connection for debugging
+  const handleDirectMWA = useCallback(async () => {
+    setShowModal(false);
+    setConnectionStatus('Connecting via MWA...');
+    
+    try {
+      console.log('Starting direct MWA transact...');
+      const result = await transact(async (wallet) => {
+        console.log('Inside transact callback, authorizing...');
+        const authorization = await wallet.authorize({
+          identity: {
+            name: 'SolMate',
+            uri: 'https://playsolmate.fun',
+            icon: 'https://playsolmate.fun/images/logo.png',
+          },
+          cluster: 'mainnet-beta',
+        });
+        console.log('Authorization result:', authorization);
+        return authorization;
+      });
+      
+      console.log('MWA transact result:', result);
+      if (result?.accounts?.[0]?.address) {
+        const address = result.accounts[0].address;
+        // Convert Uint8Array to base58 if needed
+        const addressStr = typeof address === 'string' ? address : 
+          Array.from(address).map(b => b.toString(16).padStart(2, '0')).join('');
+        setMwaPublicKey(addressStr);
+        setConnectionStatus(`Connected: ${addressStr.slice(0, 8)}...`);
+      }
+    } catch (error: any) {
+      console.error('Direct MWA error:', error);
+      setConnectionStatus(`MWA Error: ${error?.message || error}`);
+    }
   }, []);
 
   // Effect to auto-connect when wallet is selected
@@ -269,9 +307,28 @@ export const WalletButton: React.FC = () => {
             </button>
             <div style={modalTitleStyle}>Connect Wallet</div>
             {isMobileAndroid && (
-              <div style={{ fontSize: '11px', color: '#14F195', textAlign: 'center', marginBottom: '12px', padding: '8px', background: 'rgba(20, 241, 149, 0.1)', borderRadius: '8px' }}>
-                📱 {wallets.length} wallet(s) detected
-              </div>
+              <>
+                <div style={{ fontSize: '11px', color: '#14F195', textAlign: 'center', marginBottom: '8px', padding: '8px', background: 'rgba(20, 241, 149, 0.1)', borderRadius: '8px' }}>
+                  📱 {wallets.length} wallet(s) detected
+                </div>
+                {/* Direct Seeker/MWA button */}
+                <button
+                  onClick={handleDirectMWA}
+                  style={{
+                    ...walletButtonStyle,
+                    border: '1px solid rgba(153, 69, 255, 0.6)',
+                    background: 'rgba(153, 69, 255, 0.15)',
+                    marginBottom: '12px',
+                  }}
+                >
+                  <span style={{ fontSize: '24px' }}>🔐</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <span>Connect Seeker / MWA</span>
+                    <span style={{ fontSize: '11px', color: '#9945FF' }}>Direct connection</span>
+                  </div>
+                </button>
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '12px' }} />
+              </>
             )}
             <div>
               {/* Show all wallets - wallet-standard will auto-detect Seeker if it injects itself */}
