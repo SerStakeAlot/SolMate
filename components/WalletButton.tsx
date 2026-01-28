@@ -1,19 +1,30 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletName, WalletReadyState } from '@solana/wallet-adapter-base';
 
+// Check if running on Android mobile
+const isAndroid = () => {
+  if (typeof navigator === 'undefined') return false;
+  return /android/i.test(navigator.userAgent);
+};
+
 export const WalletButton: React.FC = () => {
-  const { connected, publicKey, wallets, select, disconnect, connecting, connect } = useWallet();
+  const { connected, publicKey, wallets, select, disconnect, connecting, connect, wallet } = useWallet();
   const [showModal, setShowModal] = useState(false);
+  const [isMobileAndroid, setIsMobileAndroid] = useState(false);
+
+  useEffect(() => {
+    setIsMobileAndroid(isAndroid());
+  }, []);
 
   const handleConnect = useCallback(() => {
     setShowModal(true);
   }, []);
 
   const handleSelectWallet = useCallback(async (walletName: WalletName) => {
-    console.log('Selected wallet:', walletName);
+    console.log('Selected wallet:', walletName, 'isMobileAndroid:', isMobileAndroid);
     setShowModal(false);
     
     try {
@@ -21,9 +32,11 @@ export const WalletButton: React.FC = () => {
       select(walletName);
       
       // Give the adapter more time to initialize on mobile
-      await new Promise(resolve => setTimeout(resolve, 300));
+      const timeout = isMobileAndroid ? 500 : 300;
+      await new Promise(resolve => setTimeout(resolve, timeout));
       
       // Now try to connect
+      console.log('Attempting to connect...');
       await connect();
       console.log('Connected successfully!');
     } catch (error: any) {
@@ -44,7 +57,7 @@ export const WalletButton: React.FC = () => {
         }
       }
     }
-  }, [select, connect, wallets]);
+  }, [select, connect, wallets, isMobileAndroid]);
 
   const handleDisconnect = useCallback(() => {
     disconnect();
@@ -215,16 +228,26 @@ export const WalletButton: React.FC = () => {
               ✕
             </button>
             <div style={modalTitleStyle}>Connect Wallet</div>
+            {isMobileAndroid && (
+              <div style={{ fontSize: '11px', color: '#14F195', textAlign: 'center', marginBottom: '12px', padding: '8px', background: 'rgba(20, 241, 149, 0.1)', borderRadius: '8px' }}>
+                📱 Mobile detected - tap your wallet
+              </div>
+            )}
             <div>
               {wallets.map((wallet) => {
                 const isInstalled = wallet.readyState === WalletReadyState.Installed || 
                                     wallet.readyState === WalletReadyState.Loadable;
+                // On Android, prioritize showing the Mobile Wallet Adapter
+                const isMobileWallet = wallet.adapter.name.includes('Mobile');
+                const showAsReady = isMobileAndroid && isMobileWallet ? true : isInstalled;
+                
                 return (
                   <button
                     key={wallet.adapter.name}
                     style={{
                       ...walletButtonStyle,
-                      opacity: isInstalled ? 1 : 0.6,
+                      opacity: showAsReady ? 1 : 0.6,
+                      ...(isMobileAndroid && isMobileWallet ? { border: '1px solid rgba(20, 241, 149, 0.4)' } : {}),
                     }}
                     onClick={() => handleSelectWallet(wallet.adapter.name)}
                     onMouseEnter={(e) => {
@@ -235,7 +258,7 @@ export const WalletButton: React.FC = () => {
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+                      e.currentTarget.style.borderColor = isMobileAndroid && isMobileWallet ? 'rgba(20, 241, 149, 0.4)' : 'rgba(255, 255, 255, 0.12)';
                       e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05) inset';
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
@@ -249,7 +272,10 @@ export const WalletButton: React.FC = () => {
                     )}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                       <span>{wallet.adapter.name}</span>
-                      {!isInstalled && (
+                      {isMobileAndroid && isMobileWallet && (
+                        <span style={{ fontSize: '11px', color: '#14F195' }}>Recommended for Seeker</span>
+                      )}
+                      {!showAsReady && !isMobileWallet && (
                         <span style={{ fontSize: '11px', color: '#888' }}>Tap to install</span>
                       )}
                     </div>
