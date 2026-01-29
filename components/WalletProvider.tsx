@@ -2,7 +2,7 @@
 
 import React, { FC, ReactNode, useMemo } from 'react';
 import { ConnectionProvider, WalletProvider as SolanaWalletProvider } from '@solana/wallet-adapter-react';
-import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
+import { WalletAdapterNetwork, Adapter } from '@solana/wallet-adapter-base';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { 
   SolanaMobileWalletAdapter, 
@@ -33,7 +33,7 @@ export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
   const wallets = useMemo(
     () => {
-      const walletList = [
+      const walletList: Adapter[] = [
         new PhantomWalletAdapter(),
         new SolflareWalletAdapter(),
       ];
@@ -52,7 +52,7 @@ export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
             chain: 'mainnet-beta',
             addressSelector: createDefaultAddressSelector(),
             onWalletNotFound: createDefaultWalletNotFoundHandler(),
-          })
+          }) as Adapter
         );
       }
       
@@ -63,7 +63,7 @@ export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <SolanaWalletProvider wallets={wallets} autoConnect>
+      <SolanaWalletProvider wallets={wallets} autoConnect={false}>
         {children}
       </SolanaWalletProvider>
     </ConnectionProvider>

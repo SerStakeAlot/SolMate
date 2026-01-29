@@ -26,6 +26,52 @@ export const WalletButton: React.FC = () => {
       readyState: w.readyState,
       url: w.adapter.url 
     })));
+    
+    // Check for wallet-standard wallets
+    if (typeof window !== 'undefined') {
+      // Check window.solana (legacy)
+      if ((window as any).solana) {
+        console.log('window.solana detected:', (window as any).solana);
+      }
+      // Check for wallet-standard registry
+      const walletStandard = (window as any).navigator?.wallet?.wallets || 
+                             (window as any).wallets || 
+                             (window as any).solanaWallets;
+      if (walletStandard) {
+        console.log('Wallet-standard wallets:', walletStandard);
+      }
+    }
+  }, [wallets]);
+
+  // Diagnostic function to check what's available
+  const runDiagnostics = useCallback(() => {
+    const diagnostics: string[] = [];
+    
+    diagnostics.push(`UA: ${navigator.userAgent.substring(0, 80)}...`);
+    diagnostics.push(`Wallets: ${wallets.length}`);
+    
+    wallets.forEach(w => {
+      diagnostics.push(`  ${w.adapter.name}: ${w.readyState}`);
+    });
+    
+    // Check window objects
+    if ((window as any).solana) {
+      const sol = (window as any).solana;
+      diagnostics.push(`window.solana: ${sol.isPhantom ? 'Phantom' : sol.isSolflare ? 'Solflare' : 'Unknown'}`);
+    } else {
+      diagnostics.push('window.solana: NOT FOUND');
+    }
+    
+    // Check if we're in a TWA
+    if ((document as any).referrer?.includes('android-app://')) {
+      diagnostics.push('Running in TWA: YES');
+    } else {
+      diagnostics.push('TWA: Likely NO');
+    }
+    
+    const msg = diagnostics.join('\n');
+    console.log('=== DIAGNOSTICS ===\n' + msg);
+    alert(msg);
   }, [wallets]);
 
   const handleConnect = useCallback(() => {
@@ -33,39 +79,60 @@ export const WalletButton: React.FC = () => {
     setConnectionStatus('');
   }, []);
 
-  // Direct MWA connection for debugging
+  // Direct MWA connection for debugging - with timeout
   const handleDirectMWA = useCallback(async () => {
     setShowModal(false);
     setConnectionStatus('Connecting via MWA...');
     
+    // Create a timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('MWA_TIMEOUT: No wallet responded after 8 seconds. Seeker may not support MWA web protocol.')), 8000);
+    });
+    
     try {
       console.log('Starting direct MWA transact...');
-      const result = await transact(async (wallet) => {
-        console.log('Inside transact callback, authorizing...');
-        const authorization = await wallet.authorize({
-          identity: {
-            name: 'SolMate',
-            uri: 'https://playsolmate.fun',
-            icon: 'https://playsolmate.fun/images/logo.png',
-          },
-          cluster: 'mainnet-beta',
-        });
-        console.log('Authorization result:', authorization);
-        return authorization;
-      });
+      
+      // Check if getWallets API exists (wallet-standard)
+      if (typeof window !== 'undefined' && (window as any).navigator?.wallets) {
+        console.log('Wallet-standard wallets found:', (window as any).navigator.wallets);
+      }
+      
+      // Race between transact and timeout
+      const result = await Promise.race([
+        transact(async (wallet) => {
+          console.log('Inside transact callback, authorizing...');
+          setConnectionStatus('Wallet found, authorizing...');
+          const authorization = await wallet.authorize({
+            identity: {
+              name: 'SolMate',
+              uri: 'https://playsolmate.fun',
+              icon: 'https://playsolmate.fun/images/logo.png',
+            },
+            cluster: 'mainnet-beta',
+          });
+          console.log('Authorization result:', authorization);
+          return authorization;
+        }),
+        timeoutPromise
+      ]) as any;
       
       console.log('MWA transact result:', result);
       if (result?.accounts?.[0]?.address) {
         const address = result.accounts[0].address;
         // Convert Uint8Array to base58 if needed
         const addressStr = typeof address === 'string' ? address : 
-          Array.from(address).map(b => b.toString(16).padStart(2, '0')).join('');
+          Array.from(address as Uint8Array).map((b: number) => b.toString(16).padStart(2, '0')).join('');
         setMwaPublicKey(addressStr);
         setConnectionStatus(`Connected: ${addressStr.slice(0, 8)}...`);
       }
     } catch (error: any) {
       console.error('Direct MWA error:', error);
-      setConnectionStatus(`MWA Error: ${error?.message || error}`);
+      const errorMsg = error?.message || String(error);
+      if (errorMsg.includes('MWA_TIMEOUT')) {
+        setConnectionStatus('No wallet found. Try Phantom app instead.');
+      } else {
+        setConnectionStatus(`Error: ${errorMsg.slice(0, 50)}`);
+      }
     }
   }, []);
 
@@ -318,7 +385,7 @@ export const WalletButton: React.FC = () => {
                     ...walletButtonStyle,
                     border: '1px solid rgba(153, 69, 255, 0.6)',
                     background: 'rgba(153, 69, 255, 0.15)',
-                    marginBottom: '12px',
+                    marginBottom: '8px',
                   }}
                 >
                   <span style={{ fontSize: '24px' }}>🔐</span>
@@ -326,6 +393,23 @@ export const WalletButton: React.FC = () => {
                     <span>Connect Seeker / MWA</span>
                     <span style={{ fontSize: '11px', color: '#9945FF' }}>Direct connection</span>
                   </div>
+                </button>
+                {/* Diagnostics button */}
+                <button
+                  onClick={runDiagnostics}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    fontSize: '12px',
+                    background: 'rgba(255, 165, 0, 0.1)',
+                    border: '1px solid rgba(255, 165, 0, 0.3)',
+                    borderRadius: '8px',
+                    color: '#ffa500',
+                    marginBottom: '12px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  🔍 Run Diagnostics
                 </button>
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '12px' }} />
               </>
