@@ -523,6 +523,72 @@ class StatsStore {
       after: this.getPlatformStats(),
     };
   }
+
+  // Fix game history records that have stake tier number instead of SOL amount
+  fixGameHistoryStakes(): { fixed: number; games: any[] } {
+    // Map stake tier to SOL amount
+    const TIER_TO_SOL: Record<number, number> = {
+      4: 0.05,
+      5: 0.1,
+      0: 0.5,
+      1: 1.0,
+    };
+
+    // Find games with stake amounts that look like tier numbers (4, 5, 0, 1)
+    // and are wager games
+    const badGames = db.prepare(`
+      SELECT * FROM game_history 
+      WHERE is_wager_game = 1 
+      AND stake_amount IN (0, 1, 4, 5)
+    `).all() as any[];
+
+    let fixed = 0;
+    for (const game of badGames) {
+      const tierNumber = game.stake_amount;
+      const correctAmount = TIER_TO_SOL[tierNumber];
+      
+      if (correctAmount !== undefined && correctAmount !== tierNumber) {
+        db.prepare(`
+          UPDATE game_history 
+          SET stake_amount = @correctAmount 
+          WHERE game_id = @gameId
+        `).run({
+          correctAmount,
+          gameId: game.game_id,
+        });
+        fixed++;
+        console.log(`Fixed game ${game.game_id}: ${tierNumber} -> ${correctAmount} SOL`);
+      }
+    }
+
+    // Also recalculate platform stats after fixing
+    this.resetPlatformStats();
+
+    // Also recalculate payout stats
+    const payoutStats = db.prepare(`
+      SELECT 
+        SUM(stake_amount * 2 * 0.9) as total_paid,
+        SUM(stake_amount * 2 * 0.1) as total_fees
+      FROM game_history
+      WHERE is_wager_game = 1 AND result IN ('white', 'black')
+    `).get() as any;
+
+    db.prepare(`
+      UPDATE platform_stats SET
+        total_sol_paid_out = @paidOut,
+        total_fees_collected = @fees,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = 1
+    `).run({
+      paidOut: payoutStats.total_paid || 0,
+      fees: payoutStats.total_fees || 0,
+    });
+
+    return {
+      fixed,
+      games: badGames,
+    };
+  }
 }
 
 export const statsStore = new StatsStore();
