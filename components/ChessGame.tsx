@@ -218,6 +218,11 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [wagerLobbyHostColor, setWagerLobbyHostColor] = useState<'w' | 'b'>('w');
   const [wagerOpponentWallet, setWagerOpponentWallet] = useState<string | null>(null);
   
+  // Joiner on-chain stake status
+  const [hasJoinerStaked, setHasJoinerStaked] = useState(false);
+  const [isJoiningMatch, setIsJoiningMatch] = useState(false);
+  const [joinerStakeError, setJoinerStakeError] = useState<string | null>(null);
+  
   // Spectator mode
   const [isSpectating, setIsSpectating] = useState(!!spectateRoomId);
   const [spectatorWhitePlayer, setSpectatorWhitePlayer] = useState<string>('');
@@ -363,6 +368,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     }
     if (actualPlayerRole === 'join' && !matchCode) {
       console.log('Joiner waiting for matchCode...');
+      return;
+    }
+    
+    // For wager matches, joiner must have staked on-chain first
+    if (actualPlayerRole === 'join' && mode === 'wager' && !hasJoinerStaked) {
+      console.log('Joiner waiting for on-chain stake...');
       return;
     }
     
@@ -540,7 +551,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     return () => {
       newSocket.disconnect();
     };
-  }, [isMultiplayer, publicKey, matchCode, actualPlayerRole, currentMatchPubkey, selectedStakeTier]);
+  }, [isMultiplayer, publicKey, matchCode, actualPlayerRole, currentMatchPubkey, selectedStakeTier, hasJoinerStaked]);
   
   // WebSocket connection for FREE PLAY mode (no blockchain)
   useEffect(() => {
@@ -1278,6 +1289,82 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setIsCancellingMatch(false);
     }
   };
+
+  // Handle on-chain join for wager match (required for share link joiners)
+  const handleJoinOnChain = async () => {
+    if (!connected || !publicKey) {
+      setJoinerStakeError('Please connect your wallet first');
+      return;
+    }
+
+    if (!currentMatchPubkey) {
+      setJoinerStakeError('No match to join');
+      return;
+    }
+
+    setIsJoiningMatch(true);
+    setJoinerStakeError(null);
+    try {
+      const client = new EscrowClient(connection, wallet);
+      
+      // First check if we're already joined (playerB matches our wallet)
+      const matchData = await client.fetchMatch(currentMatchPubkey);
+      if (matchData?.playerB?.equals(publicKey)) {
+        console.log('Already joined on-chain!');
+        setHasJoinerStaked(true);
+        return;
+      }
+
+      // Check if match is still open
+      if (matchData?.status !== MatchStatus.Open) {
+        setJoinerStakeError('Match is no longer available to join');
+        return;
+      }
+
+      console.log('Joining match on-chain...', currentMatchPubkey.toBase58());
+      const signature = await client.joinMatch(currentMatchPubkey);
+      
+      console.log('Successfully joined match on-chain! Signature:', signature);
+      setTxSignature(signature);
+      setHasJoinerStaked(true);
+    } catch (error: any) {
+      console.error('Error joining match on-chain:', error);
+      if (error.message?.includes('User rejected') || error.message?.includes('rejected')) {
+        setJoinerStakeError('Transaction was cancelled');
+      } else {
+        setJoinerStakeError(`Failed to stake: ${error.message || error}`);
+      }
+    } finally {
+      setIsJoiningMatch(false);
+    }
+  };
+
+  // Check on-chain status when joining a wager match via share link
+  useEffect(() => {
+    const checkJoinerStatus = async () => {
+      if (actualPlayerRole !== 'join' || mode !== 'wager' || !currentMatchPubkey || !publicKey) {
+        return;
+      }
+
+      try {
+        const client = new EscrowClient(connection, wallet);
+        const matchData = await client.fetchMatch(currentMatchPubkey);
+        
+        if (matchData?.playerB?.equals(publicKey)) {
+          console.log('Already staked on-chain as Player B');
+          setHasJoinerStaked(true);
+        } else {
+          console.log('Not yet staked on-chain - need to join');
+          setHasJoinerStaked(false);
+        }
+      } catch (error) {
+        console.error('Error checking join status:', error);
+        setHasJoinerStaked(false);
+      }
+    };
+
+    checkJoinerStatus();
+  }, [actualPlayerRole, mode, currentMatchPubkey, publicKey]);
 
   const handleJoinMatch = async () => {
     if (!connected || !publicKey) {
@@ -2816,6 +2903,54 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       <div className="bg-solana-purple/10 border border-solana-purple/30 rounded-xl p-4">
                         <p className="text-solana-purple font-semibold">
                           {isSubmittingResult ? 'Finalizing...' : 'Processing...'}
+                        </p>
+                      </div>
+                    ) : actualPlayerRole === 'join' && currentMatchPubkey && !hasJoinerStaked ? (
+                      /* Joiner needs to stake before joining the game */
+                      <div className="bg-gradient-to-r from-solana-purple/20 to-solana-green/20 rounded-xl p-4 border border-solana-purple/30">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Coins className="h-5 w-5 text-solana-purple" />
+                          <p className="text-white font-semibold">Join Wager Match</p>
+                        </div>
+                        
+                        <div className="bg-black/20 rounded-lg p-3 mb-3">
+                          <p className="text-sm text-neutral-400">Your Stake</p>
+                          <p className="text-xl font-bold text-white">{getStakeTierInfo(selectedStakeTier).label}</p>
+                        </div>
+                        
+                        <p className="text-sm text-neutral-400 mb-4">
+                          You must stake {getStakeTierInfo(selectedStakeTier).label} to join this match. The winner takes 90% of the pot.
+                        </p>
+                        
+                        {joinerStakeError && (
+                          <div className="mb-3 p-2 bg-red-500/20 border border-red-500/30 rounded-lg">
+                            <p className="text-sm text-red-400">{joinerStakeError}</p>
+                          </div>
+                        )}
+                        
+                        <motion.button
+                          type="button"
+                          onClick={handleJoinOnChain}
+                          disabled={isJoiningMatch}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-solana-purple to-solana-green text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all disabled:opacity-50"
+                        >
+                          {isJoiningMatch ? (
+                            <>
+                              <Loader2 className="h-5 w-5 animate-spin" />
+                              Staking...
+                            </>
+                          ) : (
+                            <>
+                              <Coins className="h-5 w-5" />
+                              Stake & Join Match
+                            </>
+                          )}
+                        </motion.button>
+                        
+                        <p className="text-xs text-neutral-500 mt-3 text-center">
+                          Match Code: <span className="font-mono text-white">{matchCode}</span>
                         </p>
                       </div>
                     ) : inWagerLobby ? (
