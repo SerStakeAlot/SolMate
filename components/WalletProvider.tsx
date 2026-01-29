@@ -2,11 +2,10 @@
 
 import React, { FC, ReactNode, useMemo } from 'react';
 import { ConnectionProvider, WalletProvider as SolanaWalletProvider } from '@solana/wallet-adapter-react';
-import { WalletAdapterNetwork, Adapter } from '@solana/wallet-adapter-base';
+import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 
-// Note: SolanaMobileWalletAdapter removed - it causes crashes/redirects in TWA
-// Mobile users can use Phantom/Solflare mobile apps which inject window.solana
+// We no longer use the library's modal - using custom modal in WalletButton.tsx
 
 export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
   // The network can be set to 'devnet', 'testnet', or 'mainnet-beta'.
@@ -24,14 +23,10 @@ export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
   }, []);
 
   const wallets = useMemo(
-    () => {
-      const walletList: Adapter[] = [
-        new PhantomWalletAdapter(),
-        new SolflareWalletAdapter(),
-      ];
-      
-      return walletList;
-    },
+    () => [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+    ],
     []
   );
 
