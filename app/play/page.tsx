@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Users, Swords, ArrowLeft, ArrowRight } from "lucide-react";
+import { Users, Swords, ArrowLeft, ArrowRight, Gamepad2 } from "lucide-react";
 
-type PlayMode = "join" | "host";
+type PlayMode = "join" | "host" | "freeplay";
 
 export default function PlayPage() {
   const router = useRouter();
@@ -15,6 +15,9 @@ export default function PlayPage() {
     if (mode === 'join') {
       return '/lobby';
     }
+    if (mode === 'freeplay') {
+      return '/game?mode=computer'; // Opens practice mode with free play option
+    }
     const params = new URLSearchParams();
     if (mode) params.set("mode", mode);
     return `/game?${params.toString()}`;
@@ -22,12 +25,19 @@ export default function PlayPage() {
 
   const modeOptions = [
     {
+      id: "freeplay" as const,
+      title: "Free Play",
+      description: "Play friends online - no wallet needed",
+      icon: Gamepad2,
+      featured: true,
+      gradient: "from-solana-purple via-violet-500 to-solana-green",
+    },
+    {
       id: "join" as const,
       title: "Join Match",
       description: "Browse and join open staked matches",
       icon: Users,
-      featured: true,
-      gradient: "from-solana-purple via-violet-500 to-solana-green",
+      featured: false,
     },
     {
       id: "host" as const,
@@ -54,7 +64,7 @@ export default function PlayPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5 mb-8 sm:mb-10 max-w-2xl">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-5 mb-8 sm:mb-10 max-w-3xl">
           {modeOptions.map((option, index) => (
             <motion.button
               key={option.id}
@@ -65,11 +75,7 @@ export default function PlayPage() {
               transition={{ duration: 0.4, delay: index * 0.1 }}
               whileHover={{ scale: 1.02, y: -4 }}
               whileTap={{ scale: 0.98 }}
-              className={`relative group text-left transition-all duration-300 rounded-2xl overflow-hidden ${
-                option.featured
-                  ? "lg:col-span-1"
-                  : ""
-              }`}
+              className="relative group text-left transition-all duration-300 rounded-2xl overflow-hidden"
             >
               {/* Background */}
               <div className={`absolute inset-0 ${
