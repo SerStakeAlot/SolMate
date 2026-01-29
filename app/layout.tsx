@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { WalletProvider } from "@/components/WalletProvider";
+import { CombinedWalletProvider } from "@/components/CombinedWalletProvider";
 import { Navigation } from "@/components/Navigation";
 import { WalletBalanceWarning } from "@/components/WalletBalanceWarning";
 
@@ -62,7 +62,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="min-h-screen bg-[#050505] text-white antialiased bg-mesh">
-        <WalletProvider>
+        <CombinedWalletProvider>
           <div className="relative min-h-screen">
             {/* Subtle animated gradient orbs */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -77,7 +77,7 @@ export default function RootLayout({
             </main>
             <WalletBalanceWarning />
           </div>
-        </WalletProvider>
+        </CombinedWalletProvider>
       </body>
     </html>
   );

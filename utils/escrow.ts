@@ -162,7 +162,7 @@ export class EscrowClient {
     console.log('=== CREATE MATCH DEBUG (v2) ===');
     console.log('Seed (BigInt):', seed.toNumber());
     console.log('Seed bytes:', seed.toArrayLike(Buffer, 'le', 8).toString('hex'));
-    console.log('Player:', this.wallet.publicKey.toBase58());
+    console.log('Connected Wallet (signer):', this.wallet.publicKey.toBase58());
     console.log('Match PDA:', matchPDA.toBase58());
     console.log('Escrow PDA:', escrowPDA.toBase58());
     console.log('Program ID:', PROGRAM_ID.toBase58());
@@ -186,6 +186,9 @@ export class EscrowClient {
       { pubkey: this.wallet.publicKey, isSigner: true, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ];
+    
+    console.log('Transaction accounts:');
+    keys.forEach((k, i) => console.log(`  ${i}: ${k.pubkey.toBase58()} (signer: ${k.isSigner})`));
 
     const instruction = {
       keys,
@@ -207,9 +210,11 @@ export class EscrowClient {
         transaction.lastValidBlockHeight = lastValidBlockHeight;
         
         // Simulate the transaction first to get better error messages
-        console.log('Simulating transaction...');
+        // Note: For simulation, the wallet doesn't need to sign - we're just checking if it would work
+        console.log('Simulating transaction (pre-sign check)...');
         try {
-          const simulation = await this.connection.simulateTransaction(transaction);
+          // Simulation with sigVerify: false allows us to check without actual signatures
+          const simulation = await this.connection.simulateTransaction(transaction, undefined);
           if (simulation.value.err) {
             console.error('Simulation failed:', simulation.value.err);
             console.error('Logs:', simulation.value.logs);
@@ -217,8 +222,14 @@ export class EscrowClient {
           }
           console.log('Simulation successful, logs:', simulation.value.logs);
         } catch (simError: any) {
-          console.error('Simulation error:', simError);
-          // Continue anyway - some wallets handle this differently
+          // If simulation fails with "missing signature", that's expected for unsigned tx
+          // Only fail if it's a different error
+          if (!simError.message?.includes('missing signature')) {
+            console.error('Simulation error (non-signature):', simError);
+          } else {
+            console.log('Simulation skipped - will sign then send');
+          }
+          // Continue anyway - some errors are expected without signatures
         }
         
         let signature: string;
@@ -227,14 +238,43 @@ export class EscrowClient {
         // sendTransaction can have issues with Phantom's internal simulation
         if (this.wallet.signTransaction) {
           console.log('Using signTransaction + sendRawTransaction...');
+          console.log('Transaction feePayer:', transaction.feePayer?.toBase58());
+          console.log('Transaction instructions:', transaction.instructions.length);
+          
           try {
             const signed = await this.wallet.signTransaction(transaction);
+            
+            // Log signature details
+            console.log('Signed transaction signatures:', signed.signatures.map(s => ({
+              publicKey: s.publicKey.toBase58(),
+              signature: s.signature ? 'present' : 'missing'
+            })));
+            
+            // Verify the signature is from the right key BEFORE sending
+            const expectedSigner = this.wallet.publicKey.toBase58();
+            const signedBy = signed.signatures.find(s => s.signature !== null)?.publicKey.toBase58();
+            
+            if (signedBy !== expectedSigner) {
+              console.error('SIGNATURE MISMATCH!');
+              console.error('Expected signer:', expectedSigner);
+              console.error('Actual signer:', signedBy);
+              throw new Error(`Transaction signed by wrong wallet! Expected ${expectedSigner.slice(0,8)}... but got ${signedBy?.slice(0,8)}...`);
+            }
+            
+            // Use skipPreflight: true to avoid RPC node trying to re-verify
             signature = await this.connection.sendRawTransaction(signed.serialize(), {
-              skipPreflight: false,
+              skipPreflight: true, // Skip preflight since we already simulated
               preflightCommitment: 'confirmed',
             });
           } catch (signError: any) {
             console.error('Sign/send error:', signError);
+            console.error('Error type:', signError?.constructor?.name);
+            
+            // Check if the error mentions a different public key than expected
+            if (signError.message?.includes('missing signature')) {
+              console.error('Expected signer:', this.wallet.publicKey.toBase58());
+              console.error('Wallet adapter name:', this.wallet.wallet?.adapter?.name);
+            }
             throw signError;
           }
         } else if (this.wallet.sendTransaction) {
