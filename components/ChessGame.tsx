@@ -818,7 +818,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     return () => {
       newSocket.disconnect();
     };
-  }, [isFreePlay, playSound]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFreePlay]); // Only depend on isFreePlay - playSound is accessed via ref pattern inside
   
   // WebSocket connection for WAGER SPECTATING mode
   useEffect(() => {
@@ -2658,7 +2659,10 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                         {(dynamicPlayerRole === 'host' || isCreatingFreePlay) && (
                           <motion.button
                             type="button"
-                            onClick={() => socket?.emit('freeplay:startGame', { code: freePlayCode })}
+                            onClick={() => {
+                              console.log('Start Game clicked. Socket:', socket?.id, 'Code:', freePlayCode, 'Connected:', socket?.connected);
+                              socket?.emit('freeplay:startGame', { code: freePlayCode });
+                            }}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                             className="mt-4 w-full flex items-center justify-center gap-2 bg-gradient-to-r from-solana-purple to-solana-green text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all"
