@@ -5,9 +5,6 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletName, WalletReadyState } from '@solana/wallet-adapter-base';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 
-// Check if Privy is configured
-const PRIVY_ENABLED = !!process.env.NEXT_PUBLIC_PRIVY_APP_ID;
-
 // Detect if we're on a mobile device
 const isMobileDevice = () => {
   if (typeof window === 'undefined') return false;
@@ -74,6 +71,11 @@ const PrivyWalletButtonInner: React.FC = () => {
     }
   }, [logout]);
 
+  // Debug: log ready state
+  useEffect(() => {
+    console.log('Privy ready state:', ready, 'authenticated:', authenticated);
+  }, [ready, authenticated]);
+
   if (!ready) {
     return (
       <button style={{ ...connectButtonStyle, opacity: 0.7 }} disabled>
@@ -117,6 +119,37 @@ const PrivyWalletButtonInner: React.FC = () => {
       )}
     </div>
   );
+};
+
+// Main export - always try Privy first (it will handle when not configured)
+// The PrivyProvider wrapper handles the case when PRIVY_APP_ID is not set
+export const WalletButton: React.FC = () => {
+  // Check at runtime if Privy is configured
+  const [usePrivyAuth, setUsePrivyAuth] = useState<boolean | null>(null);
+  
+  useEffect(() => {
+    // Check if Privy App ID is set (runtime check)
+    const privyEnabled = !!process.env.NEXT_PUBLIC_PRIVY_APP_ID;
+    console.log('Privy enabled check:', privyEnabled, 'App ID:', process.env.NEXT_PUBLIC_PRIVY_APP_ID);
+    setUsePrivyAuth(privyEnabled);
+  }, []);
+
+  // Still determining which auth to use
+  if (usePrivyAuth === null) {
+    return (
+      <button style={{ ...connectButtonStyle, opacity: 0.7 }} disabled>
+        Loading...
+      </button>
+    );
+  }
+
+  // Use Privy when configured
+  if (usePrivyAuth) {
+    return <PrivyWalletButtonInner />;
+  }
+
+  // Fall back to standard wallet adapter
+  return <StandardWalletButton />;
 };
 
 // Standard wallet-adapter based button (fallback)
@@ -550,12 +583,4 @@ const StandardWalletButton: React.FC = () => {
       )}
     </>
   );
-};
-
-// Main export - use Privy when configured, otherwise standard wallet adapter
-export const WalletButton: React.FC = () => {
-  if (PRIVY_ENABLED) {
-    return <PrivyWalletButtonInner />;
-  }
-  return <StandardWalletButton />;
 };
