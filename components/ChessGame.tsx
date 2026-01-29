@@ -557,7 +557,13 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       
       // Register player first (needed for move handling)
       const walletAddr = publicKey?.toString() || `guest_${Math.random().toString(36).slice(2, 8)}`;
+      console.log('Registering player with address:', walletAddr);
       newSocket.emit('player:register', { walletAddress: walletAddr });
+    });
+    
+    // Handle registration errors
+    newSocket.on('error', ({ message }) => {
+      console.error('Socket error:', message);
     });
     
     // After registration, emit host/join
