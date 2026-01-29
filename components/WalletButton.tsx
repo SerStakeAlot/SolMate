@@ -3,75 +3,19 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletName, WalletReadyState } from '@solana/wallet-adapter-base';
-import { transact } from '@solana-mobile/mobile-wallet-adapter-protocol-web3js';
-
-// Check if running on Android mobile
-const isAndroid = () => {
-  if (typeof navigator === 'undefined') return false;
-  return /android/i.test(navigator.userAgent);
-};
 
 export const WalletButton: React.FC = () => {
   const { connected, publicKey, wallets, select, disconnect, connecting, connect, wallet } = useWallet();
   const [showModal, setShowModal] = useState(false);
-  const [isMobileAndroid, setIsMobileAndroid] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<string>('');
-  const [mwaPublicKey, setMwaPublicKey] = useState<string | null>(null);
 
   useEffect(() => {
-    setIsMobileAndroid(isAndroid());
     // Log available wallets on mount
     console.log('Available wallets:', wallets.map(w => ({ 
       name: w.adapter.name, 
       readyState: w.readyState,
       url: w.adapter.url 
     })));
-    
-    // Check for wallet-standard wallets
-    if (typeof window !== 'undefined') {
-      // Check window.solana (legacy)
-      if ((window as any).solana) {
-        console.log('window.solana detected:', (window as any).solana);
-      }
-      // Check for wallet-standard registry
-      const walletStandard = (window as any).navigator?.wallet?.wallets || 
-                             (window as any).wallets || 
-                             (window as any).solanaWallets;
-      if (walletStandard) {
-        console.log('Wallet-standard wallets:', walletStandard);
-      }
-    }
-  }, [wallets]);
-
-  // Diagnostic function to check what's available
-  const runDiagnostics = useCallback(() => {
-    const diagnostics: string[] = [];
-    
-    diagnostics.push(`UA: ${navigator.userAgent.substring(0, 80)}...`);
-    diagnostics.push(`Wallets: ${wallets.length}`);
-    
-    wallets.forEach(w => {
-      diagnostics.push(`  ${w.adapter.name}: ${w.readyState}`);
-    });
-    
-    // Check window objects
-    if ((window as any).solana) {
-      const sol = (window as any).solana;
-      diagnostics.push(`window.solana: ${sol.isPhantom ? 'Phantom' : sol.isSolflare ? 'Solflare' : 'Unknown'}`);
-    } else {
-      diagnostics.push('window.solana: NOT FOUND');
-    }
-    
-    // Check if we're in a TWA
-    if ((document as any).referrer?.includes('android-app://')) {
-      diagnostics.push('Running in TWA: YES');
-    } else {
-      diagnostics.push('TWA: Likely NO');
-    }
-    
-    const msg = diagnostics.join('\n');
-    console.log('=== DIAGNOSTICS ===\n' + msg);
-    alert(msg);
   }, [wallets]);
 
   const handleConnect = useCallback(() => {
@@ -79,83 +23,19 @@ export const WalletButton: React.FC = () => {
     setConnectionStatus('');
   }, []);
 
-  // Direct MWA connection for debugging - with timeout
-  const handleDirectMWA = useCallback(async () => {
-    setShowModal(false);
-    setConnectionStatus('Connecting via MWA...');
-    
-    // Create a timeout promise
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('MWA_TIMEOUT: No wallet responded after 8 seconds. Seeker may not support MWA web protocol.')), 8000);
-    });
-    
-    try {
-      console.log('Starting direct MWA transact...');
-      
-      // Check if getWallets API exists (wallet-standard)
-      if (typeof window !== 'undefined' && (window as any).navigator?.wallets) {
-        console.log('Wallet-standard wallets found:', (window as any).navigator.wallets);
-      }
-      
-      // Race between transact and timeout
-      const result = await Promise.race([
-        transact(async (wallet) => {
-          console.log('Inside transact callback, authorizing...');
-          setConnectionStatus('Wallet found, authorizing...');
-          const authorization = await wallet.authorize({
-            identity: {
-              name: 'SolMate',
-              uri: 'https://playsolmate.fun',
-              icon: 'https://playsolmate.fun/images/logo.png',
-            },
-            cluster: 'mainnet-beta',
-          });
-          console.log('Authorization result:', authorization);
-          return authorization;
-        }),
-        timeoutPromise
-      ]) as any;
-      
-      console.log('MWA transact result:', result);
-      if (result?.accounts?.[0]?.address) {
-        const address = result.accounts[0].address;
-        // Convert Uint8Array to base58 if needed
-        const addressStr = typeof address === 'string' ? address : 
-          Array.from(address as Uint8Array).map((b: number) => b.toString(16).padStart(2, '0')).join('');
-        setMwaPublicKey(addressStr);
-        setConnectionStatus(`Connected: ${addressStr.slice(0, 8)}...`);
-      }
-    } catch (error: any) {
-      console.error('Direct MWA error:', error);
-      const errorMsg = error?.message || String(error);
-      if (errorMsg.includes('MWA_TIMEOUT')) {
-        setConnectionStatus('No wallet found. Try Phantom app instead.');
-      } else {
-        setConnectionStatus(`Error: ${errorMsg.slice(0, 50)}`);
-      }
-    }
-  }, []);
-
   // Effect to auto-connect when wallet is selected
   useEffect(() => {
     if (wallet && !connected && !connecting) {
-      console.log('Wallet selected, attempting auto-connect:', wallet.adapter.name, 'readyState:', wallet.readyState);
+      console.log('Wallet selected, attempting connect:', wallet.adapter.name, 'readyState:', wallet.readyState);
       setConnectionStatus('Connecting...');
-      
-      // Add timeout for mobile wallet adapter which can hang in TWAs
-      const timeoutId = setTimeout(() => {
-        setConnectionStatus('Connection timed out - try Phantom or Solflare instead');
-      }, 10000); // 10 second timeout
       
       connect()
         .then(() => {
-          clearTimeout(timeoutId);
           console.log('Connected successfully!');
           setConnectionStatus('Connected!');
         })
         .catch((error) => {
-          clearTimeout(timeoutId);
-          console.log('Auto-connect error:', error?.message || error, error);
+          console.log('Connect error:', error?.message || error);
           setConnectionStatus(`Error: ${error?.message || 'Connection failed'}`);
         });
     }
@@ -373,53 +253,11 @@ export const WalletButton: React.FC = () => {
               ✕
             </button>
             <div style={modalTitleStyle}>Connect Wallet</div>
-            {isMobileAndroid && (
-              <>
-                <div style={{ fontSize: '11px', color: '#14F195', textAlign: 'center', marginBottom: '8px', padding: '8px', background: 'rgba(20, 241, 149, 0.1)', borderRadius: '8px' }}>
-                  📱 {wallets.length} wallet(s) detected
-                </div>
-                {/* Direct Seeker/MWA button */}
-                <button
-                  onClick={handleDirectMWA}
-                  style={{
-                    ...walletButtonStyle,
-                    border: '1px solid rgba(153, 69, 255, 0.6)',
-                    background: 'rgba(153, 69, 255, 0.15)',
-                    marginBottom: '8px',
-                  }}
-                >
-                  <span style={{ fontSize: '24px' }}>🔐</span>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                    <span>Connect Seeker / MWA</span>
-                    <span style={{ fontSize: '11px', color: '#9945FF' }}>Direct connection</span>
-                  </div>
-                </button>
-                {/* Diagnostics button */}
-                <button
-                  onClick={runDiagnostics}
-                  style={{
-                    width: '100%',
-                    padding: '8px',
-                    fontSize: '12px',
-                    background: 'rgba(255, 165, 0, 0.1)',
-                    border: '1px solid rgba(255, 165, 0, 0.3)',
-                    borderRadius: '8px',
-                    color: '#ffa500',
-                    marginBottom: '12px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  🔍 Run Diagnostics
-                </button>
-                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '12px' }} />
-              </>
-            )}
             <div>
-              {/* Show all wallets - wallet-standard will auto-detect Seeker if it injects itself */}
+              {/* Show all wallets */}
               {wallets.map((wallet) => {
                 const isInstalled = wallet.readyState === WalletReadyState.Installed || 
                                     wallet.readyState === WalletReadyState.Loadable;
-                const isMobileAdapter = wallet.adapter.name.includes('Mobile');
                 
                 return (
                   <button
@@ -428,7 +266,7 @@ export const WalletButton: React.FC = () => {
                       ...walletButtonStyle,
                       opacity: isInstalled ? 1 : 0.6,
                       // Highlight installed/detected wallets
-                      ...(isInstalled && !isMobileAdapter ? { border: '1px solid rgba(20, 241, 149, 0.4)' } : {}),
+                      ...(isInstalled ? { border: '1px solid rgba(20, 241, 149, 0.4)' } : {}),
                     }}
                     onClick={() => handleSelectWallet(wallet.adapter.name)}
                     onMouseEnter={(e) => {
@@ -439,7 +277,7 @@ export const WalletButton: React.FC = () => {
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                      e.currentTarget.style.borderColor = isInstalled && !isMobileAdapter ? 'rgba(20, 241, 149, 0.4)' : 'rgba(255, 255, 255, 0.12)';
+                      e.currentTarget.style.borderColor = isInstalled ? 'rgba(20, 241, 149, 0.4)' : 'rgba(255, 255, 255, 0.12)';
                       e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05) inset';
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
@@ -456,10 +294,7 @@ export const WalletButton: React.FC = () => {
                       {isInstalled && (
                         <span style={{ fontSize: '11px', color: '#14F195' }}>Detected ✓</span>
                       )}
-                      {!isInstalled && isMobileAdapter && (
-                        <span style={{ fontSize: '11px', color: '#ffd93d' }}>For native apps</span>
-                      )}
-                      {!isInstalled && !isMobileAdapter && (
+                      {!isInstalled && (
                         <span style={{ fontSize: '11px', color: '#888' }}>Tap to install</span>
                       )}
                     </div>
