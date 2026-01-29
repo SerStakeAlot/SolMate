@@ -326,6 +326,32 @@ app.post('/api/admin/reset-stats', (req, res) => {
   }
 });
 
+// Admin endpoint to fix game history records with wrong stake amounts
+// (stake tier numbers were stored instead of SOL amounts)
+app.post('/api/admin/fix-stakes', (req, res) => {
+  try {
+    const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
+    const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
+    
+    if (adminKey !== expectedKey) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    const result = statsStore.fixGameHistoryStakes();
+    const newStats = statsStore.getPlatformStats();
+    console.log('Stakes fixed:', result);
+    res.json({ 
+      success: true, 
+      message: `Fixed ${result.fixed} game records`,
+      ...result,
+      newStats,
+    });
+  } catch (error) {
+    console.error('Error fixing stakes:', error);
+    res.status(500).json({ error: 'Failed to fix stakes' });
+  }
+});
+
 // Socket.IO connection handling with rate limiting
 io.on('connection', (socket) => {
   // Get client IP for connection limiting
