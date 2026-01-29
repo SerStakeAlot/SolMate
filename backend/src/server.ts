@@ -339,15 +339,18 @@ io.on('connection', (socket) => {
 
   // Player registration
   socket.on('player:register', ({ walletAddress, username }) => {
-    // Validate wallet address format
-    try {
-      new PublicKey(walletAddress);
-    } catch {
-      socket.emit('error', { message: 'Invalid wallet address' });
-      return;
+    // Validate wallet address format (skip validation for guest IDs)
+    const isGuest = walletAddress.startsWith('guest_') || walletAddress === 'anonymous';
+    if (!isGuest) {
+      try {
+        new PublicKey(walletAddress);
+      } catch {
+        socket.emit('error', { message: 'Invalid wallet address' });
+        return;
+      }
     }
     
-    console.log(`Player registering: ${walletAddress}`);
+    console.log(`Player registering: ${walletAddress}${isGuest ? ' (guest)' : ''}`);
     const player = playerStore.createPlayer(walletAddress, socket.id);
     
     socket.emit('player:registered', {
