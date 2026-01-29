@@ -223,9 +223,22 @@ export class EscrowClient {
         
         let signature: string;
         
-        // Use sendTransaction if available (better mobile wallet compatibility)
-        // This lets the wallet handle signing AND sending in one step
-        if (this.wallet.sendTransaction) {
+        // Prefer signTransaction for better desktop wallet compatibility
+        // sendTransaction can have issues with Phantom's internal simulation
+        if (this.wallet.signTransaction) {
+          console.log('Using signTransaction + sendRawTransaction...');
+          try {
+            const signed = await this.wallet.signTransaction(transaction);
+            signature = await this.connection.sendRawTransaction(signed.serialize(), {
+              skipPreflight: false,
+              preflightCommitment: 'confirmed',
+            });
+          } catch (signError: any) {
+            console.error('Sign/send error:', signError);
+            throw signError;
+          }
+        } else if (this.wallet.sendTransaction) {
+          // Fallback to wallet-managed send (for mobile wallets)
           console.log('Using sendTransaction (wallet-managed)...');
           try {
             signature = await this.wallet.sendTransaction(transaction, this.connection, {
@@ -238,14 +251,6 @@ export class EscrowClient {
             console.error('Error message:', walletError?.message);
             throw walletError;
           }
-        } else if (this.wallet.signTransaction) {
-          // Fallback to sign + send separately
-          console.log('Using signTransaction + sendRawTransaction...');
-          const signed = await this.wallet.signTransaction(transaction);
-          signature = await this.connection.sendRawTransaction(signed.serialize(), {
-            skipPreflight: false,
-            preflightCommitment: 'confirmed',
-          });
         } else {
           throw new Error('Wallet does not support transaction signing');
         }
