@@ -56,7 +56,7 @@ export default function RefundPage() {
           const escrowBalance = await connection.getBalance(escrowPda);
           
           // Show matches where user is involved AND escrow has funds
-          // This includes Active (stuck) or Finished (payout failed)
+          // This includes Open (no one joined yet), Active (stuck) or Finished (payout failed)
           if ((isPlayerA || isPlayerB) && escrowBalance > 0) {
             userMatches.push({
               pubkey,
@@ -87,11 +87,6 @@ export default function RefundPage() {
       return;
     }
 
-    if (!match.account.playerB) {
-      alert("This match has no Player B - use Cancel Match instead");
-      return;
-    }
-
     setAbandoningMatch(match.pubkey.toBase58());
     setResult(null);
 
@@ -99,14 +94,24 @@ export default function RefundPage() {
       const client = new EscrowClient(connection, wallet);
       let signature: string;
       
+      // Use cancelMatch for Open matches (no player B joined)
+      if (match.account.status === MatchStatus.Open) {
+        signature = await client.cancelMatch(match.pubkey);
+      }
       // Use forceRefund for Finished matches (payout failed), abandonMatch for Active
-      if (match.account.status === MatchStatus.Finished) {
+      else if (match.account.status === MatchStatus.Finished) {
+        if (!match.account.playerB) {
+          throw new Error("No Player B - cannot force refund");
+        }
         signature = await client.forceRefund(
           match.pubkey,
           match.account.playerA,
           match.account.playerB
         );
       } else {
+        if (!match.account.playerB) {
+          throw new Error("No Player B - cannot abandon match");
+        }
         signature = await client.abandonMatch(
           match.pubkey,
           match.account.playerA,
@@ -238,14 +243,20 @@ export default function RefundPage() {
                                 ? "bg-blue-500/20 text-blue-400" 
                                 : "bg-purple-500/20 text-purple-400"
                             }`}>
-                              {match.isPlayerA ? "You are Player A" : "You are Player B"}
+                              {match.isPlayerA ? "You created this match" : "You are Player B"}
                             </span>
                             <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                              match.account.status === MatchStatus.Finished
+                              match.account.status === MatchStatus.Open
+                                ? "bg-blue-500/20 text-blue-400"
+                                : match.account.status === MatchStatus.Finished
                                 ? "bg-red-500/20 text-red-400"
                                 : "bg-yellow-500/20 text-yellow-400"
                             }`}>
-                              {match.account.status === MatchStatus.Finished ? "Payout Failed" : "Active (Stuck)"}
+                              {match.account.status === MatchStatus.Open 
+                                ? "Open (No Opponent)" 
+                                : match.account.status === MatchStatus.Finished 
+                                ? "Payout Failed" 
+                                : "Active (Stuck)"}
                             </span>
                           </div>
                           <p className="font-mono text-sm text-neutral-400 mb-1">
@@ -262,7 +273,7 @@ export default function RefundPage() {
                           disabled={isAbandoning}
                           className="btn-glow px-6 py-3 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {isAbandoning ? "Processing..." : "Claim Refund"}
+                          {isAbandoning ? "Processing..." : match.account.status === MatchStatus.Open ? "Cancel & Refund" : "Claim Refund"}
                         </button>
                       </div>
                     </motion.div>
@@ -278,10 +289,10 @@ export default function RefundPage() {
                 How it works
               </h3>
               <ul className="text-sm text-neutral-400 space-y-1">
-                <li>• Either player can abandon a stuck match</li>
-                <li>• Both players receive their original stake back</li>
-                <li>• The match account is closed and rent returned to Player A</li>
-                <li>• This is for matches where the game was never played</li>
+                <li>• <strong>Open matches:</strong> No one joined - you get your full stake back</li>
+                <li>• <strong>Stuck matches:</strong> Either player can abandon and both get refunds</li>
+                <li>• <strong>Failed payouts:</strong> Force refund returns stakes to both players</li>
+                <li>• The match account is closed and rent returned to you</li>
               </ul>
             </div>
           </>
