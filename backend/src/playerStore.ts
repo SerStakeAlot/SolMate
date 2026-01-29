@@ -1,7 +1,13 @@
 import { Player, calculateRank, getSkillTier } from './types';
 
-// Stake amounts in SOL for each tier
-const STAKE_AMOUNTS = [0.5, 1.0]; // tier 0 = 0.5 SOL, tier 1 = 1 SOL
+// Map stake tier number to actual SOL amount
+// Tiers: 4 = 0.05 SOL, 5 = 0.1 SOL, 0 = 0.5 SOL, 1 = 1 SOL
+const TIER_TO_SOL: Record<number, number> = {
+  4: 0.05,
+  5: 0.1,
+  0: 0.5,
+  1: 1.0,
+};
 
 class PlayerStore {
   private players: Map<string, Player> = new Map();
@@ -67,7 +73,7 @@ class PlayerStore {
       
       // Update SOL profit if stake tier provided
       if (stakeTier !== undefined) {
-        const stakeAmount = STAKE_AMOUNTS[stakeTier] || 0.5;
+        const stakeAmount = TIER_TO_SOL[stakeTier] || 0;
         player.totalWagered += stakeAmount;
         
         if (won) {

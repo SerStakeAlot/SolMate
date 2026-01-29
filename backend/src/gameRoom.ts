@@ -216,10 +216,18 @@ class GameRoomManager {
     try {
       // stakeTier can be a number or 'free' string from free play
       const tierValue = room.stakeTier;
+      
+      // Map stake tier number to actual SOL amount
+      // Tiers: 4 = 0.05 SOL, 5 = 0.1 SOL, 0 = 0.5 SOL, 1 = 1 SOL
+      const TIER_TO_SOL: Record<number, number> = {
+        4: 0.05,
+        5: 0.1,
+        0: 0.5,
+        1: 1.0,
+      };
+      
       const stakeAmount = typeof tierValue === 'string' ? 0 : 
-                          tierValue === 0.05 ? 0.05 : 
-                          tierValue === 0.1 ? 0.1 : 
-                          tierValue || 0;
+                          (TIER_TO_SOL[tierValue] || 0);
       
       const result = winner === 'w' ? 'white' : winner === 'b' ? 'black' : 'draw';
       const winnerWallet = winner === 'w' ? room.playerWhite.walletAddress :
