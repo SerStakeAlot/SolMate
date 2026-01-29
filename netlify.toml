@@ -22,7 +22,7 @@
     # Permissions Policy - Disable unnecessary features
     Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
     # Content Security Policy
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://solmate-production.up.railway.app wss://solmate-production.up.railway.app https://mainnet.helius-rpc.com https://*.solana.com https://pump.fun; frame-ancestors 'none';"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://solmate-production.up.railway.app wss://solmate-production.up.railway.app https://mainnet.helius-rpc.com wss://mainnet.helius-rpc.com https://*.solana.com wss://*.solana.com https://pump.fun; frame-ancestors 'none';"
 
 [[headers]]
   for = "/_next/static/*"
