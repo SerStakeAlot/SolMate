@@ -1,58 +1,33 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletName, WalletReadyState } from '@solana/wallet-adapter-base';
 
 export const WalletButton: React.FC = () => {
-  const { connected, publicKey, wallets, select, disconnect, connecting, connect, wallet } = useWallet();
+  const { connected, publicKey, wallets, select, disconnect, connecting, connect } = useWallet();
   const [showModal, setShowModal] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<string>('');
-
-  useEffect(() => {
-    // Log available wallets on mount
-    console.log('Available wallets:', wallets.map(w => ({ 
-      name: w.adapter.name, 
-      readyState: w.readyState,
-      url: w.adapter.url 
-    })));
-  }, [wallets]);
 
   const handleConnect = useCallback(() => {
     setShowModal(true);
-    setConnectionStatus('');
   }, []);
 
-  // Effect to auto-connect when wallet is selected
-  useEffect(() => {
-    if (wallet && !connected && !connecting) {
-      console.log('Wallet selected, attempting connect:', wallet.adapter.name, 'readyState:', wallet.readyState);
-      setConnectionStatus('Connecting...');
-      
-      connect()
-        .then(() => {
-          console.log('Connected successfully!');
-          setConnectionStatus('Connected!');
-        })
-        .catch((error) => {
-          console.log('Connect error:', error?.message || error);
-          setConnectionStatus(`Error: ${error?.message || 'Connection failed'}`);
-        });
-    }
-  }, [wallet, connected, connecting, connect]);
-
   const handleSelectWallet = useCallback(async (walletName: WalletName) => {
-    console.log('Selected wallet:', walletName, 'isMobileAndroid:', isMobileAndroid);
+    console.log('Selected wallet:', walletName);
     setShowModal(false);
-    setConnectionStatus('Selecting wallet...');
     
     try {
-      // Select the wallet - this will trigger the useEffect above to connect
+      // Select the wallet first
       select(walletName);
-      console.log('Wallet selected, waiting for connection...');
+      
+      // Give the adapter a moment to initialize, then connect
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      // Now try to connect
+      await connect();
+      console.log('Connected successfully!');
     } catch (error: any) {
-      console.log('Selection error:', error?.message || error);
-      setConnectionStatus(`Selection error: ${error?.message || 'Failed'}`);
+      console.log('Connection error:', error?.message || error);
       
       // If wallet not detected, try to open the wallet's website/app store
       const selectedWallet = wallets.find(w => w.adapter.name === walletName);
@@ -63,11 +38,10 @@ export const WalletButton: React.FC = () => {
         }
       }
     }
-  }, [select, wallets, isMobileAndroid]);
+  }, [select, connect, wallets]);
 
   const handleDisconnect = useCallback(() => {
     disconnect();
-    setConnectionStatus('');
   }, [disconnect]);
 
   const shortenAddress = (address: string) => {
@@ -216,24 +190,6 @@ export const WalletButton: React.FC = () => {
             {connecting ? 'Connecting...' : 'Connect Wallet'}
           </button>
         )}
-        {/* Connection status for debugging */}
-        {connectionStatus && !connected && (
-          <div style={{ 
-            position: 'absolute', 
-            top: '100%', 
-            left: '50%', 
-            transform: 'translateX(-50%)',
-            marginTop: '8px',
-            fontSize: '10px', 
-            color: connectionStatus.includes('Error') ? '#ff6b6b' : '#14F195',
-            whiteSpace: 'nowrap',
-            background: 'rgba(0,0,0,0.8)',
-            padding: '4px 8px',
-            borderRadius: '4px'
-          }}>
-            {connectionStatus}
-          </div>
-        )}
       </div>
 
       {/* Custom Wallet Modal */}
@@ -254,19 +210,15 @@ export const WalletButton: React.FC = () => {
             </button>
             <div style={modalTitleStyle}>Connect Wallet</div>
             <div>
-              {/* Show all wallets */}
               {wallets.map((wallet) => {
                 const isInstalled = wallet.readyState === WalletReadyState.Installed || 
                                     wallet.readyState === WalletReadyState.Loadable;
-                
                 return (
                   <button
                     key={wallet.adapter.name}
                     style={{
                       ...walletButtonStyle,
                       opacity: isInstalled ? 1 : 0.6,
-                      // Highlight installed/detected wallets
-                      ...(isInstalled ? { border: '1px solid rgba(20, 241, 149, 0.4)' } : {}),
                     }}
                     onClick={() => handleSelectWallet(wallet.adapter.name)}
                     onMouseEnter={(e) => {
@@ -277,7 +229,7 @@ export const WalletButton: React.FC = () => {
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                      e.currentTarget.style.borderColor = isInstalled ? 'rgba(20, 241, 149, 0.4)' : 'rgba(255, 255, 255, 0.12)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.12)';
                       e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05) inset';
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
@@ -291,9 +243,6 @@ export const WalletButton: React.FC = () => {
                     )}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                       <span>{wallet.adapter.name}</span>
-                      {isInstalled && (
-                        <span style={{ fontSize: '11px', color: '#14F195' }}>Detected ✓</span>
-                      )}
                       {!isInstalled && (
                         <span style={{ fontSize: '11px', color: '#888' }}>Tap to install</span>
                       )}
