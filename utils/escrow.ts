@@ -206,22 +206,44 @@ export class EscrowClient {
         transaction.recentBlockhash = blockhash;
         transaction.lastValidBlockHeight = lastValidBlockHeight;
         
+        // Simulate the transaction first to get better error messages
+        console.log('Simulating transaction...');
+        try {
+          const simulation = await this.connection.simulateTransaction(transaction);
+          if (simulation.value.err) {
+            console.error('Simulation failed:', simulation.value.err);
+            console.error('Logs:', simulation.value.logs);
+            throw new Error(`Transaction simulation failed: ${JSON.stringify(simulation.value.err)}\nLogs: ${simulation.value.logs?.join('\n')}`);
+          }
+          console.log('Simulation successful, logs:', simulation.value.logs);
+        } catch (simError: any) {
+          console.error('Simulation error:', simError);
+          // Continue anyway - some wallets handle this differently
+        }
+        
         let signature: string;
         
         // Use sendTransaction if available (better mobile wallet compatibility)
         // This lets the wallet handle signing AND sending in one step
         if (this.wallet.sendTransaction) {
           console.log('Using sendTransaction (wallet-managed)...');
-          signature = await this.wallet.sendTransaction(transaction, this.connection, {
-            skipPreflight: true,
-            preflightCommitment: 'confirmed',
-          });
+          try {
+            signature = await this.wallet.sendTransaction(transaction, this.connection, {
+              skipPreflight: false,
+              preflightCommitment: 'confirmed',
+            });
+          } catch (walletError: any) {
+            console.error('Wallet sendTransaction error:', walletError);
+            console.error('Error name:', walletError?.name);
+            console.error('Error message:', walletError?.message);
+            throw walletError;
+          }
         } else if (this.wallet.signTransaction) {
           // Fallback to sign + send separately
           console.log('Using signTransaction + sendRawTransaction...');
           const signed = await this.wallet.signTransaction(transaction);
           signature = await this.connection.sendRawTransaction(signed.serialize(), {
-            skipPreflight: true,
+            skipPreflight: false,
             preflightCommitment: 'confirmed',
           });
         } else {
