@@ -487,6 +487,42 @@ class StatsStore {
   getDailyStats(days: number = 30): any[] {
     return statements.getDailyStats.all(days) as any[];
   }
+
+  // Reset platform stats to match actual game history
+  resetPlatformStats(): { before: any; after: PlatformStats } {
+    const before = statements.getPlatformStats.get();
+    
+    // Recalculate from game_history
+    const gameStats = db.prepare(`
+      SELECT 
+        COUNT(*) as total_games,
+        SUM(CASE WHEN is_wager_game = 1 THEN 1 ELSE 0 END) as total_wager_games,
+        SUM(CASE WHEN is_wager_game = 0 THEN 1 ELSE 0 END) as total_free_games,
+        SUM(CASE WHEN is_wager_game = 1 THEN stake_amount * 2 ELSE 0 END) as total_sol_wagered
+      FROM game_history
+    `).get() as any;
+    
+    // Update platform_stats with recalculated values
+    db.prepare(`
+      UPDATE platform_stats SET
+        total_games = @totalGames,
+        total_wager_games = @totalWagerGames,
+        total_free_games = @totalFreeGames,
+        total_sol_wagered = @totalSolWagered,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = 1
+    `).run({
+      totalGames: gameStats.total_games || 0,
+      totalWagerGames: gameStats.total_wager_games || 0,
+      totalFreeGames: gameStats.total_free_games || 0,
+      totalSolWagered: gameStats.total_sol_wagered || 0,
+    });
+    
+    return {
+      before,
+      after: this.getPlatformStats(),
+    };
+  }
 }
 
 export const statsStore = new StatsStore();

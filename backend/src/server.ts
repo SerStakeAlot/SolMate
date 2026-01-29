@@ -302,6 +302,30 @@ app.get('/api/stats/player/:walletAddress/games', (req, res) => {
   }
 });
 
+// Admin endpoint to reset/fix corrupted stats (recalculate from game history)
+// Protected by admin secret key
+app.post('/api/admin/reset-stats', (req, res) => {
+  try {
+    const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
+    const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
+    
+    if (adminKey !== expectedKey) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    const result = statsStore.resetPlatformStats();
+    console.log('Stats reset:', result);
+    res.json({ 
+      success: true, 
+      message: 'Stats recalculated from game history',
+      ...result 
+    });
+  } catch (error) {
+    console.error('Error resetting stats:', error);
+    res.status(500).json({ error: 'Failed to reset stats' });
+  }
+});
+
 // Socket.IO connection handling with rate limiting
 io.on('connection', (socket) => {
   // Get client IP for connection limiting
