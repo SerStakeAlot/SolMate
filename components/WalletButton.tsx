@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletName, WalletReadyState } from '@solana/wallet-adapter-base';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
 
 // Check if Privy is configured
 const PRIVY_ENABLED = !!process.env.NEXT_PUBLIC_PRIVY_APP_ID;
@@ -18,36 +19,6 @@ const isInWalletBrowser = () => {
   if (typeof window === 'undefined') return false;
   const ua = navigator.userAgent.toLowerCase();
   return ua.includes('phantom') || ua.includes('solflare') || ua.includes('backpack');
-};
-
-// Privy-based wallet button component
-const PrivyWalletButtonInner: React.FC = () => {
-  // Dynamic import to avoid issues when Privy isn't configured
-  const [PrivyHooks, setPrivyHooks] = useState<any>(null);
-  const [ready, setReady] = useState(false);
-  const [authenticated, setAuthenticated] = useState(false);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Dynamically import Privy hooks
-    import('@privy-io/react-auth').then((module) => {
-      setPrivyHooks(module);
-    });
-  }, []);
-
-  // Use a separate component to actually use the hooks
-  if (!PrivyHooks) {
-    return (
-      <button 
-        style={connectButtonStyle}
-        disabled
-      >
-        Loading...
-      </button>
-    );
-  }
-
-  return <PrivyButtonWithHooks PrivyHooks={PrivyHooks} />;
 };
 
 const connectButtonStyle: React.CSSProperties = {
@@ -68,16 +39,15 @@ const connectButtonStyle: React.CSSProperties = {
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
 };
 
-// Component that actually uses Privy hooks
-const PrivyButtonWithHooks: React.FC<{ PrivyHooks: any }> = ({ PrivyHooks }) => {
-  const { usePrivy, useWallets } = PrivyHooks;
+// Privy-based wallet button
+const PrivyWalletButtonInner: React.FC = () => {
   const { ready, authenticated, login, logout } = usePrivy();
   const { wallets } = useWallets();
 
-  // Find Solana wallet
+  // Find Solana wallet - check for address length typical of Solana (32-44 chars base58)
   const solanaWallet = wallets?.find((w: any) => 
     w.walletClientType === 'solana' || 
-    (w.address && w.address.length >= 32 && w.address.length <= 44)
+    (w.address && w.address.length >= 32 && w.address.length <= 44 && !w.address.startsWith('0x'))
   );
   const walletAddress = solanaWallet?.address;
   const connected = authenticated && !!walletAddress;
@@ -89,6 +59,7 @@ const PrivyButtonWithHooks: React.FC<{ PrivyHooks: any }> = ({ PrivyHooks }) => 
   const handleConnect = useCallback(async () => {
     if (!ready) return;
     try {
+      console.log('Privy login triggered');
       await login();
     } catch (error) {
       console.error('Privy login error:', error);
@@ -105,7 +76,7 @@ const PrivyButtonWithHooks: React.FC<{ PrivyHooks: any }> = ({ PrivyHooks }) => 
 
   if (!ready) {
     return (
-      <button style={{ ...connectButtonStyle, opacity: 0.5, cursor: 'not-allowed' }} disabled>
+      <button style={{ ...connectButtonStyle, opacity: 0.7 }} disabled>
         Loading...
       </button>
     );
