@@ -1316,13 +1316,22 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       return;
     }
 
+    // Double-check: only winner should submit
+    if (playerColor !== gameWinner) {
+      console.log('Skipping result submission - you are not the winner');
+      return;
+    }
+
     setIsSubmittingResult(true);
     try {
       const client = new EscrowClient(connection, wallet);
       
       const matchData = await client.fetchMatch(currentMatchPubkey);
       if (!matchData) {
-        alert('Could not fetch match data');
+        // Match account doesn't exist - either already closed or error
+        // This is expected if payout already happened
+        console.log('Match account not found - payout may have already been processed');
+        setPayoutComplete(true);
         return;
       }
 
@@ -1332,7 +1341,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       console.log('Match playerB:', matchData.playerB?.toBase58() || 'None');
       
       if (matchData.status !== MatchStatus.Active) {
-        alert(`Cannot submit result: Match is in ${matchData.status} status. Expected: Active`);
+        // Match already finished - payout already happened
+        console.log(`Match already in ${matchData.status} status - payout already processed`);
+        setPayoutComplete(true);
         return;
       }
 
@@ -1348,8 +1359,17 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       
       console.log('Confirming payout...');
       await handleConfirmPayout(winnerPubkey, matchData.playerA);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting result:', error);
+      
+      // Check if the error is because the account is already closed (payout already done)
+      const errorMessage = error?.message || String(error);
+      if (errorMessage.includes('AccountNotInitialized') || errorMessage.includes('not found')) {
+        console.log('Match account already closed - payout was already processed');
+        setPayoutComplete(true);
+        return;
+      }
+      
       alert(`Failed to submit result. You may need to use the Refund page to recover funds. Error: ${error}`);
     } finally {
       setIsSubmittingResult(false);
@@ -1377,13 +1397,24 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   };
 
   useEffect(() => {
+    // Only the WINNER should submit the result to the blockchain
+    // The loser doesn't need to do anything - their stake is already in escrow
     if (mode === 'wager' && gameWinner && currentMatchPubkey && !payoutComplete && !isSubmittingResult) {
-      const timer = setTimeout(() => {
-        handleSubmitResult();
-      }, 2000);
-      return () => clearTimeout(timer);
+      // Check if the current player is the winner
+      const isWinner = playerColor === gameWinner;
+      
+      if (isWinner) {
+        console.log('You won! Submitting result to claim payout...');
+        const timer = setTimeout(() => {
+          handleSubmitResult();
+        }, 2000);
+        return () => clearTimeout(timer);
+      } else {
+        console.log('You lost. The winner will submit the result and claim the payout.');
+        // Just show the result modal, no transaction needed for the loser
+      }
     }
-  }, [gameWinner, mode, currentMatchPubkey, payoutComplete]);
+  }, [gameWinner, mode, currentMatchPubkey, payoutComplete, playerColor]);
 
   const maybeAutoPromote = (from: string, to: string) => {
     const chess = chessRef.current!;
