@@ -1168,6 +1168,16 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       const client = new EscrowClient(connection, wallet);
       console.log('Creating match with stake tier:', selectedStakeTier);
       
+      // Check balance first
+      const balance = await connection.getBalance(publicKey);
+      const stakeInfo = getStakeTierInfo(selectedStakeTier);
+      const requiredLamports = stakeInfo.lamports + 10000000; // stake + ~0.01 SOL for fees and rent
+      console.log('Balance:', balance / 1e9, 'SOL, Required:', requiredLamports / 1e9, 'SOL');
+      
+      if (balance < requiredLamports) {
+        throw new Error(`Insufficient balance. You have ${(balance / 1e9).toFixed(4)} SOL but need at least ${(requiredLamports / 1e9).toFixed(4)} SOL (stake + fees).`);
+      }
+      
       const { signature, matchPubkey } = await client.createMatch(selectedStakeTier, 30);
       
       console.log('Match created successfully!');
@@ -1210,11 +1220,23 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       alert(`Match created!\nLobby Code: ${lobbyCode}\nSignature: ${signature.slice(0, 8)}...`);
     } catch (error: any) {
       console.error('Error creating match:', error);
-      // Check for user rejection
-      if (error.message?.includes('User rejected') || error.message?.includes('rejected')) {
+      console.error('Full error object:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      
+      // Check for specific error types and provide helpful messages
+      const errorMsg = error.message || String(error);
+      
+      if (errorMsg.includes('User rejected') || errorMsg.includes('rejected')) {
         alert('Transaction was cancelled');
+      } else if (errorMsg.includes('Insufficient') || errorMsg.includes('debit')) {
+        alert(`Insufficient SOL balance. Please add more SOL to your wallet to cover the stake and transaction fees.`);
+      } else if (errorMsg.includes('blockhash') || errorMsg.includes('expired')) {
+        alert('Transaction expired. Please try again - your internet connection may be slow.');
+      } else if (errorMsg.includes('simulation failed') || errorMsg.includes('Simulation failed')) {
+        alert('Transaction simulation failed. This might be a temporary network issue. Please try again.');
+      } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+        alert('Network error. Please check your internet connection and try again.');
       } else {
-        alert(`Failed to create match: ${error.message || error}`);
+        alert(`Failed to create match: ${errorMsg}`);
       }
     } finally {
       setIsCreatingMatch(false);
