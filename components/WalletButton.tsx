@@ -1,20 +1,104 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletName, WalletReadyState } from '@solana/wallet-adapter-base';
 
-export const WalletButton: React.FC = () => {
-  const { connected, publicKey, wallets, select, disconnect, connecting, connect } = useWallet();
-  const [showModal, setShowModal] = useState(false);
+// Detect if we're on a mobile device
+const isMobileDevice = () => {
+  if (typeof window === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+};
 
-  const handleConnect = useCallback(() => {
-    setShowModal(true);
+// Detect if we're in a mobile wallet's in-app browser
+const isInWalletBrowser = () => {
+  if (typeof window === 'undefined') return false;
+  const ua = navigator.userAgent.toLowerCase();
+  return ua.includes('phantom') || ua.includes('solflare') || ua.includes('backpack');
+};
+
+export const WalletButton: React.FC = () => {
+  const { connected, publicKey, wallets, select, disconnect, connecting, connect, wallet } = useWallet();
+  const [showModal, setShowModal] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<string>('');
+  const connectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    setIsMobile(isMobileDevice());
   }, []);
+
+  // Auto-close modal when connected
+  useEffect(() => {
+    if (connected) {
+      setShowModal(false);
+      setConnectionStatus('');
+      if (connectTimeoutRef.current) {
+        clearTimeout(connectTimeoutRef.current);
+      }
+    }
+  }, [connected]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (connectTimeoutRef.current) {
+        clearTimeout(connectTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleConnect = useCallback(async () => {
+    // Clear any previous timeout
+    if (connectTimeoutRef.current) {
+      clearTimeout(connectTimeoutRef.current);
+    }
+
+    // If in wallet browser (Phantom app, etc.), try to auto-detect the wallet
+    if (isInWalletBrowser()) {
+      console.log('In-wallet browser detected, trying to auto-connect...');
+      setConnectionStatus('Connecting...');
+      
+      const installedWallet = wallets.find(w => 
+        (w.readyState === WalletReadyState.Installed || 
+         w.readyState === WalletReadyState.Loadable) &&
+        w.adapter.name !== 'Mobile Wallet Adapter'
+      );
+      if (installedWallet) {
+        try {
+          select(installedWallet.adapter.name);
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Set a timeout to clear status
+          connectTimeoutRef.current = setTimeout(() => {
+            setConnectionStatus('');
+          }, 8000);
+          
+          await connect();
+          console.log('Auto-connected to:', installedWallet.adapter.name);
+          setConnectionStatus('');
+          return;
+        } catch (error) {
+          console.log('Auto-connect failed:', error);
+          setConnectionStatus('');
+        }
+      }
+    }
+    
+    // For all other cases (including Seeker native browser), just show the modal
+    // This is more reliable than trying MWA auto-connect which can hang
+    setShowModal(true);
+  }, [wallets, select, connect]);
 
   const handleSelectWallet = useCallback(async (walletName: WalletName) => {
     console.log('Selected wallet:', walletName);
     setShowModal(false);
+    
+    // For MWA, show status and set a shorter timeout
+    const isMWA = walletName === 'Mobile Wallet Adapter';
+    if (isMWA) {
+      setConnectionStatus('Opening wallet app...');
+    }
     
     try {
       // Select the wallet first
@@ -23,11 +107,36 @@ export const WalletButton: React.FC = () => {
       // Give the adapter a moment to initialize, then connect
       await new Promise(resolve => setTimeout(resolve, 150));
       
+      // Set a timeout to abort if connection hangs
+      if (isMWA) {
+        connectTimeoutRef.current = setTimeout(() => {
+          console.log('MWA connection timeout');
+          setConnectionStatus('');
+          alert('Could not open wallet app. Try opening Phantom first, then return to SolMate.');
+        }, 5000); // 5 second timeout for MWA
+      }
+      
       // Now try to connect
       await connect();
       console.log('Connected successfully!');
+      setConnectionStatus('');
+      
+      if (connectTimeoutRef.current) {
+        clearTimeout(connectTimeoutRef.current);
+      }
     } catch (error: any) {
       console.log('Connection error:', error?.message || error);
+      setConnectionStatus('');
+      
+      if (connectTimeoutRef.current) {
+        clearTimeout(connectTimeoutRef.current);
+      }
+      
+      // If Mobile Wallet Adapter fails, guide user
+      if (isMWA) {
+        alert('Could not connect to wallet app.\n\nTry:\n1. Open Phantom app first\n2. Then come back to SolMate\n3. Or use Phantom\'s in-app browser to visit playsolmate.fun');
+        return;
+      }
       
       // If wallet not detected, try to open the wallet's website/app store
       const selectedWallet = wallets.find(w => w.adapter.name === walletName);
@@ -187,8 +296,55 @@ export const WalletButton: React.FC = () => {
               }
             }}
           >
-            {connecting ? 'Connecting...' : 'Connect Wallet'}
+            {connecting ? 'Connecting...' : connectionStatus || 'Connect Wallet'}
           </button>
+        )}
+        
+        {/* Status indicator for MWA - tap anywhere to cancel */}
+        {connectionStatus && !showModal && (
+          <div 
+            onClick={() => {
+              setConnectionStatus('');
+              if (connectTimeoutRef.current) {
+                clearTimeout(connectTimeoutRef.current);
+              }
+              // Also try to disconnect/reset the wallet state
+              try {
+                disconnect();
+              } catch (e) {
+                // ignore
+              }
+            }}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.85)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 999998,
+              cursor: 'pointer',
+            }}
+          >
+            <div style={{
+              backgroundColor: 'rgba(153, 69, 255, 0.9)',
+              color: '#fff',
+              padding: '20px 32px',
+              borderRadius: '16px',
+              fontSize: '16px',
+              textAlign: 'center',
+              maxWidth: '280px',
+            }}>
+              <div style={{ marginBottom: '8px' }}>{connectionStatus}</div>
+              <div style={{ fontSize: '13px', opacity: 0.8 }}>
+                Tap anywhere to cancel
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
@@ -210,7 +366,37 @@ export const WalletButton: React.FC = () => {
             </button>
             <div style={modalTitleStyle}>Connect Wallet</div>
             <div>
-              {wallets.map((wallet) => {
+              {/* On mobile, show MWA option prominently */}
+              {isMobile && !isInWalletBrowser() && (
+                <button
+                  style={{
+                    ...walletButtonStyle,
+                    background: 'linear-gradient(135deg, rgba(153, 69, 255, 0.2), rgba(20, 241, 149, 0.2))',
+                    borderColor: 'rgba(153, 69, 255, 0.4)',
+                    marginBottom: '16px',
+                  }}
+                  onClick={() => handleSelectWallet('Mobile Wallet Adapter' as WalletName)}
+                >
+                  <div style={{ 
+                    width: '32px', 
+                    height: '32px', 
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #9945FF, #14F195)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '16px'
+                  }}>
+                    📱
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <span>Open Wallet App</span>
+                    <span style={{ fontSize: '11px', color: '#14F195' }}>Phantom, Solflare, etc.</span>
+                  </div>
+                </button>
+              )}
+              
+              {wallets.filter(w => w.adapter.name !== 'Mobile Wallet Adapter').map((wallet) => {
                 const isInstalled = wallet.readyState === WalletReadyState.Installed || 
                                     wallet.readyState === WalletReadyState.Loadable;
                 return (

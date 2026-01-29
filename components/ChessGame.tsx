@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Trophy, RefreshCw, X, CheckCircle2, XCircle, Wifi, WifiOff, Users, Share2, Clock, MessageCircle, Send, Eye, Loader2 } from 'lucide-react';
+import { Swords, Trophy, RefreshCw, X, CheckCircle2, XCircle, Wifi, WifiOff, Users, Share2, Clock, MessageCircle, Send, Eye, Loader2, Coins } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
 import { Chess } from 'chess.js';
@@ -220,7 +220,6 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   
   // Joiner on-chain stake status
   const [hasJoinerStaked, setHasJoinerStaked] = useState(false);
-  const [isJoiningMatch, setIsJoiningMatch] = useState(false);
   const [joinerStakeError, setJoinerStakeError] = useState<string | null>(null);
   
   // Spectator mode
@@ -1227,6 +1226,11 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       
       if (errorMsg.includes('User rejected') || errorMsg.includes('rejected')) {
         alert('Transaction was cancelled');
+      } else if (errorMsg.includes('missing signature')) {
+        // This typically means the wallet's active account doesn't match what's expected
+        alert(`Signature mismatch error. Your wallet might be using a different account than expected.\n\nPlease:\n1. Check which account is active in your wallet\n2. Try disconnecting and reconnecting your wallet\n3. Try refreshing the page`);
+      } else if (errorMsg.includes('signed by wrong wallet')) {
+        alert(errorMsg + '\n\nPlease check your wallet\'s active account and try again.');
       } else if (errorMsg.includes('Insufficient') || errorMsg.includes('debit')) {
         alert(`Insufficient SOL balance. Please add more SOL to your wallet to cover the stake and transaction fees.`);
       } else if (errorMsg.includes('blockhash') || errorMsg.includes('expired')) {
