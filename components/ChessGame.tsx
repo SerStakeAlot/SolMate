@@ -1017,6 +1017,10 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
   // Free play handlers
   const handleCreateFreePlay = () => {
+    // Set refs immediately to avoid race condition with socket useEffect
+    isCreatingFreePlayRef.current = true;
+    isJoiningFreePlayRef.current = false;
+    
     setIsFreePlay(true);
     setIsCreatingFreePlay(true);
     setPlayerColor('w');
@@ -1031,6 +1035,11 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       alert('Please enter a 4-character room code');
       return;
     }
+    // Set refs immediately to avoid race condition with socket useEffect
+    isCreatingFreePlayRef.current = false;
+    isJoiningFreePlayRef.current = true;
+    joinFreePlayCodeRef.current = joinFreePlayCode;
+    
     setIsFreePlay(true);
     setIsJoiningFreePlay(true);
     setPlayerColor('b');
