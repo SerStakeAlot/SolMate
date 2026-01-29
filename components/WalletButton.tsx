@@ -4,6 +4,9 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletName, WalletReadyState } from '@solana/wallet-adapter-base';
 
+// Check if Privy is configured
+const PRIVY_ENABLED = !!process.env.NEXT_PUBLIC_PRIVY_APP_ID;
+
 // Detect if we're on a mobile device
 const isMobileDevice = () => {
   if (typeof window === 'undefined') return false;
@@ -17,7 +20,136 @@ const isInWalletBrowser = () => {
   return ua.includes('phantom') || ua.includes('solflare') || ua.includes('backpack');
 };
 
-export const WalletButton: React.FC = () => {
+// Privy-based wallet button component
+const PrivyWalletButtonInner: React.FC = () => {
+  // Dynamic import to avoid issues when Privy isn't configured
+  const [PrivyHooks, setPrivyHooks] = useState<any>(null);
+  const [ready, setReady] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Dynamically import Privy hooks
+    import('@privy-io/react-auth').then((module) => {
+      setPrivyHooks(module);
+    });
+  }, []);
+
+  // Use a separate component to actually use the hooks
+  if (!PrivyHooks) {
+    return (
+      <button 
+        style={connectButtonStyle}
+        disabled
+      >
+        Loading...
+      </button>
+    );
+  }
+
+  return <PrivyButtonWithHooks PrivyHooks={PrivyHooks} />;
+};
+
+const connectButtonStyle: React.CSSProperties = {
+  position: 'relative',
+  zIndex: 101,
+  backgroundColor: 'transparent',
+  color: '#fff',
+  fontWeight: 600,
+  borderRadius: '12px',
+  padding: '10px 20px',
+  border: '1px solid rgba(255, 255, 255, 0.15)',
+  cursor: 'pointer',
+  fontSize: '14px',
+  background: 'rgba(255, 255, 255, 0.04)',
+  backdropFilter: 'blur(12px)',
+  WebkitBackdropFilter: 'blur(12px)',
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05) inset',
+  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+};
+
+// Component that actually uses Privy hooks
+const PrivyButtonWithHooks: React.FC<{ PrivyHooks: any }> = ({ PrivyHooks }) => {
+  const { usePrivy, useWallets } = PrivyHooks;
+  const { ready, authenticated, login, logout } = usePrivy();
+  const { wallets } = useWallets();
+
+  // Find Solana wallet
+  const solanaWallet = wallets?.find((w: any) => 
+    w.walletClientType === 'solana' || 
+    (w.address && w.address.length >= 32 && w.address.length <= 44)
+  );
+  const walletAddress = solanaWallet?.address;
+  const connected = authenticated && !!walletAddress;
+
+  const shortenAddress = (address: string) => {
+    return `${address.slice(0, 4)}...${address.slice(-4)}`;
+  };
+
+  const handleConnect = useCallback(async () => {
+    if (!ready) return;
+    try {
+      await login();
+    } catch (error) {
+      console.error('Privy login error:', error);
+    }
+  }, [ready, login]);
+
+  const handleDisconnect = useCallback(async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Privy logout error:', error);
+    }
+  }, [logout]);
+
+  if (!ready) {
+    return (
+      <button style={{ ...connectButtonStyle, opacity: 0.5, cursor: 'not-allowed' }} disabled>
+        Loading...
+      </button>
+    );
+  }
+
+  return (
+    <div className="relative group" style={{ zIndex: 100, position: 'relative' }}>
+      {connected && walletAddress ? (
+        <button
+          onClick={handleDisconnect}
+          style={connectButtonStyle}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+          }}
+        >
+          {shortenAddress(walletAddress)}
+        </button>
+      ) : (
+        <button
+          onClick={handleConnect}
+          style={connectButtonStyle}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'linear-gradient(135deg, #9945FF 0%, #14F195 100%)';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+          }}
+        >
+          Connect Wallet
+        </button>
+      )}
+    </div>
+  );
+};
+
+// Standard wallet-adapter based button (fallback)
+const StandardWalletButton: React.FC = () => {
   const { connected, publicKey, wallets, select, disconnect, connecting, connect, wallet } = useWallet();
   const [showModal, setShowModal] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -447,4 +579,12 @@ export const WalletButton: React.FC = () => {
       )}
     </>
   );
+};
+
+// Main export - use Privy when configured, otherwise standard wallet adapter
+export const WalletButton: React.FC = () => {
+  if (PRIVY_ENABLED) {
+    return <PrivyWalletButtonInner />;
+  }
+  return <StandardWalletButton />;
 };
