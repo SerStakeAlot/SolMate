@@ -3,7 +3,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletName, WalletReadyState } from '@solana/wallet-adapter-base';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
 
 // Detect if we're on a mobile device
 const isMobileDevice = () => {
@@ -36,123 +35,12 @@ const connectButtonStyle: React.CSSProperties = {
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
 };
 
-// Privy-based wallet button
-const PrivyWalletButtonInner: React.FC = () => {
-  const { ready, authenticated, login, logout } = usePrivy();
-  const { wallets } = useWallets();
-
-  // Find Solana wallet - check for address length typical of Solana (32-44 chars base58)
-  const solanaWallet = wallets?.find((w: any) => 
-    w.walletClientType === 'solana' || 
-    (w.address && w.address.length >= 32 && w.address.length <= 44 && !w.address.startsWith('0x'))
-  );
-  const walletAddress = solanaWallet?.address;
-  const connected = authenticated && !!walletAddress;
-
-  const shortenAddress = (address: string) => {
-    return `${address.slice(0, 4)}...${address.slice(-4)}`;
-  };
-
-  const handleConnect = useCallback(async () => {
-    if (!ready) return;
-    try {
-      console.log('Privy login triggered');
-      await login();
-    } catch (error) {
-      console.error('Privy login error:', error);
-    }
-  }, [ready, login]);
-
-  const handleDisconnect = useCallback(async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Privy logout error:', error);
-    }
-  }, [logout]);
-
-  // Debug: log ready state
-  useEffect(() => {
-    console.log('Privy ready state:', ready, 'authenticated:', authenticated);
-  }, [ready, authenticated]);
-
-  if (!ready) {
-    return (
-      <button style={{ ...connectButtonStyle, opacity: 0.7 }} disabled>
-        Loading...
-      </button>
-    );
-  }
-
-  return (
-    <div className="relative group" style={{ zIndex: 100, position: 'relative' }}>
-      {connected && walletAddress ? (
-        <button
-          onClick={handleDisconnect}
-          style={connectButtonStyle}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
-          }}
-        >
-          {shortenAddress(walletAddress)}
-        </button>
-      ) : (
-        <button
-          onClick={handleConnect}
-          style={connectButtonStyle}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'linear-gradient(135deg, #9945FF 0%, #14F195 100%)';
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
-          }}
-        >
-          Connect Wallet
-        </button>
-      )}
-    </div>
-  );
-};
-
-// Main export - always try Privy first (it will handle when not configured)
-// The PrivyProvider wrapper handles the case when PRIVY_APP_ID is not set
+// Main export - uses standard wallet adapter
 export const WalletButton: React.FC = () => {
-  // Check at runtime if Privy is configured
-  const [usePrivyAuth, setUsePrivyAuth] = useState<boolean | null>(null);
-  
-  useEffect(() => {
-    // Check if Privy App ID is set (runtime check)
-    const privyEnabled = !!process.env.NEXT_PUBLIC_PRIVY_APP_ID;
-    console.log('Privy enabled check:', privyEnabled, 'App ID:', process.env.NEXT_PUBLIC_PRIVY_APP_ID);
-    setUsePrivyAuth(privyEnabled);
-  }, []);
-
-  // Still determining which auth to use
-  if (usePrivyAuth === null) {
-    return (
-      <button style={{ ...connectButtonStyle, opacity: 0.7 }} disabled>
-        Loading...
-      </button>
-    );
-  }
-
-  // Use Privy when configured
-  if (usePrivyAuth) {
-    return <PrivyWalletButtonInner />;
-  }
-
-  // Fall back to standard wallet adapter
   return <StandardWalletButton />;
 };
 
-// Standard wallet-adapter based button (fallback)
+// Standard wallet-adapter based button
 const StandardWalletButton: React.FC = () => {
   const { connected, publicKey, wallets, select, disconnect, connecting, connect, wallet } = useWallet();
   const [showModal, setShowModal] = useState(false);
@@ -532,7 +420,23 @@ const StandardWalletButton: React.FC = () => {
                 </button>
               )}
               
-              {wallets.filter(w => w.adapter.name !== 'Mobile Wallet Adapter').map((wallet) => {
+              {wallets
+                .filter(w => w.adapter.name !== 'Mobile Wallet Adapter')
+                .sort((a, b) => {
+                  // Phantom always first
+                  if (a.adapter.name === 'Phantom') return -1;
+                  if (b.adapter.name === 'Phantom') return 1;
+                  // Then Solflare
+                  if (a.adapter.name === 'Solflare') return -1;
+                  if (b.adapter.name === 'Solflare') return 1;
+                  // Then installed wallets
+                  const aInstalled = a.readyState === WalletReadyState.Installed || a.readyState === WalletReadyState.Loadable;
+                  const bInstalled = b.readyState === WalletReadyState.Installed || b.readyState === WalletReadyState.Loadable;
+                  if (aInstalled && !bInstalled) return -1;
+                  if (!aInstalled && bInstalled) return 1;
+                  return 0;
+                })
+                .map((wallet) => {
                 const isInstalled = wallet.readyState === WalletReadyState.Installed || 
                                     wallet.readyState === WalletReadyState.Loadable;
                 return (
