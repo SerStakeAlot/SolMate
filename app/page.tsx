@@ -20,14 +20,23 @@ export default function Home() {
   const router = useRouter();
   const { connected } = useWallet();
   const [stats, setStats] = useState<PlatformStats | null>(null);
+  const [usernameCount, setUsernameCount] = useState<number | null>(null);
 
   useEffect(() => {
     async function fetchStats() {
       try {
+        // Fetch game stats
         const res = await fetch(`${BACKEND_URL}/api/stats`);
         if (res.ok) {
           const data = await res.json();
           setStats(data);
+        }
+        
+        // Fetch username count
+        const usernamesRes = await fetch(`${BACKEND_URL}/api/usernames`);
+        if (usernamesRes.ok) {
+          const usernamesData = await usernamesRes.json();
+          setUsernameCount(usernamesData.count);
         }
       } catch (err) {
         console.error('Failed to fetch stats:', err);
@@ -230,7 +239,7 @@ export default function Home() {
       </motion.section>
 
       {/* Live Stats Section */}
-      {stats && (stats.totalGames > 0 || stats.uniquePlayers > 0) && (
+      {stats && (stats.totalGames > 0 || stats.uniquePlayers > 0 || (usernameCount !== null && usernameCount > 0)) && (
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -254,7 +263,9 @@ export default function Home() {
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <Users className="w-5 h-5 text-solana-green" />
                 </div>
-                <p className="font-display text-2xl sm:text-3xl font-bold text-white tabular-nums">{stats.uniquePlayers.toLocaleString()}</p>
+                <p className="font-display text-2xl sm:text-3xl font-bold text-white tabular-nums">
+                  {usernameCount !== null ? usernameCount.toLocaleString() : stats.uniquePlayers.toLocaleString()}
+                </p>
                 <p className="stat-label mt-1">Players</p>
               </div>
               <div className="text-center">
