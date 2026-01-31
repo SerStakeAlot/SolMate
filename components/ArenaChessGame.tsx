@@ -103,6 +103,9 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
   const [showResult, setShowResult] = useState(false);
   const [arenaStats, setArenaStats] = useState<ArenaStats | null>(null);
   
+  // Force re-render counter
+  const [, forceUpdate] = useState(0);
+  
   // Time control (10 min per side)
   const [playerTime, setPlayerTime] = useState(600);
   const [aiTime, setAiTime] = useState(600);
@@ -111,6 +114,13 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
   // Check remaining games
   const [canPlay, setCanPlay] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  
+  // Debug: Log when showResult changes
+  useEffect(() => {
+    console.log('useEffect: showResult changed to:', showResult);
+    console.log('useEffect: result is:', result);
+    console.log('useEffect: gameOver is:', gameOver);
+  }, [showResult, result, gameOver]);
 
   // Check if player can start a game
   useEffect(() => {
@@ -336,10 +346,13 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
       setArenaStats(defaultStats);
     }
     
-    // Always show result modal
+    // Always show result modal - use setTimeout to ensure state is flushed
     console.log('Setting showResult to TRUE');
-    setShowResult(true);
-    console.log('showResult should now be true');
+    setTimeout(() => {
+      setShowResult(true);
+      forceUpdate(n => n + 1);
+      console.log('showResult set via setTimeout');
+    }, 100);
   };
 
   // Resign
@@ -581,8 +594,13 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
         Moves: {moveCount} {moveCount < MIN_MOVES_TO_COUNT && `(${MIN_MOVES_TO_COUNT - moveCount} more needed to count)`}
       </div>
 
-      {/* Result Modal - show if game ended */}
-      {showResult && result && (
+      {/* Debug: Always show game state at bottom */}
+      <div className="fixed bottom-4 left-4 bg-black text-white p-3 rounded-lg text-xs font-mono" style={{ zIndex: 10000 }}>
+        gameOver: {gameOver ? 'TRUE' : 'false'} | result: {result || 'null'} | showResult: {showResult ? 'TRUE' : 'false'}
+      </div>
+
+      {/* Result Modal - show if game ended - ALWAYS RENDER WHEN GAMEOVER */}
+      {gameOver && (
         <div 
           className="fixed inset-0 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
           style={{ zIndex: 9999 }}
@@ -615,13 +633,6 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Debug: Game state */}
-      {gameOver && (
-        <div className="fixed bottom-4 left-4 bg-red-600 text-white p-3 rounded-lg text-sm font-bold" style={{ zIndex: 10000 }}>
-          🎮 Game Over: {result} | Modal: {showResult ? 'SHOWING' : 'hidden'}
         </div>
       )}
     </div>
