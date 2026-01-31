@@ -294,11 +294,13 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   // Track if AI game has started (for timer)
   const [aiGameStarted, setAiGameStarted] = useState(false);
 
-  // Live timer countdown - works for both free play and AI matches
+  // Live timer countdown - works for free play, AI matches, and wager/multiplayer matches
   useEffect(() => {
     // For free play: need opponent connected
     // For AI: need game to have started (first move made)
-    const shouldRunTimer = (isFreePlay && opponentConnected) || (mode === 'practice' && !isFreePlay && aiGameStarted);
+    // For wager/multiplayer: need opponent connected
+    const isWagerGame = isMultiplayer && opponentConnected;
+    const shouldRunTimer = (isFreePlay && opponentConnected) || (mode === 'practice' && !isFreePlay && aiGameStarted) || isWagerGame;
     if (!shouldRunTimer) return;
     
     const chess = chessRef.current;
@@ -318,7 +320,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     }, 100); // Update every 100ms for smooth countdown
     
     return () => clearInterval(interval);
-  }, [opponentConnected, isFreePlay, fen, mode, aiGameStarted]); // fen changes on each move
+  }, [opponentConnected, isFreePlay, fen, mode, aiGameStarted, isMultiplayer]); // fen changes on each move
 
   // Check for timeout - end game when timer hits 0 (AI, free play, and wager matches)
   useEffect(() => {
