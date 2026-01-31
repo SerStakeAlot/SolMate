@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { motion } from "framer-motion";
-import { ArrowLeft, RefreshCw, AlertCircle, CheckCircle2, Coins } from "lucide-react";
+import { ArrowLeft, RefreshCw, AlertCircle, CheckCircle2, Coins, Trophy } from "lucide-react";
 import Link from "next/link";
 
 import { WalletButton } from "@/components/WalletButton";
@@ -14,6 +14,7 @@ interface MatchWithPubkey {
   pubkey: PublicKey;
   account: MatchAccount;
   isPlayerA: boolean;
+  isWinner: boolean;
 }
 
 export default function RefundPage() {
@@ -58,10 +59,14 @@ export default function RefundPage() {
           // Show matches where user is involved AND escrow has funds
           // This includes Open (no one joined yet), Active (stuck) or Finished (payout failed)
           if ((isPlayerA || isPlayerB) && escrowBalance > 0) {
+            // Check if current user is the winner
+            const isWinner = matchAccount.winner?.equals(publicKey) || false;
+            
             userMatches.push({
               pubkey,
               account: matchAccount,
               isPlayerA,
+              isWinner,
             });
           }
         } catch (e) {
@@ -94,9 +99,27 @@ export default function RefundPage() {
       const client = new EscrowClient(connection, wallet);
       let signature: string;
       
+      // If user is the winner, claim winnings via confirmPayout
+      if (match.isWinner && match.account.winner) {
+        signature = await client.confirmPayout(
+          match.pubkey,
+          match.account.winner,
+          match.account.playerA
+        );
+        
+        setResult({
+          success: true,
+          message: `🎉 Winnings claimed! You received the pot. Signature: ${signature.slice(0, 8)}...`,
+        });
+      }
       // Use cancelMatch for Open matches (no player B joined)
-      if (match.account.status === MatchStatus.Open) {
+      else if (match.account.status === MatchStatus.Open) {
         signature = await client.cancelMatch(match.pubkey);
+        
+        setResult({
+          success: true,
+          message: `Refund claimed! Your stake was returned. Signature: ${signature.slice(0, 8)}...`,
+        });
       }
       // Use forceRefund for Finished matches (payout failed), abandonMatch for Active
       else if (match.account.status === MatchStatus.Finished) {
@@ -108,6 +131,11 @@ export default function RefundPage() {
           match.account.playerA,
           match.account.playerB
         );
+        
+        setResult({
+          success: true,
+          message: `Refund claimed! Both players received their stake. Signature: ${signature.slice(0, 8)}...`,
+        });
       } else {
         if (!match.account.playerB) {
           throw new Error("No Player B - cannot abandon match");
@@ -117,12 +145,12 @@ export default function RefundPage() {
           match.account.playerA,
           match.account.playerB
         );
+        
+        setResult({
+          success: true,
+          message: `Refund claimed! Both players received their stake. Signature: ${signature.slice(0, 8)}...`,
+        });
       }
-
-      setResult({
-        success: true,
-        message: `Refund claimed! Both players received their stake. Signature: ${signature.slice(0, 8)}...`,
-      });
 
       // Refresh the list
       await loadMatches();
@@ -154,10 +182,10 @@ export default function RefundPage() {
             Back to Home
           </Link>
           <h1 className="text-4xl font-bold mb-2">
-            Claim <span className="text-gradient">Refund</span>
+            Claim <span className="text-gradient">Funds</span>
           </h1>
           <p className="text-lg text-neutral-400">
-            Recover funds from abandoned or stuck matches
+            Claim winnings from won matches or recover funds from stuck matches
           </p>
         </header>
 
@@ -217,9 +245,9 @@ export default function RefundPage() {
             ) : matches.length === 0 ? (
               <div className="glass-card rounded-2xl p-8 text-center">
                 <CheckCircle2 className="w-12 h-12 text-green-400 mx-auto mb-4" />
-                <h2 className="text-xl font-semibold mb-2">No Refunds Available</h2>
+                <h2 className="text-xl font-semibold mb-2">No Funds to Claim</h2>
                 <p className="text-neutral-400">
-                  You don't have any stuck or abandoned matches to claim.
+                  You don't have any unclaimed winnings or stuck matches.
                 </p>
               </div>
             ) : (
@@ -227,17 +255,24 @@ export default function RefundPage() {
                 {matches.map((match) => {
                   const tierInfo = getStakeTierInfo(match.account.stakeTier);
                   const isAbandoning = abandoningMatch === match.pubkey.toBase58();
+                  const potAmount = tierInfo.sol * 2; // Both players' stakes
 
                   return (
                     <motion.div
                       key={match.pubkey.toBase58()}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="glass-card rounded-xl p-6"
+                      className={`glass-card rounded-xl p-6 ${match.isWinner ? 'border-2 border-green-500/50' : ''}`}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            {match.isWinner && (
+                              <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-400 flex items-center gap-1">
+                                <Trophy className="w-3 h-3" />
+                                Winner - Claim Your Prize!
+                              </span>
+                            )}
                             <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                               match.isPlayerA 
                                 ? "bg-blue-500/20 text-blue-400" 
@@ -265,15 +300,29 @@ export default function RefundPage() {
                           <p className="text-sm">
                             Stake: <span className="text-white font-semibold">{tierInfo.label}</span>
                             <span className="text-neutral-500 mx-2">•</span>
-                            Your refund: <span className="text-solana-green font-semibold">{tierInfo.label}</span>
+                            {match.isWinner ? (
+                              <>Prize: <span className="text-green-400 font-bold">{potAmount.toFixed(2)} SOL</span></>
+                            ) : (
+                              <>Your refund: <span className="text-solana-green font-semibold">{tierInfo.label}</span></>
+                            )}
                           </p>
                         </div>
                         <button
                           onClick={() => handleAbandonMatch(match)}
                           disabled={isAbandoning}
-                          className="btn-glow px-6 py-3 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                          className={`px-6 py-3 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                            match.isWinner 
+                              ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 shadow-lg shadow-green-500/30' 
+                              : 'btn-glow'
+                          }`}
                         >
-                          {isAbandoning ? "Processing..." : match.account.status === MatchStatus.Open ? "Cancel & Refund" : "Claim Refund"}
+                          {isAbandoning 
+                            ? "Processing..." 
+                            : match.isWinner 
+                              ? "🎉 Claim Winnings" 
+                              : match.account.status === MatchStatus.Open 
+                                ? "Cancel & Refund" 
+                                : "Claim Refund"}
                         </button>
                       </div>
                     </motion.div>
@@ -289,6 +338,7 @@ export default function RefundPage() {
                 How it works
               </h3>
               <ul className="text-sm text-neutral-400 space-y-1">
+                <li>• <strong className="text-green-400">Won matches:</strong> Claim your winnings if the auto-payout failed</li>
                 <li>• <strong>Open matches:</strong> No one joined - you get your full stake back</li>
                 <li>• <strong>Stuck matches:</strong> Either player can abandon and both get refunds</li>
                 <li>• <strong>Failed payouts:</strong> Force refund returns stakes to both players</li>
