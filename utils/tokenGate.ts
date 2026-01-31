@@ -6,8 +6,8 @@ export const TOKEN_SYMBOL = '$MATE';
 export const TOKEN_DECIMALS = 6;
 
 // Minimum token balance required for Holder Arena access (in raw token units)
-// 1 million tokens with 6 decimals = 1,000,000 * 10^6 = 1,000,000,000,000
-export const HOLDER_ARENA_MIN_BALANCE = 1_000_000 * Math.pow(10, TOKEN_DECIMALS); // 1 million $MATE
+// 2 million tokens with 6 decimals = 2,000,000 * 10^6 = 2,000,000,000,000
+export const HOLDER_ARENA_MIN_BALANCE = 2_000_000 * Math.pow(10, TOKEN_DECIMALS); // 2 million $MATE
 
 // Token Program ID (SPL Token)
 const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
