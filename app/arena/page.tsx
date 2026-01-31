@@ -355,7 +355,7 @@ function ArenaLobby({ onStartGame }: { onStartGame: () => void }) {
         <ul className="space-y-3 text-neutral-300">
           <li className="flex items-start gap-3">
             <span className="text-yellow-400">•</span>
-            Play against SolMate AI (~1400 ELO, club level)
+            Play against SolMate AI (~1500 ELO with opening book)
           </li>
           <li className="flex items-start gap-3">
             <span className="text-yellow-400">•</span>
