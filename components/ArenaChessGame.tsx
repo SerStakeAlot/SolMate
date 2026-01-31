@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Chess, Square, Move } from 'chess.js';
 import { RotateCcw, Flag, Clock, Cpu, User } from 'lucide-react';
@@ -594,13 +595,16 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
         Moves: {moveCount} {moveCount < MIN_MOVES_TO_COUNT && `(${MIN_MOVES_TO_COUNT - moveCount} more needed to count)`}
       </div>
 
-      {/* Debug: Always show game state at bottom */}
-      <div className="fixed bottom-4 left-4 bg-black text-white p-3 rounded-lg text-xs font-mono" style={{ zIndex: 10000 }}>
-        gameOver: {gameOver ? 'TRUE' : 'false'} | result: {result || 'null'} | showResult: {showResult ? 'TRUE' : 'false'}
-      </div>
+      {/* Debug: Always show game state at bottom - rendered via portal */}
+      {typeof document !== 'undefined' && createPortal(
+        <div className="fixed bottom-4 left-4 bg-black text-white p-3 rounded-lg text-xs font-mono" style={{ zIndex: 10000 }}>
+          gameOver: {gameOver ? 'TRUE' : 'false'} | result: {result || 'null'} | showResult: {showResult ? 'TRUE' : 'false'}
+        </div>,
+        document.body
+      )}
 
-      {/* Result Modal - show if game ended - ALWAYS RENDER WHEN GAMEOVER */}
-      {gameOver && (
+      {/* Result Modal - rendered via portal to escape any parent styling */}
+      {typeof document !== 'undefined' && gameOver && createPortal(
         <div 
           className="fixed inset-0 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
           style={{ zIndex: 9999 }}
@@ -633,7 +637,8 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
