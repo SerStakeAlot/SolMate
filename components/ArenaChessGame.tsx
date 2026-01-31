@@ -116,6 +116,13 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
   const [canPlay, setCanPlay] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
+  // Client-side only flag for portal rendering
+  const [isClient, setIsClient] = useState(false);
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
   // Debug: Log when showResult changes
   useEffect(() => {
     console.log('useEffect: showResult changed to:', showResult);
@@ -596,15 +603,15 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
       </div>
 
       {/* Debug: Always show game state at bottom - rendered via portal */}
-      {typeof document !== 'undefined' && createPortal(
-        <div className="fixed bottom-4 left-4 bg-black text-white p-3 rounded-lg text-xs font-mono" style={{ zIndex: 10000 }}>
-          gameOver: {gameOver ? 'TRUE' : 'false'} | result: {result || 'null'} | showResult: {showResult ? 'TRUE' : 'false'}
+      {isClient && createPortal(
+        <div className="fixed bottom-4 left-4 bg-red-600 text-white p-3 rounded-lg text-xs font-mono" style={{ zIndex: 10000 }}>
+          DEBUG: gameOver: {gameOver ? 'TRUE' : 'false'} | result: {result || 'null'} | showResult: {showResult ? 'TRUE' : 'false'}
         </div>,
         document.body
       )}
 
       {/* Result Modal - rendered via portal to escape any parent styling */}
-      {typeof document !== 'undefined' && gameOver && createPortal(
+      {isClient && gameOver && createPortal(
         <div 
           className="fixed inset-0 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
           style={{ zIndex: 9999 }}
