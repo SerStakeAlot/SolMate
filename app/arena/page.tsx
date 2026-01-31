@@ -147,22 +147,30 @@ export default function ArenaPage() {
         <div className="flex justify-center gap-4 mb-8">
           <button
             onClick={() => { setShowLeaderboard(false); setIsPlaying(false); }}
-            className={`px-6 py-3 rounded-xl font-semibold transition-all ${!showLeaderboard && !isPlaying
-                ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-black'
-                : 'bg-neutral-800 text-white hover:bg-neutral-700 border border-white/10'
-            }`}
-            style={{ textShadow: !showLeaderboard && !isPlaying ? 'none' : '0 1px 2px rgba(0,0,0,0.8)' }}
+            className="px-6 py-3 rounded-xl font-semibold transition-all border border-white/10"
+            style={{
+              background: !showLeaderboard && !isPlaying 
+                ? 'linear-gradient(to right, #eab308, #f59e0b)' 
+                : '#262626',
+              color: !showLeaderboard && !isPlaying ? '#000000' : '#ffffff',
+              textShadow: !showLeaderboard && !isPlaying ? 'none' : '0 1px 2px rgba(0,0,0,0.8)',
+              WebkitTextFillColor: !showLeaderboard && !isPlaying ? '#000000' : '#ffffff'
+            }}
           >
             <Zap className="w-5 h-5 inline-block mr-2" />
             Play Arena
           </button>
           <button
             onClick={() => { setShowLeaderboard(true); setIsPlaying(false); }}
-            className={`px-6 py-3 rounded-xl font-semibold transition-all ${showLeaderboard
-                ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-black'
-                : 'bg-neutral-800 text-white hover:bg-neutral-700 border border-white/10'
-            }`}
-            style={{ textShadow: showLeaderboard ? 'none' : '0 1px 2px rgba(0,0,0,0.8)' }}
+            className="px-6 py-3 rounded-xl font-semibold transition-all border border-white/10"
+            style={{
+              background: showLeaderboard 
+                ? 'linear-gradient(to right, #eab308, #f59e0b)' 
+                : '#262626',
+              color: showLeaderboard ? '#000000' : '#ffffff',
+              textShadow: showLeaderboard ? 'none' : '0 1px 2px rgba(0,0,0,0.8)',
+              WebkitTextFillColor: showLeaderboard ? '#000000' : '#ffffff'
+            }}
           >
             <Trophy className="w-5 h-5 inline-block mr-2" />
             Leaderboard
@@ -399,7 +407,12 @@ function ArenaLobby({ onStartGame }: { onStartGame: () => void }) {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={onStartGame}
-          className="px-12 py-5 rounded-2xl bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-500 text-black font-bold text-xl shadow-lg shadow-yellow-500/30 hover:shadow-yellow-500/50 transition-all"
+          className="px-12 py-5 rounded-2xl font-bold text-xl shadow-lg shadow-yellow-500/30 hover:shadow-yellow-500/50 transition-all"
+          style={{
+            background: 'linear-gradient(to right, #eab308, #f59e0b, #eab308)',
+            color: '#000000',
+            WebkitTextFillColor: '#000000'
+          }}
         >
           <Zap className="w-6 h-6 inline-block mr-3" />
           Start Arena Match
