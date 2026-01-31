@@ -255,7 +255,7 @@ export default function RefundPage() {
                 {matches.map((match) => {
                   const tierInfo = getStakeTierInfo(match.account.stakeTier);
                   const isAbandoning = abandoningMatch === match.pubkey.toBase58();
-                  const potAmount = tierInfo.sol * 2; // Both players' stakes
+                  const potAmount = tierInfo.stake * 2; // Both players' stakes
 
                   return (
                     <motion.div
