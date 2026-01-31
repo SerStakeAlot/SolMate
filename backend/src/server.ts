@@ -400,6 +400,10 @@ app.post('/api/arena/result', strictLimiter, (req, res) => {
       return res.status(400).json({ error: 'Invalid result' });
     }
     
+    // Resignations never count towards leaderboard (anti-abuse)
+    const isResignation = reason === 'resignation';
+    const shouldCount = counts !== false && !isResignation;
+    
     // Validate wallet address
     try {
       new PublicKey(walletAddress);
@@ -416,7 +420,7 @@ app.post('/api/arena/result', strictLimiter, (req, res) => {
       walletAddress,
       result,
       moveCount || 0,
-      counts !== false
+      shouldCount
     );
     
     console.log(`Arena game recorded: ${walletAddress} - ${result} (${moveCount} moves)`);
