@@ -103,6 +103,3 @@ export function formatTokenBalance(rawBalance: number, decimals: number = TOKEN_
 export function getMinimumRequiredDisplay(decimals: number = TOKEN_DECIMALS): string {
   return formatTokenBalance(HOLDER_ARENA_MIN_BALANCE, decimals);
 }
-export function getMinimumRequiredDisplay(decimals: number = 6): string {
-  return formatTokenBalance(HOLDER_ARENA_MIN_BALANCE, decimals);
-}
