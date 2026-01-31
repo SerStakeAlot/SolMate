@@ -6,6 +6,7 @@ import fs from 'fs';
 const MAX_GAMES_PER_DAY = 20;
 const COOLDOWN_SECONDS = 30;
 const MIN_MOVES_TO_COUNT = 10;
+const SHARE_BONUS = 0.25;
 
 interface ArenaGame {
   id: number;
@@ -75,11 +76,19 @@ class ArenaStore {
         wallet_address TEXT PRIMARY KEY,
         matches_played INTEGER NOT NULL DEFAULT 0,
         wins INTEGER NOT NULL DEFAULT 0,
+        shares INTEGER NOT NULL DEFAULT 0,
         score REAL NOT NULL DEFAULT 0
       );
       
       CREATE INDEX IF NOT EXISTS idx_arena_stats_score ON arena_stats(score DESC);
     `);
+
+    // Add shares column if it doesn't exist (migration for existing DBs)
+    try {
+      this.db.exec(`ALTER TABLE arena_stats ADD COLUMN shares INTEGER NOT NULL DEFAULT 0`);
+    } catch (e) {
+      // Column already exists, ignore
+    }
 
     console.log('ArenaStore initialized');
   }
@@ -226,6 +235,32 @@ class ArenaStore {
       gamesRemainingToday: gamesRemaining,
       cooldownEndsAt,
     };
+  }
+
+  // Record a share and give bonus points
+  recordShare(walletAddress: string): { success: boolean; bonusAwarded: number; newScore: number } {
+    // Check if player has any stats (must have played at least one game)
+    const statsStmt = this.db.prepare(`
+      SELECT score, shares FROM arena_stats WHERE wallet_address = ?
+    `);
+    const statsRow = statsStmt.get(walletAddress) as { score: number; shares: number } | undefined;
+    
+    if (!statsRow) {
+      return { success: false, bonusAwarded: 0, newScore: 0 };
+    }
+
+    // Award share bonus
+    const updateStmt = this.db.prepare(`
+      UPDATE arena_stats 
+      SET shares = shares + 1, score = score + ?
+      WHERE wallet_address = ?
+    `);
+    updateStmt.run(SHARE_BONUS, walletAddress);
+
+    const newScore = statsRow.score + SHARE_BONUS;
+    console.log(`Share bonus awarded: ${walletAddress} +${SHARE_BONUS} (new score: ${newScore})`);
+    
+    return { success: true, bonusAwarded: SHARE_BONUS, newScore };
   }
 
   // Get all-time leaderboard

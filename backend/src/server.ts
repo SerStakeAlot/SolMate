@@ -428,6 +428,28 @@ app.post('/api/arena/result', strictLimiter, (req, res) => {
   }
 });
 
+// Record arena share for bonus points
+app.post('/api/arena/share', strictLimiter, (req, res) => {
+  try {
+    const { walletAddress } = req.body;
+    
+    if (!walletAddress) {
+      return res.status(400).json({ error: 'Missing walletAddress' });
+    }
+
+    const shareResult = arenaStore.recordShare(walletAddress);
+    
+    if (shareResult.success) {
+      console.log(`Arena share recorded: ${walletAddress} +${shareResult.bonusAwarded}`);
+    }
+    
+    res.json(shareResult);
+  } catch (error) {
+    console.error('Error recording arena share:', error);
+    res.status(500).json({ error: 'Failed to record share' });
+  }
+});
+
 // Get arena leaderboard
 app.get('/api/arena/leaderboard', (req, res) => {
   try {
