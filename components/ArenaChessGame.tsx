@@ -331,7 +331,10 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
   // Resign
   const handleResign = () => {
     if (!gameOver) {
-      handleGameEnd('loss', 'resignation');
+      // Resignations don't count towards leaderboard - warn user
+      if (window.confirm('Resigned games do NOT count towards the leaderboard. Are you sure you want to resign?')) {
+        handleGameEnd('loss', 'resignation');
+      }
     }
   };
 
