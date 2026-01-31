@@ -558,15 +558,15 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
         <button
           onClick={handleResign}
           disabled={gameOver}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-colors disabled:opacity-50 border border-red-500/30"
           style={{
-            background: 'rgba(239, 68, 68, 0.2)',
-            color: '#f87171',
-            WebkitTextFillColor: '#f87171',
+            backgroundColor: '#7f1d1d',
+            color: '#fca5a5',
+            WebkitTextFillColor: '#fca5a5',
             textShadow: '0 1px 2px rgba(0,0,0,0.8)'
           }}
         >
-          <Flag className="w-5 h-5" />
+          <Flag className="w-5 h-5" style={{ color: '#fca5a5' }} />
           Resign
         </button>
       </div>
