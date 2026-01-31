@@ -12,8 +12,8 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-prod
 const MAX_GAMES_PER_DAY = 20;
 const MIN_MOVES_TO_COUNT = 10;
 const COOLDOWN_SECONDS = 30;
-const AI_THINK_TIME_MS = 1500; // AI "thinks" for realism
-const AI_DEPTH = 4; // Increased depth for better AI (roughly level 20)
+const AI_THINK_TIME_MS = 800; // AI "thinks" for realism
+const AI_DEPTH = 3; // Depth 3 with smart evaluation
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 
 // Piece SVG paths
