@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Chess, Square, Move } from 'chess.js';
 import { RotateCcw, Flag, Clock, Cpu, User } from 'lucide-react';
 import { ArenaResultModal } from './ArenaResultModal';
@@ -568,20 +568,29 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
       </div>
 
       {/* Result Modal - show if game ended, even without backend stats */}
-      {showResult && result && (
-        <ArenaResultModal
-          result={result}
-          moveCount={moveCount}
-          stats={arenaStats || {
-            matchesPlayed: 1,
-            wins: result === 'win' ? 1 : 0,
-            score: result === 'win' ? 10 : result === 'draw' ? 5 : 0,
-            rank: 999,
-            gamesRemainingToday: MAX_GAMES_PER_DAY - 1,
-          }}
-          minMovesToCount={MIN_MOVES_TO_COUNT}
-          onClose={handleCloseResult}
-        />
+      <AnimatePresence>
+        {showResult && result && (
+          <ArenaResultModal
+            result={result}
+            moveCount={moveCount}
+            stats={arenaStats || {
+              matchesPlayed: 1,
+              wins: result === 'win' ? 1 : 0,
+              score: result === 'win' ? 10 : result === 'draw' ? 5 : 0,
+              rank: 999,
+              gamesRemainingToday: MAX_GAMES_PER_DAY - 1,
+            }}
+            minMovesToCount={MIN_MOVES_TO_COUNT}
+            onClose={handleCloseResult}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Debug: Game state */}
+      {gameOver && (
+        <div className="fixed bottom-4 left-4 bg-black/80 text-white p-3 rounded-lg text-xs z-50">
+          Game Over: {result} | showResult: {showResult ? 'true' : 'false'}
+        </div>
       )}
     </div>
   );
