@@ -67,6 +67,21 @@ export function Navigation() {
               Learn
             </Link>
             
+            {/* Mobile Arena link */}
+            {connected && (
+              <Link
+                href="/arena"
+                className={`sm:hidden flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg transition-all ${
+                  pathname === '/arena'
+                    ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-black'
+                    : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                }`}
+              >
+                <Crown className="w-4 h-4" />
+                Arena
+              </Link>
+            )}
+            
             {/* Desktop nav links */}
             <div className="hidden sm:flex items-center gap-1.5 p-1.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
               {connected && (
