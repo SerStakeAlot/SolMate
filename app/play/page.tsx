@@ -81,7 +81,7 @@ export default function PlayPage() {
               <div className={`absolute inset-0 ${
                 option.featured
                   ? `bg-gradient-to-br ${option.gradient} opacity-20`
-                  : "bg-white/[0.03] backdrop-blur-sm"
+                  : "bg-neutral-900/80 backdrop-blur-sm"
               }`} />
               
               {/* Border glow for selected */}
@@ -98,7 +98,7 @@ export default function PlayPage() {
                     ? "bg-gradient-to-br from-solana-purple to-solana-green shadow-lg shadow-solana-purple/30"
                     : mode === option.id
                     ? "bg-solana-purple/20 ring-2 ring-solana-purple/50"
-                    : "bg-white/5 group-hover:bg-white/10 border border-white/10 group-hover:border-white/20"
+                    : "bg-neutral-800 group-hover:bg-neutral-700 border border-white/10 group-hover:border-white/20"
                 }`}>
                   <option.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${
                     option.featured || mode === option.id
