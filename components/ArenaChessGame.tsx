@@ -13,7 +13,7 @@ const MAX_GAMES_PER_DAY = 20;
 const MIN_MOVES_TO_COUNT = 10;
 const COOLDOWN_SECONDS = 30;
 const AI_THINK_TIME_MS = 300; // AI "thinks" for realism
-const AI_DEPTH = 3; // Minimax depth for AI strength
+const AI_DEPTH = 5; // Minimax depth for AI strength (~1600-1800 ELO)
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 
 // Piece SVG paths
