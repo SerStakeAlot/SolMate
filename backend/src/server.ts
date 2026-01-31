@@ -106,6 +106,24 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Get username count and list
+app.get('/api/usernames', (req, res) => {
+  try {
+    const count = userStore.getUserCount();
+    const usernames = userStore.getAllUsernames();
+    res.json({ 
+      count, 
+      usernames: usernames.map(u => ({
+        username: u.username,
+        wallet: `${u.wallet.slice(0, 4)}...${u.wallet.slice(-4)}`,
+        createdAt: new Date(u.createdAt).toISOString(),
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch usernames' });
+  }
+});
+
 // Get lobby matches (REST API for initial load)
 app.get('/lobby', (req, res) => {
   const matches = hostedMatchManager.getWaitingMatches().map(m => ({
