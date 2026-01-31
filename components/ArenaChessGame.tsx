@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Chess, Square, Move } from 'chess.js';
 import { RotateCcw, Flag, Clock, Cpu, User } from 'lucide-react';
 import { ArenaResultModal } from './ArenaResultModal';
@@ -14,7 +13,7 @@ const MAX_GAMES_PER_DAY = 20;
 const MIN_MOVES_TO_COUNT = 10;
 const COOLDOWN_SECONDS = 30;
 const AI_THINK_TIME_MS = 300; // AI "thinks" for realism
-const AI_DEPTH = 1; // Depth 1 = very weak AI for testing
+const AI_DEPTH = 3; // Minimax depth for AI strength
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 
 // Piece SVG paths
@@ -101,11 +100,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
   // Result state
   const [gameOver, setGameOver] = useState(false);
   const [result, setResult] = useState<'win' | 'loss' | 'draw' | null>(null);
-  const [showResult, setShowResult] = useState(false);
   const [arenaStats, setArenaStats] = useState<ArenaStats | null>(null);
-  
-  // Force re-render counter
-  const [, forceUpdate] = useState(0);
   
   // Time control (10 min per side)
   const [playerTime, setPlayerTime] = useState(600);
@@ -115,20 +110,6 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
   // Check remaining games
   const [canPlay, setCanPlay] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  
-  // Client-side only flag for portal rendering
-  const [isClient, setIsClient] = useState(false);
-  
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-  
-  // Debug: Log when showResult changes
-  useEffect(() => {
-    console.log('useEffect: showResult changed to:', showResult);
-    console.log('useEffect: result is:', result);
-    console.log('useEffect: gameOver is:', gameOver);
-  }, [showResult, result, gameOver]);
 
   // Check if player can start a game
   useEffect(() => {
@@ -282,16 +263,9 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
         }
         
         // Check for game end
-        console.log('After player move - checking game state:');
-        console.log('isCheckmate:', chess.isCheckmate());
-        console.log('isDraw:', chess.isDraw());
-        console.log('isGameOver:', chess.isGameOver());
-        
         if (chess.isCheckmate()) {
-          console.log('CHECKMATE DETECTED - calling handleGameEnd with win');
           handleGameEnd('win', 'checkmate');
         } else if (chess.isDraw()) {
-          console.log('DRAW DETECTED - calling handleGameEnd with draw');
           handleGameEnd('draw', 'draw');
         }
       }
@@ -303,9 +277,6 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
 
   // Handle game end
   const handleGameEnd = async (gameResult: 'win' | 'loss' | 'draw', reason: string) => {
-    console.log('=== HANDLE GAME END CALLED ===');
-    console.log('Result:', gameResult, 'Reason:', reason);
-    
     setGameOver(true);
     setResult(gameResult);
     
@@ -339,28 +310,18 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
       
       if (res.ok) {
         const data = await res.json();
-        console.log('Backend response:', data);
         if (data.stats) {
           setArenaStats(data.stats);
         } else {
           setArenaStats(defaultStats);
         }
       } else {
-        console.log('Backend response not ok, using default stats');
         setArenaStats(defaultStats);
       }
     } catch (error) {
       console.error('Failed to submit arena result:', error);
       setArenaStats(defaultStats);
     }
-    
-    // Always show result modal - use setTimeout to ensure state is flushed
-    console.log('Setting showResult to TRUE');
-    setTimeout(() => {
-      setShowResult(true);
-      forceUpdate(n => n + 1);
-      console.log('showResult set via setTimeout');
-    }, 100);
   };
 
   // Resign
@@ -372,7 +333,6 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
 
   // Close result and return to lobby
   const handleCloseResult = () => {
-    setShowResult(false);
     onGameEnd();
   };
 
@@ -602,24 +562,6 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
         Moves: {moveCount} {moveCount < MIN_MOVES_TO_COUNT && `(${MIN_MOVES_TO_COUNT - moveCount} more needed to count)`}
       </div>
 
-      {/* Debug box - inline, no portal */}
-      <div 
-        style={{
-          position: 'fixed',
-          bottom: '16px',
-          left: '16px',
-          backgroundColor: 'red',
-          color: 'white',
-          padding: '12px',
-          borderRadius: '8px',
-          fontSize: '12px',
-          fontFamily: 'monospace',
-          zIndex: 99999,
-        }}
-      >
-        DEBUG: gameOver: {gameOver ? 'TRUE' : 'false'} | result: {result || 'null'}
-      </div>
-
       {/* Result Modal - inline with forced visibility */}
       {gameOver && (
         <div 
@@ -637,20 +579,22 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
           }}
         >
           <div style={{
-            backgroundColor: '#166534',
+            backgroundColor: result === 'win' ? '#166534' : result === 'loss' ? '#7f1d1d' : '#374151',
             padding: '32px',
             borderRadius: '16px',
-            border: '2px solid #4ade80',
+            border: `2px solid ${result === 'win' ? '#4ade80' : result === 'loss' ? '#f87171' : '#9ca3af'}`,
             maxWidth: '400px',
             width: '100%',
             textAlign: 'center',
           }}>
-            <div style={{ fontSize: '64px', marginBottom: '16px' }}>🏆</div>
+            <div style={{ fontSize: '64px', marginBottom: '16px' }}>
+              {result === 'win' ? '🏆' : result === 'loss' ? '😔' : '🤝'}
+            </div>
             <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: 'white', marginBottom: '8px' }}>
               {result === 'win' ? 'Victory!' : result === 'loss' ? 'Defeat' : 'Draw'}
             </h2>
             <p style={{ color: 'rgba(255,255,255,0.8)', marginBottom: '16px' }}>
-              {result === 'win' ? 'You defeated the AI!' : result === 'loss' ? 'The AI won' : 'Stalemate'}
+              {result === 'win' ? 'You defeated the AI!' : result === 'loss' ? 'The AI won this time' : 'The game ended in a draw'}
             </p>
             <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '24px' }}>Moves played: {moveCount}</p>
             
