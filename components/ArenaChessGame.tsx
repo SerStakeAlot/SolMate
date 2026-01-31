@@ -581,29 +581,47 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
         Moves: {moveCount} {moveCount < MIN_MOVES_TO_COUNT && `(${MIN_MOVES_TO_COUNT - moveCount} more needed to count)`}
       </div>
 
-      {/* Result Modal - show if game ended, even without backend stats */}
-      <AnimatePresence>
-        {showResult && result && (
-          <ArenaResultModal
-            result={result}
-            moveCount={moveCount}
-            stats={arenaStats || {
-              matchesPlayed: 1,
-              wins: result === 'win' ? 1 : 0,
-              score: result === 'win' ? 10 : result === 'draw' ? 5 : 0,
-              rank: 999,
-              gamesRemainingToday: MAX_GAMES_PER_DAY - 1,
-            }}
-            minMovesToCount={MIN_MOVES_TO_COUNT}
-            onClose={handleCloseResult}
-          />
-        )}
-      </AnimatePresence>
+      {/* Result Modal - show if game ended */}
+      {showResult && result && (
+        <div 
+          className="fixed inset-0 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
+          style={{ zIndex: 9999 }}
+        >
+          <div className="bg-gradient-to-br from-green-900 to-green-700 p-8 rounded-2xl border-2 border-green-400 max-w-md w-full text-center shadow-2xl">
+            <div className="text-6xl mb-4">🏆</div>
+            <h2 className="text-3xl font-bold text-white mb-2">
+              {result === 'win' ? 'Victory!' : result === 'loss' ? 'Defeat' : 'Draw'}
+            </h2>
+            <p className="text-white/80 mb-4">
+              {result === 'win' ? 'You defeated the AI!' : result === 'loss' ? 'The AI won' : 'Stalemate'}
+            </p>
+            <p className="text-white/60 mb-6">Moves played: {moveCount}</p>
+            
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={handleCloseResult}
+                className="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-xl font-semibold transition-colors"
+              >
+                Continue
+              </button>
+              <button
+                onClick={() => {
+                  const text = `I just ${result === 'win' ? 'defeated' : result === 'loss' ? 'lost to' : 'drew with'} the SolMate AI in ${moveCount} moves! ♟️\n\nPlay now: https://playsolmate.fun/arena`;
+                  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+                }}
+                className="px-6 py-3 bg-blue-500 hover:bg-blue-400 rounded-xl font-semibold transition-colors"
+              >
+                Share on X
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Debug: Game state */}
       {gameOver && (
-        <div className="fixed bottom-4 left-4 bg-black/80 text-white p-3 rounded-lg text-xs z-50">
-          Game Over: {result} | showResult: {showResult ? 'true' : 'false'}
+        <div className="fixed bottom-4 left-4 bg-red-600 text-white p-3 rounded-lg text-sm font-bold" style={{ zIndex: 10000 }}>
+          🎮 Game Over: {result} | Modal: {showResult ? 'SHOWING' : 'hidden'}
         </div>
       )}
     </div>
