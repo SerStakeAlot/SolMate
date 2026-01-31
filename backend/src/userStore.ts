@@ -143,6 +143,24 @@ class UserStore {
     const stmt = this.db.prepare('SELECT * FROM users WHERE wallet_address = ?');
     return stmt.get(walletAddress) as User | undefined || null;
   }
+
+  // Get total count of usernames created
+  getUserCount(): number {
+    const stmt = this.db.prepare('SELECT COUNT(*) as count FROM users');
+    const row = stmt.get() as { count: number };
+    return row?.count || 0;
+  }
+
+  // Get all usernames with their creation dates
+  getAllUsernames(): { username: string; wallet: string; createdAt: number }[] {
+    const stmt = this.db.prepare('SELECT username, wallet_address, created_at FROM users ORDER BY created_at DESC');
+    const rows = stmt.all() as { username: string; wallet_address: string; created_at: number }[];
+    return rows.map(row => ({
+      username: row.username,
+      wallet: row.wallet_address,
+      createdAt: row.created_at,
+    }));
+  }
 }
 
 export const userStore = new UserStore();
