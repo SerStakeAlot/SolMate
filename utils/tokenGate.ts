@@ -2,10 +2,12 @@ import { Connection, PublicKey } from '@solana/web3.js';
 
 // SolMate Token Configuration
 export const SOLMATE_TOKEN_MINT = '5CJN2E6dDU9XxDJnz3ZEELxPP8HsGTKPbsNVB2djpump';
+export const TOKEN_SYMBOL = '$MATE';
+export const TOKEN_DECIMALS = 6;
 
 // Minimum token balance required for Holder Arena access (in raw token units)
-// Adjust this based on token decimals (typically 6 or 9)
-export const HOLDER_ARENA_MIN_BALANCE = 1_000_000; // 1 token with 6 decimals
+// 1 million tokens with 6 decimals = 1,000,000 * 10^6 = 1,000,000,000,000
+export const HOLDER_ARENA_MIN_BALANCE = 1_000_000 * Math.pow(10, TOKEN_DECIMALS); // 1 million $MATE
 
 // Token Program ID (SPL Token)
 const TOKEN_PROGRAM_ID = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
@@ -82,22 +84,25 @@ export async function checkHolderArenaAccess(
 }
 
 /**
- * Format token balance for display
+ * Format token balance for display with $MATE symbol
  */
-export function formatTokenBalance(rawBalance: number, decimals: number = 6): string {
+export function formatTokenBalance(rawBalance: number, decimals: number = TOKEN_DECIMALS): string {
   const balance = rawBalance / Math.pow(10, decimals);
   if (balance >= 1_000_000) {
-    return `${(balance / 1_000_000).toFixed(2)}M`;
+    return `${(balance / 1_000_000).toFixed(2)}M ${TOKEN_SYMBOL}`;
   }
   if (balance >= 1_000) {
-    return `${(balance / 1_000).toFixed(2)}K`;
+    return `${(balance / 1_000).toFixed(2)}K ${TOKEN_SYMBOL}`;
   }
-  return balance.toFixed(2);
+  return `${balance.toFixed(0)} ${TOKEN_SYMBOL}`;
 }
 
 /**
  * Get minimum required tokens formatted for display
  */
+export function getMinimumRequiredDisplay(decimals: number = TOKEN_DECIMALS): string {
+  return formatTokenBalance(HOLDER_ARENA_MIN_BALANCE, decimals);
+}
 export function getMinimumRequiredDisplay(decimals: number = 6): string {
   return formatTokenBalance(HOLDER_ARENA_MIN_BALANCE, decimals);
 }

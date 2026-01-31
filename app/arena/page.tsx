@@ -120,7 +120,7 @@ export default function ArenaPage() {
           <div className="mt-2 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-500/10 border border-green-500/30">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
             <span className="text-green-400 text-sm font-medium">
-              Access Granted • {formatTokenBalance(accessStatus.balance)} tokens
+              Access Granted • {formatTokenBalance(accessStatus.balance)}
             </span>
           </div>
         </motion.div>
@@ -219,7 +219,7 @@ function LockedHero({ reason, balance, onConnect }: {
       <p className="text-xl text-white/60 mb-8 max-w-md mx-auto">
         {reason === 'wallet' 
           ? 'Connect your wallet to access the exclusive Holder Arena'
-          : 'Hold SolMate tokens to unlock the exclusive Holder Arena'
+          : 'Hold $MATE tokens to unlock the exclusive Holder Arena'
         }
       </p>
 
@@ -232,7 +232,7 @@ function LockedHero({ reason, balance, onConnect }: {
         </div>
         <div className="p-4 rounded-xl bg-white/5 border border-white/10">
           <Trophy className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-          <h3 className="font-semibold mb-1">Weekly Leaderboard</h3>
+          <h3 className="font-semibold mb-1">All-Time Leaderboard</h3>
           <p className="text-sm text-white/50">Compete for top ranks</p>
         </div>
         <div className="p-4 rounded-xl bg-white/5 border border-white/10">
@@ -251,10 +251,10 @@ function LockedHero({ reason, balance, onConnect }: {
         <div className="space-y-4">
           <div className="inline-block px-6 py-3 rounded-xl bg-red-500/10 border border-red-500/30">
             <p className="text-red-400">
-              Your balance: <span className="font-bold">{formatTokenBalance(balance || 0)}</span> tokens
+              Your balance: <span className="font-bold">{formatTokenBalance(balance || 0)}</span>
             </p>
             <p className="text-sm text-white/50 mt-1">
-              Required: <span className="font-bold">{getMinimumRequiredDisplay()}</span> tokens
+              Required: <span className="font-bold">{getMinimumRequiredDisplay()}</span>
             </p>
           </div>
           
@@ -265,7 +265,7 @@ function LockedHero({ reason, balance, onConnect }: {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-bold hover:from-yellow-400 hover:to-amber-400 transition-all"
             >
-              Get SolMate Tokens
+              Get $MATE Tokens
               <ExternalLink className="w-5 h-5" />
             </a>
           </div>
