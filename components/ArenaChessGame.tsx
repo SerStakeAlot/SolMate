@@ -602,34 +602,70 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
         Moves: {moveCount} {moveCount < MIN_MOVES_TO_COUNT && `(${MIN_MOVES_TO_COUNT - moveCount} more needed to count)`}
       </div>
 
-      {/* Debug: Always show game state at bottom - rendered via portal */}
-      {isClient && createPortal(
-        <div className="fixed bottom-4 left-4 bg-red-600 text-white p-3 rounded-lg text-xs font-mono" style={{ zIndex: 10000 }}>
-          DEBUG: gameOver: {gameOver ? 'TRUE' : 'false'} | result: {result || 'null'} | showResult: {showResult ? 'TRUE' : 'false'}
-        </div>,
-        document.body
-      )}
+      {/* Debug box - inline, no portal */}
+      <div 
+        style={{
+          position: 'fixed',
+          bottom: '16px',
+          left: '16px',
+          backgroundColor: 'red',
+          color: 'white',
+          padding: '12px',
+          borderRadius: '8px',
+          fontSize: '12px',
+          fontFamily: 'monospace',
+          zIndex: 99999,
+        }}
+      >
+        DEBUG: gameOver: {gameOver ? 'TRUE' : 'false'} | result: {result || 'null'}
+      </div>
 
-      {/* Result Modal - rendered via portal to escape any parent styling */}
-      {isClient && gameOver && createPortal(
+      {/* Result Modal - inline with forced visibility */}
+      {gameOver && (
         <div 
-          className="fixed inset-0 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
-          style={{ zIndex: 9999 }}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99998,
+          }}
         >
-          <div className="bg-gradient-to-br from-green-900 to-green-700 p-8 rounded-2xl border-2 border-green-400 max-w-md w-full text-center shadow-2xl">
-            <div className="text-6xl mb-4">🏆</div>
-            <h2 className="text-3xl font-bold text-white mb-2">
+          <div style={{
+            backgroundColor: '#166534',
+            padding: '32px',
+            borderRadius: '16px',
+            border: '2px solid #4ade80',
+            maxWidth: '400px',
+            width: '100%',
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: '64px', marginBottom: '16px' }}>🏆</div>
+            <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: 'white', marginBottom: '8px' }}>
               {result === 'win' ? 'Victory!' : result === 'loss' ? 'Defeat' : 'Draw'}
             </h2>
-            <p className="text-white/80 mb-4">
+            <p style={{ color: 'rgba(255,255,255,0.8)', marginBottom: '16px' }}>
               {result === 'win' ? 'You defeated the AI!' : result === 'loss' ? 'The AI won' : 'Stalemate'}
             </p>
-            <p className="text-white/60 mb-6">Moves played: {moveCount}</p>
+            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '24px' }}>Moves played: {moveCount}</p>
             
-            <div className="flex gap-3 justify-center">
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <button
                 onClick={handleCloseResult}
-                className="px-6 py-3 bg-white/20 hover:bg-white/30 rounded-xl font-semibold transition-colors"
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  color: 'white',
+                }}
               >
                 Continue
               </button>
@@ -638,14 +674,21 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
                   const text = `I just ${result === 'win' ? 'defeated' : result === 'loss' ? 'lost to' : 'drew with'} the SolMate AI in ${moveCount} moves! ♟️\n\nPlay now: https://playsolmate.fun/arena`;
                   window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
                 }}
-                className="px-6 py-3 bg-blue-500 hover:bg-blue-400 rounded-xl font-semibold transition-colors"
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#3b82f6',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  color: 'white',
+                }}
               >
                 Share on X
               </button>
             </div>
           </div>
-        </div>,
-        document.body
+        </div>
       )}
     </div>
   );
