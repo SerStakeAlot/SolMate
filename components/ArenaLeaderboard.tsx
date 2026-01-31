@@ -89,7 +89,7 @@ export function ArenaLeaderboard({ walletAddress }: ArenaLeaderboardProps) {
         <p className="text-red-400 mb-4">{error}</p>
         <button
           onClick={fetchLeaderboard}
-          className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+          className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
         >
           <RefreshCw className="w-5 h-5 inline-block mr-2" />
           Retry
