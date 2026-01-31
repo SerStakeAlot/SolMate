@@ -373,13 +373,22 @@ function ArenaLobby({ onStartGame }: { onStartGame: () => void }) {
           <Trophy className="w-6 h-6 text-yellow-400" />
           Scoring System
         </h2>
-        <div className="bg-black/30 rounded-xl p-4 font-mono text-center">
-          <p className="text-2xl text-yellow-400">
-            Score = (Matches × 1.0) + (Wins × 0.5)
-          </p>
+        <div className="space-y-2 mb-4">
+          <div className="flex justify-between items-center p-3 rounded-lg bg-black/30">
+            <span className="text-white/70">Each match played</span>
+            <span className="text-yellow-400 font-bold">+1.0 pts</span>
+          </div>
+          <div className="flex justify-between items-center p-3 rounded-lg bg-black/30">
+            <span className="text-white/70">Win bonus</span>
+            <span className="text-green-400 font-bold">+0.5 pts</span>
+          </div>
+          <div className="flex justify-between items-center p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+            <span className="text-white/70">Share on X bonus</span>
+            <span className="text-blue-400 font-bold">+0.25 pts</span>
+          </div>
         </div>
-        <p className="text-white/50 text-sm mt-4 text-center">
-          Play more games to climb the leaderboard! Wins give a small bonus.
+        <p className="text-white/50 text-sm text-center">
+          Min 10 moves per game • Share after each match for extra points!
         </p>
       </div>
 

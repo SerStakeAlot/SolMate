@@ -102,6 +102,10 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
   const [result, setResult] = useState<'win' | 'loss' | 'draw' | null>(null);
   const [arenaStats, setArenaStats] = useState<ArenaStats | null>(null);
   
+  // Share tracking
+  const [hasShared, setHasShared] = useState(false);
+  const [shareBonus, setShareBonus] = useState<number | null>(null);
+  
   // Time control (10 min per side)
   const [playerTime, setPlayerTime] = useState(600);
   const [aiTime, setAiTime] = useState(600);
@@ -598,7 +602,22 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
             </p>
             <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '24px' }}>Moves played: {moveCount}</p>
             
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            {/* Share bonus indicator */}
+            {shareBonus !== null && (
+              <div style={{
+                marginBottom: '16px',
+                padding: '8px 16px',
+                backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                borderRadius: '8px',
+                border: '1px solid rgba(34, 197, 94, 0.5)',
+              }}>
+                <p style={{ color: '#4ade80', fontWeight: '600' }}>
+                  ✨ +{shareBonus} bonus points awarded!
+                </p>
+              </div>
+            )}
+            
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <button
                 onClick={handleCloseResult}
                 style={{
@@ -614,21 +633,42 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
                 Continue
               </button>
               <button
-                onClick={() => {
-                  const text = `I just ${result === 'win' ? 'defeated' : result === 'loss' ? 'lost to' : 'drew with'} the SolMate AI in ${moveCount} moves! ♟️\n\nPlay now: https://playsolmate.fun/arena`;
+                onClick={async () => {
+                  // Open tweet window first for better UX
+                  const text = `I just ${result === 'win' ? 'defeated' : result === 'loss' ? 'lost to' : 'drew with'} the SolMate AI in ${moveCount} moves! ♟️\n\n$500 prize pool for top scorer!\n\nPlay now: https://playsolmate.fun/arena`;
                   window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+                  
+                  // Award share bonus if not already claimed
+                  if (!hasShared) {
+                    try {
+                      const res = await fetch(`${BACKEND_URL}/api/arena/share`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ walletAddress }),
+                      });
+                      const data = await res.json();
+                      if (data.success) {
+                        setHasShared(true);
+                        setShareBonus(data.bonusAwarded);
+                      }
+                    } catch (error) {
+                      console.error('Failed to record share:', error);
+                    }
+                  }
                 }}
+                disabled={hasShared}
                 style={{
                   padding: '12px 24px',
-                  backgroundColor: '#3b82f6',
+                  backgroundColor: hasShared ? 'rgba(34, 197, 94, 0.3)' : '#3b82f6',
                   border: 'none',
                   borderRadius: '12px',
                   fontWeight: '600',
-                  cursor: 'pointer',
+                  cursor: hasShared ? 'default' : 'pointer',
                   color: 'white',
+                  opacity: hasShared ? 0.8 : 1,
                 }}
               >
-                Share on X
+                {hasShared ? '✓ Shared (+0.25)' : 'Share on X (+0.25)'}
               </button>
             </div>
           </div>
