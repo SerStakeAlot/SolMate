@@ -13,6 +13,8 @@ const MAX_GAMES_PER_DAY = 20;
 const MIN_MOVES_TO_COUNT = 10;
 const COOLDOWN_SECONDS = 30;
 const AI_THINK_TIME_MS = 1500; // AI "thinks" for realism
+const AI_DEPTH = 4; // Increased depth for better AI (roughly level 20)
+const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 
 // Piece SVG paths
 const PIECE_PATHS: Record<string, string> = {
@@ -134,8 +136,8 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
     // Simulate thinking time
     await new Promise(resolve => setTimeout(resolve, AI_THINK_TIME_MS));
     
-    // Get best move using minimax
-    const bestMove = findBestMove(chess, 3); // depth 3 for reasonable difficulty
+    // Get best move using minimax with increased depth
+    const bestMove = findBestMove(chess, AI_DEPTH);
     
     if (bestMove) {
       chess.move(bestMove);
@@ -206,6 +208,15 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
     // Check if game counts (minimum moves requirement)
     const counts = moveCount >= MIN_MOVES_TO_COUNT;
     
+    // Create default stats in case backend fails
+    const defaultStats: ArenaStats = {
+      matchesPlayed: (arenaStats?.matchesPlayed || 0) + 1,
+      wins: (arenaStats?.wins || 0) + (gameResult === 'win' ? 1 : 0),
+      score: arenaStats?.score || 0,
+      rank: arenaStats?.rank || 999,
+      gamesRemainingToday: (arenaStats?.gamesRemainingToday || MAX_GAMES_PER_DAY) - 1,
+    };
+    
     // Submit result to backend
     try {
       const res = await fetch(`${BACKEND_URL}/api/arena/result`, {
@@ -220,12 +231,22 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
         }),
       });
       
-      const data = await res.json();
-      setArenaStats(data.stats);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.stats) {
+          setArenaStats(data.stats);
+        } else {
+          setArenaStats(defaultStats);
+        }
+      } else {
+        setArenaStats(defaultStats);
+      }
     } catch (error) {
       console.error('Failed to submit arena result');
+      setArenaStats(defaultStats);
     }
     
+    // Always show result modal
     setShowResult(true);
   };
 
@@ -272,7 +293,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
           </div>
           <div>
             <p className="font-semibold">SolMate AI</p>
-            <p className="text-sm text-white/50">Level 15 • {isAiThinking ? 'Thinking...' : 'Ready'}</p>
+            <p className="text-sm text-white/50">Level 20 • {isAiThinking ? 'Thinking...' : 'Ready'}</p>
           </div>
         </div>
         
@@ -288,55 +309,133 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
       {/* Chess Board */}
       <div className="relative">
         <div className="aspect-square max-w-[600px] mx-auto">
-          <div className="grid grid-cols-8 gap-0 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl">
-            {board.flat().map((piece, i) => {
+          <div className="w-full h-full overflow-hidden rounded-xl border-2 border-white/20 shadow-2xl">
+            <div className="grid grid-cols-8 grid-rows-8 h-full w-full">
+            {Array.from({ length: 64 }).map((_, i) => {
               const row = Math.floor(i / 8);
               const col = i % 8;
-              const square = `${'abcdefgh'[col]}${8 - row}` as Square;
+              const visualRow = row;
+              const visualCol = col;
+              const square = `${FILES[col]}${8 - row}` as Square;
+              const piece = board[row]?.[col] ?? null;
               const isLight = (row + col) % 2 === 0;
               const isSelected = selectedSquare === square;
               const isValidMove = validMoves.includes(square);
-              const isLastMove = lastMove && (lastMove.from === square || lastMove.to === square);
+              const isLastMoveSquare = lastMove && (lastMove.from === square || lastMove.to === square);
               const isCheck = chess.isCheck() && piece?.type === 'k' && piece?.color === chess.turn();
               
+              // Coordinate labels
+              const showRank = visualCol === 0; // Left edge
+              const showFile = visualRow === 7; // Bottom edge
+              const rank = 8 - visualRow;
+              const file = FILES[visualCol];
+              
+              // Background color with priority
+              let bgColor = isLight ? '#e5e5e5' : '#525252';
+              if (isLastMoveSquare && !isSelected && !isCheck) {
+                bgColor = isLight ? '#fcd34d' : '#b45309'; // amber highlight
+              }
+              if (isSelected) {
+                bgColor = '#34d399'; // emerald
+              }
+              if (isCheck) {
+                bgColor = '#ef4444'; // red
+              }
+              
               return (
-                <div
+                <button
                   key={square}
+                  type="button"
                   onClick={() => handleSquareClick(square)}
-                  className={`
-                    aspect-square relative cursor-pointer transition-all
-                    ${isLight ? 'bg-[#f0d9b5]' : 'bg-[#b58863]'}
-                    ${isSelected ? 'ring-4 ring-yellow-400 ring-inset z-10' : ''}
-                    ${isLastMove ? 'bg-yellow-400/40' : ''}
-                    ${isCheck ? 'bg-red-500/50' : ''}
-                    hover:brightness-110
-                  `}
+                  className="relative flex items-center justify-center select-none transition-all hover:brightness-110"
+                  style={{ 
+                    backgroundColor: bgColor,
+                    boxShadow: isSelected ? 'inset 0 0 0 4px #10b981' : isCheck ? 'inset 0 0 0 4px #b91c1c' : undefined,
+                  }}
                 >
-                  {/* Valid move indicator */}
-                  {isValidMove && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      {piece ? (
-                        <div className="w-full h-full border-4 border-green-500/60 rounded-full" />
-                      ) : (
-                        <div className="w-4 h-4 rounded-full bg-green-500/50" />
-                      )}
-                    </div>
-                  )}
-                  
                   {/* Piece */}
                   {piece && (
                     <motion.img
                       initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
+                      animate={{ scale: isSelected ? 1.1 : 1, opacity: 1 }}
                       src={PIECE_PATHS[`${piece.color}${piece.type.toUpperCase()}`]}
                       alt={`${piece.color}${piece.type}`}
-                      className="absolute inset-0 w-full h-full p-1 pointer-events-none"
+                      className="w-[80%] h-[80%] object-contain pointer-events-none drop-shadow-lg"
+                      style={{ zIndex: 1 }}
                       draggable={false}
                     />
                   )}
-                </div>
+                  
+                  {/* Legal move dot (empty square) */}
+                  {isValidMove && !piece && (
+                    <div 
+                      style={{
+                        position: 'absolute',
+                        width: '30%',
+                        height: '30%',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                        zIndex: 10,
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  )}
+                  
+                  {/* Legal capture indicator (square with piece) */}
+                  {isValidMove && piece && (
+                    <div 
+                      style={{
+                        position: 'absolute',
+                        inset: '4px',
+                        borderRadius: '50%',
+                        border: '5px solid rgba(0, 0, 0, 0.25)',
+                        zIndex: 10,
+                        pointerEvents: 'none',
+                      }}
+                    />
+                  )}
+                  
+                  {/* Rank numbers on left edge */}
+                  {showRank && (
+                    <span 
+                      className="pointer-events-none select-none"
+                      style={{ 
+                        position: 'absolute',
+                        top: '2px',
+                        left: '3px',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        color: isLight ? '#525252' : '#d4d4d4',
+                        zIndex: 5,
+                      }}
+                    >
+                      {rank}
+                    </span>
+                  )}
+                  
+                  {/* File letters on bottom edge */}
+                  {showFile && (
+                    <span 
+                      className="pointer-events-none select-none"
+                      style={{ 
+                        position: 'absolute',
+                        bottom: '2px',
+                        right: '3px',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        color: isLight ? '#525252' : '#d4d4d4',
+                        zIndex: 5,
+                      }}
+                    >
+                      {file}
+                    </span>
+                  )}
+                </button>
               );
             })}
+            </div>
           </div>
         </div>
         
@@ -390,12 +489,18 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
         Moves: {moveCount} {moveCount < MIN_MOVES_TO_COUNT && `(${MIN_MOVES_TO_COUNT - moveCount} more needed to count)`}
       </div>
 
-      {/* Result Modal */}
-      {showResult && result && arenaStats && (
+      {/* Result Modal - show if game ended, even without backend stats */}
+      {showResult && result && (
         <ArenaResultModal
           result={result}
           moveCount={moveCount}
-          stats={arenaStats}
+          stats={arenaStats || {
+            matchesPlayed: 1,
+            wins: result === 'win' ? 1 : 0,
+            score: result === 'win' ? 10 : result === 'draw' ? 5 : 0,
+            rank: 999,
+            gamesRemainingToday: MAX_GAMES_PER_DAY - 1,
+          }}
           minMovesToCount={MIN_MOVES_TO_COUNT}
           onClose={handleCloseResult}
         />
@@ -473,19 +578,114 @@ function evaluateBoard(chess: Chess): number {
   if (chess.isDraw()) return 0;
   
   const pieceValues: Record<string, number> = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
-  let score = 0;
   
+  // Piece-square tables for positional evaluation (from white's perspective)
+  const pawnTable = [
+    0,  0,  0,  0,  0,  0,  0,  0,
+    50, 50, 50, 50, 50, 50, 50, 50,
+    10, 10, 20, 30, 30, 20, 10, 10,
+    5,  5, 10, 25, 25, 10,  5,  5,
+    0,  0,  0, 20, 20,  0,  0,  0,
+    5, -5,-10,  0,  0,-10, -5,  5,
+    5, 10, 10,-20,-20, 10, 10,  5,
+    0,  0,  0,  0,  0,  0,  0,  0
+  ];
+  
+  const knightTable = [
+    -50,-40,-30,-30,-30,-30,-40,-50,
+    -40,-20,  0,  0,  0,  0,-20,-40,
+    -30,  0, 10, 15, 15, 10,  0,-30,
+    -30,  5, 15, 20, 20, 15,  5,-30,
+    -30,  0, 15, 20, 20, 15,  0,-30,
+    -30,  5, 10, 15, 15, 10,  5,-30,
+    -40,-20,  0,  5,  5,  0,-20,-40,
+    -50,-40,-30,-30,-30,-30,-40,-50
+  ];
+  
+  const bishopTable = [
+    -20,-10,-10,-10,-10,-10,-10,-20,
+    -10,  0,  0,  0,  0,  0,  0,-10,
+    -10,  0,  5, 10, 10,  5,  0,-10,
+    -10,  5,  5, 10, 10,  5,  5,-10,
+    -10,  0, 10, 10, 10, 10,  0,-10,
+    -10, 10, 10, 10, 10, 10, 10,-10,
+    -10,  5,  0,  0,  0,  0,  5,-10,
+    -20,-10,-10,-10,-10,-10,-10,-20
+  ];
+  
+  const rookTable = [
+    0,  0,  0,  0,  0,  0,  0,  0,
+    5, 10, 10, 10, 10, 10, 10,  5,
+   -5,  0,  0,  0,  0,  0,  0, -5,
+   -5,  0,  0,  0,  0,  0,  0, -5,
+   -5,  0,  0,  0,  0,  0,  0, -5,
+   -5,  0,  0,  0,  0,  0,  0, -5,
+   -5,  0,  0,  0,  0,  0,  0, -5,
+    0,  0,  0,  5,  5,  0,  0,  0
+  ];
+  
+  const queenTable = [
+    -20,-10,-10, -5, -5,-10,-10,-20,
+    -10,  0,  0,  0,  0,  0,  0,-10,
+    -10,  0,  5,  5,  5,  5,  0,-10,
+     -5,  0,  5,  5,  5,  5,  0, -5,
+      0,  0,  5,  5,  5,  5,  0, -5,
+    -10,  5,  5,  5,  5,  5,  0,-10,
+    -10,  0,  5,  0,  0,  0,  0,-10,
+    -20,-10,-10, -5, -5,-10,-10,-20
+  ];
+  
+  const kingMiddleTable = [
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -20,-30,-30,-40,-40,-30,-30,-20,
+    -10,-20,-20,-20,-20,-20,-20,-10,
+     20, 20,  0,  0,  0,  0, 20, 20,
+     20, 30, 10,  0,  0, 10, 30, 20
+  ];
+  
+  const tables: Record<string, number[]> = {
+    p: pawnTable,
+    n: knightTable,
+    b: bishopTable,
+    r: rookTable,
+    q: queenTable,
+    k: kingMiddleTable,
+  };
+  
+  let score = 0;
   const board = chess.board();
-  for (const row of board) {
-    for (const piece of row) {
+  
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const piece = board[row][col];
       if (piece) {
         const value = pieceValues[piece.type] || 0;
-        score += piece.color === 'w' ? value : -value;
+        const table = tables[piece.type];
+        
+        // Get position bonus from table
+        let posBonus = 0;
+        if (table) {
+          if (piece.color === 'w') {
+            posBonus = table[row * 8 + col];
+          } else {
+            // Mirror for black
+            posBonus = table[(7 - row) * 8 + col];
+          }
+        }
+        
+        if (piece.color === 'w') {
+          score += value + posBonus;
+        } else {
+          score -= value + posBonus;
+        }
       }
     }
   }
   
-  // Add position bonuses
+  // Add mobility bonus
   const moves = chess.moves();
   score += moves.length * 5 * (chess.turn() === 'w' ? 1 : -1);
   
