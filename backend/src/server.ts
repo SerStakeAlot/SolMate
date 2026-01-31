@@ -13,6 +13,7 @@ import { gameRoomManager } from './gameRoom';
 import { hostedMatchManager } from './hostedMatch';
 import { userStore } from './userStore';
 import { statsStore } from './statsStore';
+import { arenaStore } from './arenaStore';
 import { ChessMove } from './types';
 
 dotenv.config();
@@ -349,6 +350,104 @@ app.post('/api/admin/fix-stakes', (req, res) => {
   } catch (error) {
     console.error('Error fixing stakes:', error);
     res.status(500).json({ error: 'Failed to fix stakes' });
+  }
+});
+
+// ============= Holder Arena API Endpoints =============
+
+// Get arena status for a wallet (games remaining, cooldown, stats)
+app.get('/api/arena/status/:walletAddress', (req, res) => {
+  try {
+    const { walletAddress } = req.params;
+    const stats = arenaStore.getPlayerStats(walletAddress);
+    const canPlay = arenaStore.canStartGame(walletAddress);
+    res.json({ ...stats, ...canPlay });
+  } catch (error) {
+    console.error('Error fetching arena status:', error);
+    res.status(500).json({ error: 'Failed to fetch arena status' });
+  }
+});
+
+// Submit arena game result
+app.post('/api/arena/result', strictLimiter, (req, res) => {
+  try {
+    const { walletAddress, result, moveCount, reason, counts } = req.body;
+    
+    if (!walletAddress || !result) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    // Validate result
+    if (!['win', 'loss', 'draw'].includes(result)) {
+      return res.status(400).json({ error: 'Invalid result' });
+    }
+    
+    // Validate wallet address
+    try {
+      new PublicKey(walletAddress);
+    } catch {
+      return res.status(400).json({ error: 'Invalid wallet address' });
+    }
+    
+    // Check if player can play (for anti-cheat)
+    const canPlayCheck = arenaStore.canStartGame(walletAddress);
+    // Allow the result even if cooldown/limit since game already started
+    
+    // Record the game
+    const gameResult = arenaStore.recordGame(
+      walletAddress,
+      result,
+      moveCount || 0,
+      counts !== false
+    );
+    
+    console.log(`Arena game recorded: ${walletAddress} - ${result} (${moveCount} moves)`);
+    
+    res.json(gameResult);
+  } catch (error) {
+    console.error('Error recording arena result:', error);
+    res.status(500).json({ error: 'Failed to record arena result' });
+  }
+});
+
+// Get arena leaderboard
+app.get('/api/arena/leaderboard', (req, res) => {
+  try {
+    const walletAddress = req.query.wallet as string | undefined;
+    const entries = arenaStore.getLeaderboard(20);
+    const weekRange = arenaStore.getWeekDateRange();
+    
+    // Get usernames for leaderboard entries
+    const wallets = entries.map(e => e.walletAddress);
+    const usernames = userStore.getUsernames(wallets);
+    
+    // Attach usernames to entries
+    const entriesWithUsernames = entries.map(entry => ({
+      ...entry,
+      username: usernames[entry.walletAddress] || undefined,
+    }));
+    
+    // Get user's entry if they're not in top 20
+    let userEntry: any = null;
+    if (walletAddress) {
+      const inTop20 = entries.some(e => e.walletAddress === walletAddress);
+      if (!inTop20) {
+        userEntry = arenaStore.getPlayerLeaderboardEntry(walletAddress);
+        if (userEntry) {
+          userEntry.username = usernames[walletAddress] || undefined;
+        }
+      }
+    }
+    
+    res.json({
+      entries: entriesWithUsernames,
+      weekStart: weekRange.start,
+      weekEnd: weekRange.end,
+      userEntry,
+    });
+  } catch (error) {
+    console.error('Error fetching arena leaderboard:', error);
+    res.status(500).json({ error: 'Failed to fetch arena leaderboard' });
   }
 });
 

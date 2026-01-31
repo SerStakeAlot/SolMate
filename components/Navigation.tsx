@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletButton } from './WalletButton';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Crown } from 'lucide-react';
 
 export function Navigation() {
   const pathname = usePathname();
@@ -90,6 +90,17 @@ export function Navigation() {
                     }`}
                   >
                     Lobby
+                  </Link>
+                  <Link
+                    href="/arena"
+                    className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                      pathname === '/arena'
+                        ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-black'
+                        : 'text-yellow-400 hover:text-yellow-300 btn-ghost'
+                    }`}
+                  >
+                    <Crown className="w-4 h-4" />
+                    Arena
                   </Link>
                 </>
               )}
