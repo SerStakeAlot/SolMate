@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Medal, TrendingUp, Calendar, RefreshCw, User } from 'lucide-react';
+import { Trophy, Medal, TrendingUp, RefreshCw, User } from 'lucide-react';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-production.up.railway.app';
 
@@ -17,8 +17,7 @@ interface LeaderboardEntry {
 
 interface LeaderboardData {
   entries: LeaderboardEntry[];
-  weekStart: string;
-  weekEnd: string;
+  type: string;
   userEntry?: LeaderboardEntry;
 }
 
@@ -109,11 +108,11 @@ export function ArenaLeaderboard({ walletAddress }: ArenaLeaderboardProps) {
 
   return (
     <div className="max-w-3xl mx-auto">
-      {/* Week Info */}
+      {/* Header Info */}
       <div className="flex items-center justify-between mb-6 px-4">
         <div className="flex items-center gap-2 text-white/60">
-          <Calendar className="w-5 h-5" />
-          <span>Week: {data.weekStart} - {data.weekEnd}</span>
+          <Trophy className="w-5 h-5 text-yellow-400" />
+          <span>All-Time Leaderboard</span>
         </div>
         <button
           onClick={fetchLeaderboard}
@@ -232,9 +231,6 @@ export function ArenaLeaderboard({ walletAddress }: ArenaLeaderboardProps) {
         <p className="text-white/50 text-sm">
           <TrendingUp className="w-4 h-4 inline-block mr-2" />
           Score = (Matches × 1.0) + (Wins × 0.5)
-        </p>
-        <p className="text-white/30 text-xs mt-1">
-          Resets every Monday at 00:00 UTC
         </p>
       </div>
     </div>

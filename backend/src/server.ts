@@ -415,7 +415,6 @@ app.get('/api/arena/leaderboard', (req, res) => {
   try {
     const walletAddress = req.query.wallet as string | undefined;
     const entries = arenaStore.getLeaderboard(20);
-    const weekRange = arenaStore.getWeekDateRange();
     
     // Get usernames for leaderboard entries
     const wallets = entries.map(e => e.walletAddress);
@@ -441,8 +440,7 @@ app.get('/api/arena/leaderboard', (req, res) => {
     
     res.json({
       entries: entriesWithUsernames,
-      weekStart: weekRange.start,
-      weekEnd: weekRange.end,
+      type: 'all-time',
       userEntry,
     });
   } catch (error) {
