@@ -350,7 +350,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
           <p className="text-white/70">{errorMessage}</p>
           <button
             onClick={onGameEnd}
-            className="mt-6 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+            className="mt-6 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
           >
             Back to Arena
           </button>
