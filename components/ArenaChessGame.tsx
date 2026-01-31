@@ -13,7 +13,7 @@ const MAX_GAMES_PER_DAY = 20;
 const MIN_MOVES_TO_COUNT = 10;
 const COOLDOWN_SECONDS = 30;
 const AI_THINK_TIME_MS = 300; // AI "thinks" for realism
-const AI_DEPTH = 3; // Minimax depth for AI strength (~1400 ELO) - fast response
+const AI_DEPTH = 3; // Minimax depth - enhanced with opening book and move ordering
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 
 // Piece SVG paths
@@ -688,15 +688,78 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
   );
 }
 
-// Simple minimax AI
+// Opening book - common strong responses for first ~6 moves
+const OPENING_BOOK: Record<string, string[]> = {
+  // Starting position responses (as black)
+  'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq': ['e7e5', 'c7c5', 'd7d5'], // vs e4
+  'rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq': ['d7d5', 'g8f6', 'e7e6'], // vs d4
+  'rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b KQkq': ['e7e5', 'c7c5', 'g8f6'], // vs c4
+  'rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq': ['d7d5', 'g8f6', 'c7c5'], // vs Nf3
+  // After 1.e4 e5
+  'rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq': ['b8c6', 'g8f6'], // vs Nf3
+  'rnbqkbnr/pppp1ppp/8/4p3/2B1P3/8/PPPP1PPP/RNBQK1NR b KQkq': ['g8f6', 'f8c5'], // vs Bc4
+  'r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq': ['f1b5', 'f1c4', 'd2d4'], // Ruy Lopez / Italian / Scotch
+  // After 1.d4 d5
+  'rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq': ['c2c4', 'g1f3', 'b1c3'], // Queen's Gambit
+  'rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq': ['e7e6', 'c7c6', 'd5c4'], // vs c4
+  // After 1.e4 c5 (Sicilian)
+  'rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq': ['g1f3', 'b1c3', 'd2d4'], // vs Sicilian
+  'rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq': ['d7d6', 'b8c6', 'e7e6'], // Sicilian cont.
+  // After 1.e4 e6 (French)
+  'rnbqkbnr/pppp1ppp/4p3/8/4P3/8/PPPP1PPP/RNBQKBNR w KQkq': ['d2d4', 'g1f3'], // vs French
+  'rnbqkbnr/pppp1ppp/4p3/8/3PP3/8/PPP2PPP/RNBQKBNR b KQkq': ['d7d5'], // French cont.
+  // After 1.e4 d5 (Scandinavian)
+  'rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq': ['e4d5'], // vs Scandinavian
+};
+
+// Simple minimax AI with opening book
 function findBestMove(chess: Chess, depth: number): Move | null {
+  // Check opening book first (much faster)
+  const fen = chess.fen().split(' ').slice(0, 4).join(' '); // Position without move counters
+  const bookMoves = OPENING_BOOK[fen];
+  if (bookMoves && bookMoves.length > 0) {
+    // Pick a random book move for variety
+    const bookMove = bookMoves[Math.floor(Math.random() * bookMoves.length)];
+    const from = bookMove.slice(0, 2);
+    const to = bookMove.slice(2, 4);
+    const promotion = bookMove.length > 4 ? bookMove[4] : undefined;
+    try {
+      const move = chess.move({ from, to, promotion });
+      if (move) {
+        chess.undo();
+        return move;
+      }
+    } catch {
+      // Book move not valid, fall through to search
+    }
+  }
+
   const moves = chess.moves({ verbose: true });
   if (moves.length === 0) return null;
   
+  // Sort moves for better alpha-beta pruning (captures, checks first)
+  const sortedMoves = moves.sort((a, b) => {
+    let scoreA = 0, scoreB = 0;
+    // Prioritize captures
+    if (a.captured) scoreA += 10 + getPieceValue(a.captured);
+    if (b.captured) scoreB += 10 + getPieceValue(b.captured);
+    // Prioritize checks
+    chess.move(a);
+    if (chess.isCheck()) scoreA += 5;
+    chess.undo();
+    chess.move(b);
+    if (chess.isCheck()) scoreB += 5;
+    chess.undo();
+    // Prioritize center moves
+    if (['d4', 'd5', 'e4', 'e5'].includes(a.to)) scoreA += 2;
+    if (['d4', 'd5', 'e4', 'e5'].includes(b.to)) scoreB += 2;
+    return scoreB - scoreA;
+  });
+
   let bestMove: Move | null = null;
   let bestScore = chess.turn() === 'b' ? Infinity : -Infinity;
   
-  for (const move of moves) {
+  for (const move of sortedMoves) {
     chess.move(move);
     const score = minimax(chess, depth - 1, -Infinity, Infinity, chess.turn() === 'b');
     chess.undo();
@@ -748,6 +811,12 @@ function minimax(chess: Chess, depth: number, alpha: number, beta: number, maxim
     }
     return minEval;
   }
+}
+
+// Helper for move ordering
+function getPieceValue(piece: string): number {
+  const values: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+  return values[piece] || 0;
 }
 
 function evaluateBoard(chess: Chess): number {
