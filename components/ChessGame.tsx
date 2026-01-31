@@ -1964,21 +1964,21 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                 </div>
               )}
               
-              {/* Opponent's captured pieces (shown at top) */}
-              <div className="flex items-center justify-between mb-2 min-h-[28px]">
-                <div className="flex items-center gap-0.5 flex-wrap">
-                  {/* For AI practice mode, use aiPlayerColor; for multiplayer use playerColor */}
-                  {capturedPieces[((mode === 'practice' && !isFreePlay) ? aiPlayerColor : playerColor) === 'w' ? 'b' : 'w'].map((piece, idx) => (
+              {/* Your captured pieces (shown at top near opponent) */}
+              <div className="flex items-center justify-between mb-2 min-h-[24px]">
+                <div className="flex items-center gap-0 flex-wrap">
+                  {/* Show pieces YOU captured - these are opponent's pieces you took */}
+                  {capturedPieces[((mode === 'practice' && !isFreePlay) ? aiPlayerColor : playerColor) === 'w' ? 'w' : 'b'].map((piece, idx) => (
                     <img
                       key={idx}
                       src={piece.svg}
                       alt="captured piece"
-                      className="w-5 h-5 sm:w-6 sm:h-6 opacity-70"
+                      className="w-4 h-4 sm:w-5 sm:h-5 opacity-70 -mr-1"
                     />
                   ))}
                 </div>
-                {materialAdvantage < 0 && (
-                  <span className="text-xs font-bold text-neutral-400">+{Math.abs(materialAdvantage)}</span>
+                {materialAdvantage > 0 && (
+                  <span className="text-xs font-bold text-solana-green">+{materialAdvantage}</span>
                 )}
               </div>
               
@@ -2126,21 +2126,21 @@ export const ChessGame: React.FC<ChessGameProps> = ({
           </div>
           </div> {/* End of board with coordinates wrapper */}
           
-              {/* Player's captured pieces (shown at bottom) */}
-              <div className="flex items-center justify-between mt-2 min-h-[28px]">
-                <div className="flex items-center gap-0.5 flex-wrap">
-                  {/* For AI practice mode, use aiPlayerColor; for multiplayer use playerColor */}
-                  {capturedPieces[((mode === 'practice' && !isFreePlay) ? aiPlayerColor : playerColor) === 'w' ? 'w' : 'b'].map((piece, idx) => (
+              {/* Opponent's captured pieces (shown at bottom near you) */}
+              <div className="flex items-center justify-between mt-2 min-h-[24px]">
+                <div className="flex items-center gap-0 flex-wrap">
+                  {/* Show pieces OPPONENT captured - these are your pieces they took */}
+                  {capturedPieces[((mode === 'practice' && !isFreePlay) ? aiPlayerColor : playerColor) === 'w' ? 'b' : 'w'].map((piece, idx) => (
                     <img
                       key={idx}
                       src={piece.svg}
                       alt="captured piece"
-                      className="w-5 h-5 sm:w-6 sm:h-6 opacity-70"
+                      className="w-4 h-4 sm:w-5 sm:h-5 opacity-70 -mr-1"
                     />
                   ))}
                 </div>
-                {materialAdvantage > 0 && (
-                  <span className="text-xs font-bold text-solana-green">+{materialAdvantage}</span>
+                {materialAdvantage < 0 && (
+                  <span className="text-xs font-bold text-red-400">+{Math.abs(materialAdvantage)}</span>
                 )}
               </div>
               
