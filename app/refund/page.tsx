@@ -209,7 +209,8 @@ export default function RefundPage() {
               <button
                 onClick={loadMatches}
                 disabled={loading}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-sm"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 transition-colors text-sm text-white border border-white/10"
+                style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                 Refresh
