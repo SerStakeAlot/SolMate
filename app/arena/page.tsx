@@ -147,22 +147,22 @@ export default function ArenaPage() {
         <div className="flex justify-center gap-4 mb-8">
           <button
             onClick={() => { setShowLeaderboard(false); setIsPlaying(false); }}
-            className={`px-6 py-3 rounded-xl font-semibold transition-all ${
-              !showLeaderboard && !isPlaying
+            className={`px-6 py-3 rounded-xl font-semibold transition-all ${!showLeaderboard && !isPlaying
                 ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-black'
-                : 'bg-white/5 text-white/60 hover:bg-white/10'
+                : 'bg-neutral-800 text-white hover:bg-neutral-700 border border-white/10'
             }`}
+            style={{ textShadow: !showLeaderboard && !isPlaying ? 'none' : '0 1px 2px rgba(0,0,0,0.8)' }}
           >
             <Zap className="w-5 h-5 inline-block mr-2" />
             Play Arena
           </button>
           <button
             onClick={() => { setShowLeaderboard(true); setIsPlaying(false); }}
-            className={`px-6 py-3 rounded-xl font-semibold transition-all ${
-              showLeaderboard
+            className={`px-6 py-3 rounded-xl font-semibold transition-all ${showLeaderboard
                 ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-black'
-                : 'bg-white/5 text-white/60 hover:bg-white/10'
+                : 'bg-neutral-800 text-white hover:bg-neutral-700 border border-white/10'
             }`}
+            style={{ textShadow: showLeaderboard ? 'none' : '0 1px 2px rgba(0,0,0,0.8)' }}
           >
             <Trophy className="w-5 h-5 inline-block mr-2" />
             Leaderboard
@@ -252,20 +252,20 @@ function LockedHero({ reason, balance, onConnect }: {
 
       {/* Benefits */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
-        <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+        <div className="p-4 rounded-xl bg-neutral-900 border border-white/10">
           <Zap className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-          <h3 className="font-semibold mb-1">Unlimited AI Matches</h3>
-          <p className="text-sm text-white/50">Challenge our high-ELO bot</p>
+          <h3 className="font-semibold mb-1 text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>Unlimited AI Matches</h3>
+          <p className="text-sm text-neutral-300">Challenge our high-ELO bot</p>
         </div>
-        <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+        <div className="p-4 rounded-xl bg-neutral-900 border border-white/10">
           <Trophy className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-          <h3 className="font-semibold mb-1">All-Time Leaderboard</h3>
-          <p className="text-sm text-white/50">Compete for top ranks</p>
+          <h3 className="font-semibold mb-1 text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>All-Time Leaderboard</h3>
+          <p className="text-sm text-neutral-300">Compete for top ranks</p>
         </div>
-        <div className="p-4 rounded-xl bg-white/5 border border-white/10">
+        <div className="p-4 rounded-xl bg-neutral-900 border border-white/10">
           <Shield className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-          <h3 className="font-semibold mb-1">Exclusive Access</h3>
-          <p className="text-sm text-white/50">Token holders only</p>
+          <h3 className="font-semibold mb-1 text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>Exclusive Access</h3>
+          <p className="text-sm text-neutral-300">Token holders only</p>
         </div>
       </div>
 
@@ -339,12 +339,12 @@ function ArenaLobby({ onStartGame }: { onStartGame: () => void }) {
       </motion.div>
 
       {/* Rules Card */}
-      <div className="p-6 rounded-2xl bg-white/5 border border-white/10 mb-6">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+      <div className="p-6 rounded-2xl bg-neutral-900 border border-white/10 mb-6">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
           <Shield className="w-6 h-6 text-yellow-400" />
           Arena Rules
         </h2>
-        <ul className="space-y-3 text-white/70">
+        <ul className="space-y-3 text-neutral-300">
           <li className="flex items-start gap-3">
             <span className="text-yellow-400">•</span>
             Play against SolMate AI (~1700 ELO, challenging difficulty)
@@ -369,26 +369,26 @@ function ArenaLobby({ onStartGame }: { onStartGame: () => void }) {
       </div>
 
       {/* Scoring Card */}
-      <div className="p-6 rounded-2xl bg-white/5 border border-white/10 mb-8">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+      <div className="p-6 rounded-2xl bg-neutral-900 border border-white/10 mb-8">
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
           <Trophy className="w-6 h-6 text-yellow-400" />
           Scoring System
         </h2>
         <div className="space-y-2 mb-4">
-          <div className="flex justify-between items-center p-3 rounded-lg bg-black/30">
-            <span className="text-white/70">Each match played</span>
+          <div className="flex justify-between items-center p-3 rounded-lg bg-black/50">
+            <span className="text-neutral-300">Each match played</span>
             <span className="text-yellow-400 font-bold">+1.0 pts</span>
           </div>
-          <div className="flex justify-between items-center p-3 rounded-lg bg-black/30">
-            <span className="text-white/70">Win bonus</span>
+          <div className="flex justify-between items-center p-3 rounded-lg bg-black/50">
+            <span className="text-neutral-300">Win bonus</span>
             <span className="text-green-400 font-bold">+0.5 pts</span>
           </div>
           <div className="flex justify-between items-center p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
-            <span className="text-white/70">Share on X bonus</span>
+            <span className="text-neutral-300">Share on X bonus</span>
             <span className="text-blue-400 font-bold">+0.25 pts</span>
           </div>
         </div>
-        <p className="text-white/50 text-sm text-center">
+        <p className="text-neutral-400 text-sm text-center">
           Min 10 moves per game • Share after each match for extra points!
         </p>
       </div>
