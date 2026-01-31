@@ -11,12 +11,6 @@ interface User {
 
 class UserStore {
   private db: Database.Database;
-  // Get total number of users (usernames created)
-  getUserCount(): number {
-    const stmt = this.db.prepare('SELECT COUNT(*) as count FROM users');
-    const row = stmt.get() as { count: number };
-    return row?.count || 0;
-  }
 
   constructor() {
     // Use /data directory for persistent storage on Railway, fallback to local
