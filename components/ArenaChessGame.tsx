@@ -13,7 +13,7 @@ const MAX_GAMES_PER_DAY = 20;
 const MIN_MOVES_TO_COUNT = 10;
 const COOLDOWN_SECONDS = 30;
 const AI_THINK_TIME_MS = 300; // AI "thinks" for realism
-const AI_DEPTH = 5; // Minimax depth for AI strength (~1600-1800 ELO)
+const AI_DEPTH = 4; // Minimax depth for AI strength (~1500-1600 ELO)
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 
 // Piece SVG paths
@@ -558,7 +558,13 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
         <button
           onClick={handleResign}
           disabled={gameOver}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 font-semibold transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-colors disabled:opacity-50"
+          style={{
+            background: 'rgba(239, 68, 68, 0.2)',
+            color: '#f87171',
+            WebkitTextFillColor: '#f87171',
+            textShadow: '0 1px 2px rgba(0,0,0,0.8)'
+          }}
         >
           <Flag className="w-5 h-5" />
           Resign
