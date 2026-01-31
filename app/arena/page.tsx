@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Trophy, Zap, Shield, Crown, ExternalLink, Loader2 } from 'lucide-react';
+import { Lock, Trophy, Zap, Shield, Crown, ExternalLink, Loader2, DollarSign, Gift } from 'lucide-react';
 import { WalletButton } from '@/components/WalletButton';
 import { ArenaChessGame } from '@/components/ArenaChessGame';
 import { ArenaLeaderboard } from '@/components/ArenaLeaderboard';
@@ -117,7 +117,25 @@ export default function ArenaPage() {
           <p className="text-white/60 text-lg">
             Exclusive AI challenge for SolMate token holders
           </p>
-          <div className="mt-2 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-500/10 border border-green-500/30">
+          
+          {/* Prize Banner */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="mt-4 inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-green-500/20 border-2 border-green-400/50 shadow-lg shadow-green-500/20"
+          >
+            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-500 animate-pulse">
+              <DollarSign className="w-6 h-6 text-white" />
+            </div>
+            <div className="text-left">
+              <p className="text-2xl font-bold text-green-400">$500 PRIZE</p>
+              <p className="text-sm text-white/70">Top scorer wins at season end!</p>
+            </div>
+            <Gift className="w-8 h-8 text-green-400 animate-bounce" />
+          </motion.div>
+          
+          <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-500/10 border border-green-500/30">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
             <span className="text-green-400 text-sm font-medium">
               Access Granted • {formatTokenBalance(accessStatus.balance)}
@@ -216,6 +234,15 @@ function LockedHero({ reason, balance, onConnect }: {
         Holder Arena
       </h1>
       
+      {/* Prize Banner for locked users */}
+      <div className="mb-6 inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-green-500/20 border-2 border-green-400/50">
+        <DollarSign className="w-8 h-8 text-green-400" />
+        <div className="text-left">
+          <p className="text-xl font-bold text-green-400">$500 PRIZE POOL</p>
+          <p className="text-sm text-white/70">Compete for the top spot!</p>
+        </div>
+      </div>
+      
       <p className="text-xl text-white/60 mb-8 max-w-md mx-auto">
         {reason === 'wallet' 
           ? 'Connect your wallet to access the exclusive Holder Arena'
@@ -283,6 +310,33 @@ function LockedHero({ reason, balance, onConnect }: {
 function ArenaLobby({ onStartGame }: { onStartGame: () => void }) {
   return (
     <div className="max-w-2xl mx-auto">
+      {/* Prize Card */}
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="p-6 rounded-2xl bg-gradient-to-br from-green-500/20 via-emerald-500/10 to-green-500/20 border-2 border-green-400/50 mb-6 relative overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 w-32 h-32 bg-green-400/10 rounded-full blur-3xl" />
+        <div className="relative flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-green-400 flex items-center gap-2">
+              <Trophy className="w-7 h-7" />
+              Season Prize Pool
+            </h2>
+            <p className="text-white/70 mt-1">Top scorer at season end wins!</p>
+          </div>
+          <div className="text-right">
+            <p className="text-5xl font-bold text-green-400">$500</p>
+            <p className="text-sm text-white/50">USD Prize</p>
+          </div>
+        </div>
+        <div className="mt-4 pt-4 border-t border-green-400/20">
+          <p className="text-sm text-white/60 text-center">
+            🏆 Play games • Climb the leaderboard • Win the prize!
+          </p>
+        </div>
+      </motion.div>
+
       {/* Rules Card */}
       <div className="p-6 rounded-2xl bg-white/5 border border-white/10 mb-6">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
