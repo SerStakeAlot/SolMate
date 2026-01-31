@@ -264,9 +264,16 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
         }
         
         // Check for game end
+        console.log('After player move - checking game state:');
+        console.log('isCheckmate:', chess.isCheckmate());
+        console.log('isDraw:', chess.isDraw());
+        console.log('isGameOver:', chess.isGameOver());
+        
         if (chess.isCheckmate()) {
+          console.log('CHECKMATE DETECTED - calling handleGameEnd with win');
           handleGameEnd('win', 'checkmate');
         } else if (chess.isDraw()) {
+          console.log('DRAW DETECTED - calling handleGameEnd with draw');
           handleGameEnd('draw', 'draw');
         }
       }
@@ -278,6 +285,9 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
 
   // Handle game end
   const handleGameEnd = async (gameResult: 'win' | 'loss' | 'draw', reason: string) => {
+    console.log('=== HANDLE GAME END CALLED ===');
+    console.log('Result:', gameResult, 'Reason:', reason);
+    
     setGameOver(true);
     setResult(gameResult);
     
@@ -311,21 +321,25 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
       
       if (res.ok) {
         const data = await res.json();
+        console.log('Backend response:', data);
         if (data.stats) {
           setArenaStats(data.stats);
         } else {
           setArenaStats(defaultStats);
         }
       } else {
+        console.log('Backend response not ok, using default stats');
         setArenaStats(defaultStats);
       }
     } catch (error) {
-      console.error('Failed to submit arena result');
+      console.error('Failed to submit arena result:', error);
       setArenaStats(defaultStats);
     }
     
     // Always show result modal
+    console.log('Setting showResult to TRUE');
     setShowResult(true);
+    console.log('showResult should now be true');
   };
 
   // Resign
