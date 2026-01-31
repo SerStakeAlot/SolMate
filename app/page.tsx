@@ -8,7 +8,32 @@ import { Shield, Zap, Trophy, ChevronRight, Sparkles, User, Users, Gamepad2, Coi
 import { UsernameSetting } from "@/components/UsernameSetting";
 import { useState, useEffect } from "react";
 
+
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-production.up.railway.app';
+
+// Live user count (usernames created)
+function useLiveUserCount(connected: boolean) {
+  const [userCount, setUserCount] = useState<number | null>(null);
+  useEffect(() => {
+    if (!connected) return;
+    let mounted = true;
+    async function fetchUserCount() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/userCount`);
+        if (res.ok) {
+          const data = await res.json();
+          if (mounted) setUserCount(data.count);
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+    fetchUserCount();
+    const interval = setInterval(fetchUserCount, 60000);
+    return () => { mounted = false; clearInterval(interval); };
+  }, [connected]);
+  return userCount;
+}
 
 interface PlatformStats {
   totalGames: number;
@@ -16,10 +41,12 @@ interface PlatformStats {
   totalSolWagered: number;
 }
 
+
 export default function Home() {
   const router = useRouter();
   const { connected } = useWallet();
   const [stats, setStats] = useState<PlatformStats | null>(null);
+  const liveUserCount = useLiveUserCount(connected);
 
   useEffect(() => {
     async function fetchStats() {
@@ -254,8 +281,14 @@ export default function Home() {
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <Users className="w-5 h-5 text-solana-green" />
                 </div>
-                <p className="font-display text-2xl sm:text-3xl font-bold text-white tabular-nums">{stats.uniquePlayers.toLocaleString()}</p>
-                <p className="stat-label mt-1">Players</p>
+                <p className="font-display text-2xl sm:text-3xl font-bold text-white tabular-nums">
+                  {connected && liveUserCount !== null
+                    ? `${liveUserCount.toLocaleString()}`
+                    : stats.uniquePlayers.toLocaleString()}
+                </p>
+                <p className="stat-label mt-1">
+                  Players{connected && liveUserCount !== null ? ' (usernames)' : ''}
+                </p>
               </div>
               <div className="text-center">
                 <div className="flex items-center justify-center gap-2 mb-2">

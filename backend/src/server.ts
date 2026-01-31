@@ -1,3 +1,12 @@
+// ============= User Count Endpoint =============
+app.get('/api/userCount', generalLimiter, (req, res) => {
+  try {
+    const count = userStore.getUserCount();
+    res.json({ count });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch user count' });
+  }
+});
 import express from 'express';
 import { createServer } from 'http';
 import { Server as SocketServer } from 'socket.io';
