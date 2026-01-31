@@ -116,10 +116,10 @@ export function ArenaLeaderboard({ walletAddress }: ArenaLeaderboardProps) {
         </div>
         <button
           onClick={fetchLeaderboard}
-          className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+          className="p-2 rounded-lg hover:bg-neutral-700 transition-colors bg-neutral-800 border border-white/10"
           title="Refresh"
         >
-          <RefreshCw className="w-5 h-5 text-white/60" />
+          <RefreshCw className="w-5 h-5 text-white" />
         </button>
       </div>
 

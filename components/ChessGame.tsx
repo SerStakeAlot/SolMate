@@ -2559,7 +2559,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       onClick={resetPractice}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-6 rounded-xl transition-all"
+                      className="w-full flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white font-semibold py-3 px-6 rounded-xl transition-all border border-white/10"
+                      style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
                     >
                       <RefreshCw className="h-4 w-4" />
                       New Game vs AI
@@ -2589,7 +2590,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                             onChange={(e) => setJoinFreePlayCode(e.target.value.toUpperCase().slice(0, 4))}
                             placeholder="CODE"
                             maxLength={4}
-                            className="flex-1 px-3 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-solana-purple text-white text-center font-mono uppercase"
+                            className="flex-1 px-3 py-3 bg-neutral-800 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-solana-purple text-white text-center font-mono uppercase"
                           />
                           <motion.button
                             type="button"
@@ -2597,7 +2598,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                             disabled={isJoiningFreePlay || joinFreePlayCode.length !== 4}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            className="px-4 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl disabled:opacity-50 transition-all"
+                            className="px-4 py-3 bg-neutral-800 hover:bg-neutral-700 text-white font-semibold rounded-xl disabled:opacity-50 transition-all border border-white/10"
+                            style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
                           >
                             {isJoiningFreePlay ? '...' : 'Join'}
                           </motion.button>
@@ -2671,7 +2673,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       }}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-6 rounded-xl transition-all"
+                      className="w-full flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white font-semibold py-3 px-6 rounded-xl transition-all border border-white/10"
+                      style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
                     >
                       <X className="h-4 w-4" />
                       Stop Watching

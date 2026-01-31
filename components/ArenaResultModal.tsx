@@ -175,7 +175,8 @@ Play now: https://playsolmate.fun/arena`;
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold transition-colors"
+            className="flex-1 py-3 px-4 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-semibold transition-colors border border-white/10"
+            style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
           >
             Continue
           </button>
