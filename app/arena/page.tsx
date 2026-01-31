@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Trophy, Zap, Shield, Crown, ExternalLink, Loader2, DollarSign, Gift } from 'lucide-react';
+import { Lock, Trophy, Zap, Shield, Crown, ExternalLink, Loader2, DollarSign, Gift, Calendar } from 'lucide-react';
 import { WalletButton } from '@/components/WalletButton';
 import { ArenaChessGame } from '@/components/ArenaChessGame';
 import { ArenaLeaderboard } from '@/components/ArenaLeaderboard';
@@ -321,18 +321,19 @@ function ArenaLobby({ onStartGame }: { onStartGame: () => void }) {
           <div>
             <h2 className="text-2xl font-bold text-green-400 flex items-center gap-2">
               <Trophy className="w-7 h-7" />
-              Season Prize Pool
+              Season 1 Prize
             </h2>
-            <p className="text-white/70 mt-1">Top scorer at season end wins!</p>
+            <p className="text-white/70 mt-1">Top scorer wins!</p>
           </div>
           <div className="text-right">
             <p className="text-5xl font-bold text-green-400">$500</p>
             <p className="text-sm text-white/50">USD Prize</p>
           </div>
         </div>
-        <div className="mt-4 pt-4 border-t border-green-400/20">
-          <p className="text-sm text-white/60 text-center">
-            🏆 Play games • Climb the leaderboard • Win the prize!
+        <div className="mt-4 pt-4 border-t border-green-400/20 flex items-center justify-center gap-2">
+          <Calendar className="w-5 h-5 text-yellow-400" />
+          <p className="text-yellow-400 font-semibold">
+            Season ends February 20, 2026
           </p>
         </div>
       </motion.div>
@@ -346,7 +347,7 @@ function ArenaLobby({ onStartGame }: { onStartGame: () => void }) {
         <ul className="space-y-3 text-white/70">
           <li className="flex items-start gap-3">
             <span className="text-yellow-400">•</span>
-            Play against our high-ELO AI bot (Stockfish level 15)
+            Play against SolMate AI (~1700 ELO, challenging difficulty)
           </li>
           <li className="flex items-start gap-3">
             <span className="text-yellow-400">•</span>
