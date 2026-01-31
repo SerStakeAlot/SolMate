@@ -24,6 +24,51 @@ const PIECE_PATHS: Record<string, string> = {
   bB: '/pieces/bB.svg', bN: '/pieces/bN.svg', bP: '/pieces/bP.svg',
 };
 
+// Sound effects hook
+const useChessSounds = () => {
+  const soundsRef = useRef<{
+    move: HTMLAudioElement | null;
+    capture: HTMLAudioElement | null;
+    check: HTMLAudioElement | null;
+    castle: HTMLAudioElement | null;
+  } | null>(null);
+  const initializedRef = useRef(false);
+  
+  const getOrCreateSounds = useCallback(() => {
+    if (typeof window === 'undefined') return null;
+    
+    if (!soundsRef.current && !initializedRef.current) {
+      initializedRef.current = true;
+      const move = new Audio('/sounds/move.ogg');
+      const capture = new Audio('/sounds/capture.ogg');
+      const check = new Audio('/sounds/check.ogg');
+      const castle = new Audio('/sounds/castle.ogg');
+      
+      [move, capture, check, castle].forEach(audio => {
+        audio.load();
+        audio.volume = 0.5;
+      });
+      
+      soundsRef.current = { move, capture, check, castle };
+    }
+    return soundsRef.current;
+  }, []);
+  
+  const playSound = useCallback((type: 'move' | 'capture' | 'check' | 'castle') => {
+    const sounds = getOrCreateSounds();
+    if (!sounds) return;
+    
+    const audio = sounds[type];
+    if (audio) {
+      const clone = audio.cloneNode() as HTMLAudioElement;
+      clone.volume = 0.5;
+      clone.play().catch(() => {});
+    }
+  }, [getOrCreateSounds]);
+  
+  return { playSound };
+};
+
 interface ArenaChessGameProps {
   walletAddress: string;
   onGameEnd: () => void;
@@ -39,6 +84,9 @@ interface ArenaStats {
 }
 
 export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps) {
+  // Sound effects
+  const { playSound } = useChessSounds();
+  
   // Game state
   const [chess] = useState(() => new Chess());
   const [board, setBoard] = useState(chess.board());
@@ -140,10 +188,24 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
     const bestMove = findBestMove(chess, AI_DEPTH);
     
     if (bestMove) {
+      const isCapture = chess.get(bestMove.to as Square) !== null;
+      const isCastle = bestMove.san?.includes('O-O') || (bestMove.piece === 'k' && Math.abs(bestMove.from.charCodeAt(0) - bestMove.to.charCodeAt(0)) === 2);
+      
       chess.move(bestMove);
       setBoard([...chess.board()]);
       setLastMove({ from: bestMove.from as Square, to: bestMove.to as Square });
       setMoveCount(prev => prev + 1);
+      
+      // Play sound
+      if (chess.isCheck()) {
+        playSound('check');
+      } else if (isCastle) {
+        playSound('castle');
+      } else if (isCapture) {
+        playSound('capture');
+      } else {
+        playSound('move');
+      }
       
       // Check for game end
       if (chess.isCheckmate()) {
@@ -179,11 +241,27 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
     
     // If a piece is selected and clicking valid square, make move
     if (selectedSquare && validMoves.includes(square)) {
+      const targetPiece = chess.get(square);
+      const isCapture = targetPiece !== null;
+      const movingPiece = chess.get(selectedSquare);
+      const isCastle = movingPiece?.type === 'k' && Math.abs(selectedSquare.charCodeAt(0) - square.charCodeAt(0)) === 2;
+      
       const move = chess.move({ from: selectedSquare, to: square, promotion: 'q' });
       if (move) {
         setBoard([...chess.board()]);
         setLastMove({ from: selectedSquare, to: square });
         setMoveCount(prev => prev + 1);
+        
+        // Play sound
+        if (chess.isCheck()) {
+          playSound('check');
+        } else if (isCastle) {
+          playSound('castle');
+        } else if (isCapture) {
+          playSound('capture');
+        } else {
+          playSound('move');
+        }
         
         // Check for game end
         if (chess.isCheckmate()) {
