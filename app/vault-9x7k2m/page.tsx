@@ -242,7 +242,8 @@ export default function AdminVaultPage() {
                 <button
                   onClick={() => handleWithdraw(false)}
                   disabled={loading || !withdrawAmount || availableBalance === 0}
-                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors"
+                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors text-white"
+                  style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
                 >
                   {loading ? 'Processing...' : 'Withdraw'}
                 </button>
@@ -253,7 +254,8 @@ export default function AdminVaultPage() {
             <button
               onClick={() => handleWithdraw(true)}
               disabled={loading || availableBalance === 0}
-              className="w-full py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors"
+              className="w-full py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors text-white"
+              style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
             >
               {loading ? 'Processing...' : `Withdraw All (${availableBalance?.toFixed(4) || 0} SOL)`}
             </button>

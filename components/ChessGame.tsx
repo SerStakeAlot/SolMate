@@ -2433,15 +2433,16 @@ export const ChessGame: React.FC<ChessGameProps> = ({
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold">Game Mode</h3>
               {showModeSelector && (
-                <div className="flex rounded-xl border border-white/10 bg-black/40 p-1">
+                <div className="flex rounded-xl border border-white/10 bg-neutral-900 p-1">
                   <button
                     type="button"
                     onClick={() => setMode('practice')}
                     className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
                       mode === 'practice'
                         ? 'bg-gradient-to-r from-solana-purple to-solana-green text-white'
-                        : 'text-neutral-400 hover:text-white'
+                        : 'bg-neutral-800 text-white hover:bg-neutral-700'
                     }`}
+                    style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
                   >
                     Practice
                   </button>
@@ -2451,8 +2452,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
                       mode === 'wager'
                         ? 'bg-gradient-to-r from-solana-purple to-solana-green text-white'
-                        : 'text-neutral-400 hover:text-white'
+                        : 'bg-neutral-800 text-white hover:bg-neutral-700'
                     }`}
+                    style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
                   >
                     Wager
                   </button>
