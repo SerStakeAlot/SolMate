@@ -17,12 +17,11 @@ interface ArenaGame {
   week_number: number;
 }
 
-interface WeeklyStats {
+interface AllTimeStats {
   wallet_address: string;
   matches_played: number;
   wins: number;
   score: number;
-  week_number: number;
 }
 
 interface LeaderboardEntry {
@@ -70,48 +69,24 @@ class ArenaStore {
       CREATE INDEX IF NOT EXISTS idx_arena_played ON arena_games(played_at);
     `);
 
-    // Create weekly stats table (materialized for performance)
+    // Create all-time stats table
     this.db.exec(`
-      CREATE TABLE IF NOT EXISTS arena_weekly_stats (
-        wallet_address TEXT NOT NULL,
-        week_number INTEGER NOT NULL,
+      CREATE TABLE IF NOT EXISTS arena_stats (
+        wallet_address TEXT PRIMARY KEY,
         matches_played INTEGER NOT NULL DEFAULT 0,
         wins INTEGER NOT NULL DEFAULT 0,
-        score REAL NOT NULL DEFAULT 0,
-        PRIMARY KEY (wallet_address, week_number)
+        score REAL NOT NULL DEFAULT 0
       );
       
-      CREATE INDEX IF NOT EXISTS idx_weekly_week ON arena_weekly_stats(week_number);
-      CREATE INDEX IF NOT EXISTS idx_weekly_score ON arena_weekly_stats(score DESC);
+      CREATE INDEX IF NOT EXISTS idx_arena_stats_score ON arena_stats(score DESC);
     `);
 
     console.log('ArenaStore initialized');
   }
 
-  // Get current week number (ISO week, resets Monday 00:00 UTC)
-  private getCurrentWeek(): number {
-    const now = new Date();
-    const startOfYear = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
-    const days = Math.floor((now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
-    return Math.ceil((days + startOfYear.getUTCDay() + 1) / 7);
-  }
-
-  // Get week date range for display
-  getWeekDateRange(): { start: string; end: string } {
-    const now = new Date();
-    const dayOfWeek = now.getUTCDay();
-    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    
-    const monday = new Date(now);
-    monday.setUTCDate(now.getUTCDate() - daysToMonday);
-    monday.setUTCHours(0, 0, 0, 0);
-    
-    const sunday = new Date(monday);
-    sunday.setUTCDate(monday.getUTCDate() + 6);
-    
-    const format = (d: Date) => d.toISOString().split('T')[0];
-    
-    return { start: format(monday), end: format(sunday) };
+  // Get leaderboard type for display
+  getLeaderboardType(): string {
+    return 'all-time';
   }
 
   // Get start of today in UTC timestamp
@@ -167,7 +142,6 @@ class ArenaStore {
     moveCount: number,
     counts: boolean = true
   ): { success: boolean; stats: any } {
-    const weekNumber = this.getCurrentWeek();
     const now = Date.now();
 
     // Only count if meets minimum moves
@@ -178,24 +152,24 @@ class ArenaStore {
       INSERT INTO arena_games (wallet_address, result, move_count, counts, played_at, week_number)
       VALUES (?, ?, ?, ?, ?, ?)
     `);
-    insertGame.run(walletAddress, result, moveCount, shouldCount ? 1 : 0, now, weekNumber);
+    insertGame.run(walletAddress, result, moveCount, shouldCount ? 1 : 0, now, 0);
 
-    // Update weekly stats if game counts
+    // Update all-time stats if game counts
     if (shouldCount) {
       const matchIncrement = 1;
       const winIncrement = result === 'win' ? 1 : 0;
       const scoreIncrement = 1.0 + (result === 'win' ? 0.5 : 0);
 
       const upsertStats = this.db.prepare(`
-        INSERT INTO arena_weekly_stats (wallet_address, week_number, matches_played, wins, score)
-        VALUES (?, ?, ?, ?, ?)
-        ON CONFLICT(wallet_address, week_number) DO UPDATE SET
+        INSERT INTO arena_stats (wallet_address, matches_played, wins, score)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(wallet_address) DO UPDATE SET
           matches_played = matches_played + ?,
           wins = wins + ?,
           score = score + ?
       `);
       upsertStats.run(
-        walletAddress, weekNumber, matchIncrement, winIncrement, scoreIncrement,
+        walletAddress, matchIncrement, winIncrement, scoreIncrement,
         matchIncrement, winIncrement, scoreIncrement
       );
     }
@@ -214,23 +188,21 @@ class ArenaStore {
     gamesRemainingToday: number;
     cooldownEndsAt?: number;
   } {
-    const weekNumber = this.getCurrentWeek();
-    
-    // Get weekly stats
+    // Get all-time stats
     const statsStmt = this.db.prepare(`
-      SELECT matches_played, wins, score FROM arena_weekly_stats
-      WHERE wallet_address = ? AND week_number = ?
+      SELECT matches_played, wins, score FROM arena_stats
+      WHERE wallet_address = ?
     `);
-    const statsRow = statsStmt.get(walletAddress, weekNumber) as WeeklyStats | undefined;
+    const statsRow = statsStmt.get(walletAddress) as AllTimeStats | undefined;
 
     // Get rank
     const rankStmt = this.db.prepare(`
-      SELECT COUNT(*) + 1 as rank FROM arena_weekly_stats
-      WHERE week_number = ? AND score > COALESCE((
-        SELECT score FROM arena_weekly_stats WHERE wallet_address = ? AND week_number = ?
+      SELECT COUNT(*) + 1 as rank FROM arena_stats
+      WHERE score > COALESCE((
+        SELECT score FROM arena_stats WHERE wallet_address = ?
       ), 0)
     `);
-    const rankRow = rankStmt.get(weekNumber, walletAddress, weekNumber) as { rank: number };
+    const rankRow = rankStmt.get(walletAddress) as { rank: number };
 
     // Get games remaining today
     const gamesToday = this.getGamesToday(walletAddress);
@@ -256,23 +228,20 @@ class ArenaStore {
     };
   }
 
-  // Get leaderboard for current week
+  // Get all-time leaderboard
   getLeaderboard(limit: number = 20): LeaderboardEntry[] {
-    const weekNumber = this.getCurrentWeek();
-    
     const stmt = this.db.prepare(`
       SELECT 
         wallet_address,
         matches_played,
         wins,
         score
-      FROM arena_weekly_stats
-      WHERE week_number = ?
+      FROM arena_stats
       ORDER BY score DESC
       LIMIT ?
     `);
     
-    const rows = stmt.all(weekNumber, limit) as Array<{
+    const rows = stmt.all(limit) as Array<{
       wallet_address: string;
       matches_played: number;
       wins: number;
@@ -290,23 +259,21 @@ class ArenaStore {
 
   // Get a specific player's leaderboard entry (for showing their position)
   getPlayerLeaderboardEntry(walletAddress: string): LeaderboardEntry | null {
-    const weekNumber = this.getCurrentWeek();
-    
     // Get player stats
     const statsStmt = this.db.prepare(`
-      SELECT matches_played, wins, score FROM arena_weekly_stats
-      WHERE wallet_address = ? AND week_number = ?
+      SELECT matches_played, wins, score FROM arena_stats
+      WHERE wallet_address = ?
     `);
-    const stats = statsStmt.get(walletAddress, weekNumber) as WeeklyStats | undefined;
+    const stats = statsStmt.get(walletAddress) as AllTimeStats | undefined;
     
     if (!stats) return null;
 
     // Get rank
     const rankStmt = this.db.prepare(`
-      SELECT COUNT(*) + 1 as rank FROM arena_weekly_stats
-      WHERE week_number = ? AND score > ?
+      SELECT COUNT(*) + 1 as rank FROM arena_stats
+      WHERE score > ?
     `);
-    const rankRow = rankStmt.get(weekNumber, stats.score) as { rank: number };
+    const rankRow = rankStmt.get(stats.score) as { rank: number };
 
     return {
       rank: rankRow.rank,

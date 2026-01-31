@@ -308,7 +308,7 @@ function ArenaLobby({ onStartGame }: { onStartGame: () => void }) {
           </li>
           <li className="flex items-start gap-3">
             <span className="text-yellow-400">•</span>
-            Leaderboard resets weekly (every Monday 00:00 UTC)
+            All-time leaderboard - your progress is permanent!
           </li>
         </ul>
       </div>
