@@ -77,11 +77,11 @@ export default function PlayPage() {
               whileTap={{ scale: 0.98 }}
               className="relative group text-left transition-all duration-300 rounded-2xl overflow-hidden"
             >
-              {/* Background */}
+              {/* Background - solid dark for Android visibility */}
               <div className={`absolute inset-0 ${
                 option.featured
-                  ? `bg-gradient-to-br ${option.gradient} opacity-20`
-                  : "bg-neutral-900/80 backdrop-blur-sm"
+                  ? "bg-[#1a1a2e]"
+                  : "bg-[#0d0d0d]"
               }`} />
               
               {/* Border glow for selected */}
@@ -107,10 +107,8 @@ export default function PlayPage() {
                   }`} />
                 </div>
                 
-                <h3 className="font-display text-base sm:text-lg font-semibold mb-1 sm:mb-2 text-white">{option.title}</h3>
-                <p className={`text-xs sm:text-sm font-medium ${
-                  option.featured ? "text-neutral-300" : "text-neutral-500"
-                } line-clamp-2`}>
+                <h3 className="font-display text-base sm:text-lg font-semibold mb-1 sm:mb-2 text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>{option.title}</h3>
+                <p className="text-xs sm:text-sm font-medium text-neutral-300 line-clamp-2" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
                   {option.description}
                 </p>
 
