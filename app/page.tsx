@@ -134,13 +134,19 @@ export default function Home() {
 
         {/* How to Play Button */}
         <motion.button
+          type="button"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
           onClick={() => setShowHowToPlay(true)}
-          className="mt-4 flex items-center gap-2 text-solana-purple hover:text-solana-green transition-colors text-sm font-medium"
+          className="mt-4 flex items-center gap-2 transition-colors text-sm font-medium px-4 py-2 rounded-lg border border-solana-purple/30"
+          style={{
+            backgroundColor: '#1a1a2e',
+            color: '#9945FF',
+            WebkitTextFillColor: '#9945FF'
+          }}
         >
-          <HelpCircle className="w-4 h-4" />
+          <HelpCircle className="w-4 h-4" style={{ color: '#9945FF' }} />
           How to Play
         </motion.button>
 
@@ -428,22 +434,30 @@ export default function Home() {
                 <div className="mb-8 p-4 rounded-xl border border-solana-green/30" style={{ backgroundColor: '#0d1a0d' }}>
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-black" style={{ backgroundColor: '#14F195' }}>3</div>
-                    <h3 className="text-lg font-bold text-white" style={{ WebkitTextFillColor: 'white' }}>Free Play with Friends</h3>
+                    <h3 className="text-lg font-bold text-white" style={{ WebkitTextFillColor: 'white' }}>Practice Mode & Free Play</h3>
                   </div>
                   <div className="space-y-3 text-neutral-300 text-sm">
                     <div className="flex items-start gap-3">
+                      <Gamepad2 className="w-5 h-5 text-solana-green flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-white" style={{ WebkitTextFillColor: 'white' }}>Train vs AI:</p>
+                        <p>Click <strong>"Practice Mode"</strong> on the home page to play against the computer</p>
+                        <p className="text-neutral-400 mt-1">Choose difficulty: Novice, Club, or Master level AI</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
                       <UserPlus className="w-5 h-5 text-solana-green flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-semibold text-white" style={{ WebkitTextFillColor: 'white' }}>Host a Game:</p>
-                        <p>Click "Enter Arena" → "Free Play" → "Create Game"</p>
+                        <p className="font-semibold text-white" style={{ WebkitTextFillColor: 'white' }}>Host a Game with Friends:</p>
+                        <p>In Practice Mode → scroll down → "Create Game" under Free Online Play</p>
                         <p className="text-neutral-400 mt-1">Share the 4-letter code with your friend</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <Users className="w-5 h-5 text-solana-purple flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-semibold text-white" style={{ WebkitTextFillColor: 'white' }}>Join a Game:</p>
-                        <p>Click "Enter Arena" → "Free Play" → Enter your friend's code → "Join"</p>
+                        <p className="font-semibold text-white" style={{ WebkitTextFillColor: 'white' }}>Join a Friend's Game:</p>
+                        <p>In Practice Mode → scroll down → enter friend's code → "Join"</p>
                       </div>
                     </div>
                   </div>
