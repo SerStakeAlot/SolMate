@@ -449,7 +449,8 @@ export default function Home() {
                   <div style={{ color: '#d1d5db', fontSize: '14px', lineHeight: '1.6' }}>
                     <p style={{ marginBottom: '8px' }}><strong style={{ color: 'white' }}>Train vs AI:</strong> Click "Practice Mode" on home page</p>
                     <p style={{ marginBottom: '8px' }}><strong style={{ color: 'white' }}>Host a Game:</strong> Practice Mode → Create Game → Share 4-letter code</p>
-                    <p><strong style={{ color: 'white' }}>Join a Game:</strong> Practice Mode → Enter friend's code → Join</p>
+                    <p style={{ marginBottom: '8px' }}><strong style={{ color: 'white' }}>Join a Game:</strong> Practice Mode → Enter friend's code → Join</p>
+                    <p style={{ marginTop: '12px', color: '#a3a3a3', fontStyle: 'italic' }}>💡 Tip: You can also access Free Play from "Enter Arena" → "Free Play" tab!</p>
                   </div>
                 </div>
 
