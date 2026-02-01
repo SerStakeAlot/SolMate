@@ -49,6 +49,7 @@ export default function Home() {
   }, []);
 
   return (
+    <>
     <main className="mx-auto w-full max-w-6xl px-4 sm:px-6">
       {/* Hero Section */}
       <section className="flex flex-col items-center text-center pt-12 sm:pt-20 pb-16 sm:pb-24">
@@ -366,8 +367,9 @@ export default function Home() {
           </div>
         </div>
       </footer>
+    </main>
 
-      {/* How to Play Modal */}
+      {/* How to Play Modal - Outside main for proper fixed positioning */}
       {showHowToPlay && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -511,6 +513,6 @@ export default function Home() {
             </div>
           </div>
         )}
-    </main>
+    </>
   );
 }
