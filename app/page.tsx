@@ -138,8 +138,12 @@ export default function Home() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
-          onClick={() => setShowHowToPlay(true)}
-          className="mt-4 flex items-center gap-2 transition-colors text-sm font-medium px-4 py-2 rounded-lg border border-solana-purple/30"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowHowToPlay(true);
+          }}
+          className="mt-4 flex items-center gap-2 transition-colors text-sm font-medium px-4 py-2 rounded-lg border border-solana-purple/30 cursor-pointer relative z-10"
           style={{
             backgroundColor: '#1a1a2e',
             color: '#9945FF',
