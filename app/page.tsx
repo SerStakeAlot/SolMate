@@ -133,26 +133,20 @@ export default function Home() {
         </motion.div>
 
         {/* How to Play Button */}
-        <motion.button
+        <button
           type="button"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setShowHowToPlay(true);
-          }}
-          className="mt-4 flex items-center gap-2 transition-colors text-sm font-medium px-4 py-2 rounded-lg border border-solana-purple/30 cursor-pointer relative z-10"
+          onClick={() => setShowHowToPlay(true)}
+          className="mt-4 flex items-center gap-2 transition-colors text-sm font-medium px-4 py-2 rounded-lg border border-solana-purple/30 cursor-pointer relative z-20"
           style={{
             backgroundColor: '#1a1a2e',
             color: '#9945FF',
-            WebkitTextFillColor: '#9945FF'
+            WebkitTextFillColor: '#9945FF',
+            pointerEvents: 'auto'
           }}
         >
           <HelpCircle className="w-4 h-4" style={{ color: '#9945FF' }} />
           How to Play
-        </motion.button>
+        </button>
 
         {!connected && (
           <motion.p
