@@ -368,30 +368,23 @@ export default function Home() {
       </footer>
 
       {/* How to Play Modal */}
-      <AnimatePresence>
-        {showHowToPlay && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            style={{ backgroundColor: 'rgba(0, 0, 0, 0.85)' }}
-            onClick={() => setShowHowToPlay(false)}
+      {showHowToPlay && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)' }}
+          onClick={() => setShowHowToPlay(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10"
+            style={{ backgroundColor: '#0a0a0a' }}
           >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10"
-              style={{ backgroundColor: '#0a0a0a' }}
+            {/* Close Button */}
+            <button
+              onClick={() => setShowHowToPlay(false)}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 transition-colors z-10"
             >
-              {/* Close Button */}
-              <button
-                onClick={() => setShowHowToPlay(false)}
-                className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 transition-colors z-10"
-              >
-                <X className="w-5 h-5 text-white" />
+              <X className="w-5 h-5 text-white" />
               </button>
 
               {/* Modal Content */}
@@ -515,10 +508,9 @@ export default function Home() {
                   Got it, let's play!
                 </button>
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
     </main>
   );
 }
