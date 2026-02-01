@@ -138,18 +138,11 @@ export default function Home() {
           role="button"
           tabIndex={0}
           onClick={() => {
-            console.log('How to Play clicked');
-            setShowHowToPlay(true);
-          }}
-          onTouchEnd={(e) => {
-            e.preventDefault();
-            console.log('How to Play touched');
-            setShowHowToPlay(true);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              setShowHowToPlay(true);
-            }
+            console.log('How to Play clicked, current state:', showHowToPlay);
+            setShowHowToPlay(prev => {
+              console.log('Setting showHowToPlay from', prev, 'to true');
+              return true;
+            });
           }}
           className="mt-4 flex items-center gap-2 transition-colors text-sm font-medium px-4 py-2 rounded-lg border border-solana-purple/30 cursor-pointer select-none"
           style={{
@@ -163,6 +156,9 @@ export default function Home() {
           <HelpCircle className="w-4 h-4" style={{ color: '#9945FF' }} />
           How to Play
         </div>
+
+        {/* Debug: Show modal state */}
+        {showHowToPlay && <div style={{ position: 'fixed', top: 10, left: 10, background: 'red', color: 'white', padding: 10, zIndex: 9999 }}>MODAL STATE IS TRUE</div>}
 
         {!connected && (
           <motion.p
