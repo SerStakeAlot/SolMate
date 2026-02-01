@@ -599,9 +599,16 @@ function LessonCard({ lesson, onWatch }: LessonCardProps) {
                 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-solana-purple to-solana-green text-white font-semibold py-2.5 px-4 rounded-xl transition-all"
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl transition-all"
+                style={{
+                  background: 'linear-gradient(to right, #9945FF, #14F195)',
+                  color: 'white',
+                  WebkitTextFillColor: 'white',
+                  fontWeight: 600,
+                  border: 'none'
+                }}
               >
-                <Play className="h-4 w-4" />
+                <Play className="h-4 w-4" style={{ color: 'white' }} />
                 Watch Video
               </motion.button>
             </div>
@@ -648,16 +655,18 @@ export default function LearnPage() {
         transition={{ delay: 0.1 }}
         className="mb-6"
       >
-        <div className="flex flex-wrap gap-2 p-1 bg-white/5 rounded-xl w-fit">
+        <div className="flex flex-wrap gap-2 p-1 rounded-xl w-fit" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
           {categories.map((category) => (
             <button
               key={category}
               onClick={() => setActiveCategory(category)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                activeCategory === category
-                  ? 'bg-gradient-to-r from-solana-purple to-solana-green text-white shadow-lg'
-                  : 'text-neutral-400 hover:text-white hover:bg-white/5'
-              }`}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all"
+              style={{
+                background: activeCategory === category ? 'linear-gradient(to right, #9945FF, #14F195)' : 'transparent',
+                color: activeCategory === category ? 'white' : '#a3a3a3',
+                WebkitTextFillColor: activeCategory === category ? 'white' : '#a3a3a3',
+                border: 'none'
+              }}
             >
               {categoryIcons[category]}
               <span className="hidden sm:inline">{categoryTitles[category]}</span>
@@ -674,21 +683,31 @@ export default function LearnPage() {
         className="mb-6 flex items-center gap-2"
       >
         <div className="flex gap-1">
-          {(['all', 'beginner', 'intermediate', 'advanced'] as const).map((diff) => (
-            <button
-              key={diff}
-              onClick={() => setDifficultyFilter(diff)}
-              className={`px-3 py-1 text-sm rounded-lg transition-all ${
-                difficultyFilter === diff
-                  ? diff === 'all' 
-                    ? 'bg-white/20 text-white'
-                    : difficultyColors[diff as Difficulty]
-                  : 'text-neutral-500 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              {diff === 'all' ? 'All' : diff.charAt(0).toUpperCase() + diff.slice(1)}
-            </button>
-          ))}
+          {(['all', 'beginner', 'intermediate', 'advanced'] as const).map((diff) => {
+            const isActive = difficultyFilter === diff;
+            const bgColor = isActive 
+              ? diff === 'all' ? 'rgba(255,255,255,0.2)'
+              : diff === 'beginner' ? '#22c55e'
+              : diff === 'intermediate' ? '#eab308'
+              : '#ef4444'
+              : 'transparent';
+            const textColor = isActive ? (diff === 'all' ? 'white' : 'black') : '#737373';
+            return (
+              <button
+                key={diff}
+                onClick={() => setDifficultyFilter(diff)}
+                className="px-3 py-1 text-sm rounded-lg transition-all"
+                style={{
+                  backgroundColor: bgColor,
+                  color: textColor,
+                  WebkitTextFillColor: textColor,
+                  border: 'none'
+                }}
+              >
+                {diff === 'all' ? 'All' : diff.charAt(0).toUpperCase() + diff.slice(1)}
+              </button>
+            );
+          })}
         </div>
       </motion.div>
       
