@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import Image from "next/image";
-import { motion } from "framer-motion";
-import { Shield, Zap, Trophy, ChevronRight, Sparkles, User, Users, Gamepad2, Coins } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Shield, Zap, Trophy, ChevronRight, Sparkles, User, Users, Gamepad2, Coins, HelpCircle, X, Smartphone, Globe, Crown, Swords, UserPlus } from "lucide-react";
 import { UsernameSetting } from "@/components/UsernameSetting";
 import { useState, useEffect } from "react";
 
@@ -21,6 +21,7 @@ export default function Home() {
   const { connected } = useWallet();
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [usernameCount, setUsernameCount] = useState<number | null>(null);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   useEffect(() => {
     async function fetchStats() {
@@ -130,6 +131,18 @@ export default function Home() {
             Practice Mode
           </motion.button>
         </motion.div>
+
+        {/* How to Play Button */}
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          onClick={() => setShowHowToPlay(true)}
+          className="mt-4 flex items-center gap-2 text-solana-purple hover:text-solana-green transition-colors text-sm font-medium"
+        >
+          <HelpCircle className="w-4 h-4" />
+          How to Play
+        </motion.button>
 
         {!connected && (
           <motion.p
@@ -334,6 +347,151 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* How to Play Modal */}
+      <AnimatePresence>
+        {showHowToPlay && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.85)' }}
+            onClick={() => setShowHowToPlay(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10"
+              style={{ backgroundColor: '#0a0a0a' }}
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setShowHowToPlay(false)}
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 transition-colors z-10"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+
+              {/* Modal Content */}
+              <div className="p-6 sm:p-8">
+                <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-center">
+                  <span className="text-gradient">How to Play</span> SolMate
+                </h2>
+
+                {/* Step 1: Connect Wallet */}
+                <div className="mb-8 p-4 rounded-xl border border-solana-purple/30" style={{ backgroundColor: '#1a1a2e' }}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-black" style={{ backgroundColor: '#9945FF' }}>1</div>
+                    <h3 className="text-lg font-bold text-white" style={{ WebkitTextFillColor: 'white' }}>Connect Your Wallet</h3>
+                  </div>
+                  <div className="space-y-3 text-neutral-300 text-sm">
+                    <div className="flex items-start gap-3">
+                      <Smartphone className="w-5 h-5 text-solana-purple flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-white" style={{ WebkitTextFillColor: 'white' }}>On Mobile (Recommended):</p>
+                        <p>Open the <strong>Phantom app</strong> → tap the globe icon (browser) → go to <strong>playsolmate.fun</strong></p>
+                        <p className="text-neutral-400 mt-1">This connects your wallet automatically!</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Globe className="w-5 h-5 text-solana-green flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-white" style={{ WebkitTextFillColor: 'white' }}>On Desktop:</p>
+                        <p>Install the Phantom browser extension, then click "Connect Wallet" on SolMate</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 2: Holder Arena */}
+                <div className="mb-8 p-4 rounded-xl border border-yellow-500/30" style={{ backgroundColor: '#1a1a1a' }}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-black" style={{ backgroundColor: '#eab308' }}>2</div>
+                    <h3 className="text-lg font-bold text-white" style={{ WebkitTextFillColor: 'white' }}>Holder Arena (Token Holders)</h3>
+                  </div>
+                  <div className="space-y-2 text-neutral-300 text-sm">
+                    <div className="flex items-start gap-3">
+                      <Crown className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p>Hold <strong>2M+ $MATE tokens</strong> to unlock the exclusive Holder Arena</p>
+                        <p className="text-neutral-400 mt-1">Play vs AI, compete on the leaderboard, win the <strong>$500 prize</strong>!</p>
+                      </div>
+                    </div>
+                    <p className="pl-8">Go to <strong>Arena</strong> from the navigation menu to start playing</p>
+                  </div>
+                </div>
+
+                {/* Step 3: Play with Friends */}
+                <div className="mb-8 p-4 rounded-xl border border-solana-green/30" style={{ backgroundColor: '#0d1a0d' }}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-black" style={{ backgroundColor: '#14F195' }}>3</div>
+                    <h3 className="text-lg font-bold text-white" style={{ WebkitTextFillColor: 'white' }}>Free Play with Friends</h3>
+                  </div>
+                  <div className="space-y-3 text-neutral-300 text-sm">
+                    <div className="flex items-start gap-3">
+                      <UserPlus className="w-5 h-5 text-solana-green flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-white" style={{ WebkitTextFillColor: 'white' }}>Host a Game:</p>
+                        <p>Click "Enter Arena" → "Free Play" → "Create Game"</p>
+                        <p className="text-neutral-400 mt-1">Share the 4-letter code with your friend</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Users className="w-5 h-5 text-solana-purple flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-white" style={{ WebkitTextFillColor: 'white' }}>Join a Game:</p>
+                        <p>Click "Enter Arena" → "Free Play" → Enter your friend's code → "Join"</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Step 4: Wager Matches */}
+                <div className="mb-6 p-4 rounded-xl border border-orange-500/30" style={{ backgroundColor: '#1a0d0d' }}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-black" style={{ backgroundColor: '#f97316' }}>4</div>
+                    <h3 className="text-lg font-bold text-white" style={{ WebkitTextFillColor: 'white' }}>Staked Wager Matches</h3>
+                  </div>
+                  <div className="space-y-3 text-neutral-300 text-sm">
+                    <div className="flex items-start gap-3">
+                      <Swords className="w-5 h-5 text-orange-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-white" style={{ WebkitTextFillColor: 'white' }}>Host a Wager Match:</p>
+                        <p>Click "Enter Arena" → "Host Match" → Select stake tier (0.05-1 SOL)</p>
+                        <p className="text-neutral-400 mt-1">Your SOL is locked in escrow. Share match code with opponent.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Coins className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-white" style={{ WebkitTextFillColor: 'white' }}>Join a Wager Match:</p>
+                        <p>Click "Enter Arena" → "Join Match" → Browse open matches or enter code</p>
+                        <p className="text-neutral-400 mt-1">Winner takes 90% of the pot instantly!</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Close Button */}
+                <button
+                  onClick={() => setShowHowToPlay(false)}
+                  className="w-full py-3 rounded-xl font-semibold transition-all"
+                  style={{
+                    background: 'linear-gradient(to right, #9945FF, #14F195)',
+                    color: '#ffffff',
+                    WebkitTextFillColor: '#ffffff'
+                  }}
+                >
+                  Got it, let's play!
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
