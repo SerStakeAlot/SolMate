@@ -133,20 +133,35 @@ export default function Home() {
         </motion.div>
 
         {/* How to Play Button */}
-        <button
-          type="button"
-          onClick={() => setShowHowToPlay(true)}
-          className="mt-4 flex items-center gap-2 transition-colors text-sm font-medium px-4 py-2 rounded-lg border border-solana-purple/30 cursor-pointer relative z-20"
+        <div 
+          role="button"
+          tabIndex={0}
+          onClick={() => {
+            console.log('How to Play clicked');
+            setShowHowToPlay(true);
+          }}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            console.log('How to Play touched');
+            setShowHowToPlay(true);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              setShowHowToPlay(true);
+            }
+          }}
+          className="mt-4 flex items-center gap-2 transition-colors text-sm font-medium px-4 py-2 rounded-lg border border-solana-purple/30 cursor-pointer select-none"
           style={{
             backgroundColor: '#1a1a2e',
             color: '#9945FF',
             WebkitTextFillColor: '#9945FF',
-            pointerEvents: 'auto'
+            WebkitTapHighlightColor: 'rgba(153, 69, 255, 0.3)',
+            touchAction: 'manipulation'
           }}
         >
           <HelpCircle className="w-4 h-4" style={{ color: '#9945FF' }} />
           How to Play
-        </button>
+        </div>
 
         {!connected && (
           <motion.p
