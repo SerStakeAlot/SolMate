@@ -3,14 +3,16 @@ use anchor_lang::system_program::{transfer, Transfer};
 use crate::state::*;
 use crate::errors::*;
 
-/// Force refund from a Finished match where payout failed.
+/// Force refund from a stuck Active match (e.g., both players abandoned).
 /// Either player can call this to recover funds.
-/// Both players get their stakes refunded (no winner payout).
+/// Both players get their stakes refunded.
+/// NOTE: Cannot be called on Finished matches - once a winner is declared,
+/// only confirm_payout can release funds to prevent loser from stealing.
 #[derive(Accounts)]
 pub struct ForceRefund<'info> {
     #[account(
         mut,
-        constraint = match_account.status == MatchStatus::Finished @ EscrowError::MatchNotFinished,
+        constraint = match_account.status == MatchStatus::Active @ EscrowError::MatchNotActive,
         close = player_a
     )]
     pub match_account: Account<'info, Match>,
@@ -57,7 +59,7 @@ pub fn handler(ctx: Context<ForceRefund>) -> Result<()> {
     // Check escrow balance - might have partial funds
     let escrow_balance = ctx.accounts.escrow.lamports();
     
-    msg!("Force refunding from stuck Finished match");
+    msg!("Force refunding from stuck Active match");
     msg!("Escrow balance: {} lamports", escrow_balance);
     msg!("Expected per player: {} lamports", stake_amount);
     
