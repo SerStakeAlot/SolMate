@@ -36,7 +36,7 @@ export default function SecurityAuditPage() {
         <p className="text-neutral-300 mb-4">
           The SolMate escrow program has undergone comprehensive security review and is deployed on Solana Mainnet.
         </p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
           <div className="text-center p-3 bg-black/30 rounded-lg">
             <p className="text-green-400 font-bold">✓</p>
             <p className="text-sm text-neutral-400">Code Quality</p>
@@ -52,6 +52,10 @@ export default function SecurityAuditPage() {
           <div className="text-center p-3 bg-black/30 rounded-lg">
             <p className="text-green-400 font-bold">✓</p>
             <p className="text-sm text-neutral-400">PDA Security</p>
+          </div>
+          <div className="text-center p-3 bg-black/30 rounded-lg">
+            <p className="text-green-400 font-bold">✓</p>
+            <p className="text-sm text-neutral-400">Frontend Security</p>
           </div>
         </div>
       </motion.section>
@@ -90,7 +94,11 @@ export default function SecurityAuditPage() {
           </div>
           <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-neutral-800">
             <span className="text-neutral-400">Audit Date</span>
-            <span>January 22, 2026</span>
+            <span>February 2, 2026 (Updated)</span>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:justify-between py-2 border-b border-neutral-800">
+            <span className="text-neutral-400">App Version</span>
+            <span className="font-mono text-sm">1.5.0</span>
           </div>
           <div className="flex flex-col sm:flex-row sm:justify-between py-2">
             <span className="text-neutral-400">Source Code</span>
@@ -157,6 +165,84 @@ export default function SecurityAuditPage() {
             <p className="text-neutral-400 text-sm">
               All fund transfers use Cross-Program Invocation (CPI) to the System Program, 
               ensuring proper signature verification and preventing unauthorized fund movements.
+            </p>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* Frontend Security - New Section */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35 }}
+        className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6 mb-8"
+      >
+        <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+          <Shield className="w-5 h-5 text-solana-green" />
+          Frontend Security (February 2026 Update)
+        </h2>
+        
+        <div className="space-y-6">
+          <div>
+            <h3 className="font-semibold text-green-400 mb-2">✓ Android WebView Hardening</h3>
+            <p className="text-neutral-400 text-sm">
+              All UI components use inline styles with -webkit-text-fill-color for reliable rendering 
+              in Phantom&apos;s in-app browser and other mobile wallet WebViews.
+            </p>
+          </div>
+          
+          <div>
+            <h3 className="font-semibold text-green-400 mb-2">✓ Modal Click-Jacking Prevention</h3>
+            <p className="text-neutral-400 text-sm">
+              Critical modals (How to Play, game results, payouts) use isolated rendering with 
+              z-index 99999 and proper event handling to prevent overlay attacks.
+            </p>
+          </div>
+          
+          <div>
+            <h3 className="font-semibold text-green-400 mb-2">✓ Touch Event Security</h3>
+            <p className="text-neutral-400 text-sm">
+              Mobile-optimized touch handlers with touchAction: manipulation prevent unintended 
+              zoom gestures and ensure reliable button interactions on all devices.
+            </p>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* Anti-Abuse Measures - New Section */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.38 }}
+        className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6 mb-8"
+      >
+        <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+          <AlertTriangle className="w-5 h-5 text-yellow-500" />
+          Anti-Abuse Measures
+        </h2>
+        
+        <div className="space-y-6">
+          <div>
+            <h3 className="font-semibold text-green-400 mb-2">✓ Arena Leaderboard Protection</h3>
+            <p className="text-neutral-400 text-sm">
+              Resignations in the Holder Arena do not count towards leaderboard standings, 
+              preventing score farming through intentional losses.
+            </p>
+          </div>
+          
+          <div>
+            <h3 className="font-semibold text-green-400 mb-2">✓ AI Difficulty Calibration</h3>
+            <p className="text-neutral-400 text-sm">
+              Arena AI uses opening book and move ordering at ~1500 ELO to prevent trivial wins 
+              while maintaining fair competition for the $500 prize pool.
+            </p>
+          </div>
+          
+          <div>
+            <h3 className="font-semibold text-green-400 mb-2">✓ Token Gate Verification</h3>
+            <p className="text-neutral-400 text-sm">
+              Holder Arena requires verified ownership of 2M+ $MATE tokens, with real-time 
+              balance checks to prevent unauthorized access.
             </p>
           </div>
         </div>
