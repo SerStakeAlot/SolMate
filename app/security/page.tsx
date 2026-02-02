@@ -331,13 +331,9 @@ export default function SecurityAuditPage() {
         className="bg-neutral-900/50 border border-neutral-800 rounded-2xl p-6 mb-8"
       >
         <h2 className="text-xl font-bold mb-4">Available Stake Tiers</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <div className="bg-black/30 rounded-lg p-4 text-center border border-neutral-700">
             <p className="text-2xl font-bold text-white">0.05</p>
-            <p className="text-neutral-400 text-sm">SOL</p>
-          </div>
-          <div className="bg-black/30 rounded-lg p-4 text-center border border-neutral-700">
-            <p className="text-2xl font-bold text-white">0.1</p>
             <p className="text-neutral-400 text-sm">SOL</p>
           </div>
           <div className="bg-black/30 rounded-lg p-4 text-center border border-neutral-700">
