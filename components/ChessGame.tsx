@@ -1468,16 +1468,24 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       const isHost = actualPlayerRole === 'host';
       const winnerPubkey = isHost ? matchData.playerA : matchData.playerB!;
       
+      // STEP 1: Submit result first - this records the winner on-chain
+      // Even if payout fails later, the winner is locked in and loser can't abandon
       console.log('Submitting result... Winner:', winnerPubkey.toBase58(), 'isHost:', isHost, 'playerColor:', playerColor, 'gameWinner:', gameWinner);
-      const signature = await client.submitResult(currentMatchPubkey, winnerPubkey);
-      console.log('Result submitted:', signature);
-      setTxSignature(signature);
+      const resultSignature = await client.submitResult(currentMatchPubkey, winnerPubkey);
+      console.log('Result submitted:', resultSignature);
+      setTxSignature(resultSignature);
       
-      // Wait a moment for chain state to propagate before confirming payout
+      // Wait a moment for chain state to propagate
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      console.log('Confirming payout...');
-      await handleConfirmPayout(winnerPubkey, matchData.playerA);
+      // STEP 2: Confirm payout - separate try/catch so submit_result success is preserved
+      try {
+        console.log('Confirming payout...');
+        await handleConfirmPayout(winnerPubkey, matchData.playerA);
+      } catch (payoutError: any) {
+        console.error('Payout failed but winner is recorded:', payoutError);
+        alert(`Winner recorded on-chain! Payout failed - claim your winnings from the Refund page.`);
+      }
     } catch (error: any) {
       console.error('Error submitting result:', error);
       
