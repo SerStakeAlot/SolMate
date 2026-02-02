@@ -3021,11 +3021,14 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                                   setWagerLobbyHostColor('w');
                                   socket?.emit('match:setColor', { matchCode: wagerMatchCode, color: 'w' });
                                 }}
-                                className={`py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all ${
-                                  wagerLobbyHostColor === 'w'
-                                    ? 'bg-white text-black font-bold ring-2 ring-solana-green'
-                                    : 'bg-white/10 text-white hover:bg-white/20'
-                                }`}
+                                className="py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all"
+                                style={{
+                                  backgroundColor: wagerLobbyHostColor === 'w' ? '#ffffff' : '#262626',
+                                  color: wagerLobbyHostColor === 'w' ? '#000000' : '#ffffff',
+                                  WebkitTextFillColor: wagerLobbyHostColor === 'w' ? '#000000' : '#ffffff',
+                                  fontWeight: wagerLobbyHostColor === 'w' ? 700 : 400,
+                                  border: wagerLobbyHostColor === 'w' ? '2px solid #14F195' : '1px solid rgba(255,255,255,0.2)'
+                                }}
                               >
                                 <span className="text-xl">♔</span>
                                 White
@@ -3036,11 +3039,14 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                                   setWagerLobbyHostColor('b');
                                   socket?.emit('match:setColor', { matchCode: wagerMatchCode, color: 'b' });
                                 }}
-                                className={`py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all ${
-                                  wagerLobbyHostColor === 'b'
-                                    ? 'bg-neutral-800 text-white font-bold ring-2 ring-solana-green'
-                                    : 'bg-white/10 text-white hover:bg-white/20'
-                                }`}
+                                className="py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all"
+                                style={{
+                                  backgroundColor: wagerLobbyHostColor === 'b' ? '#171717' : '#262626',
+                                  color: '#ffffff',
+                                  WebkitTextFillColor: '#ffffff',
+                                  fontWeight: wagerLobbyHostColor === 'b' ? 700 : 400,
+                                  border: wagerLobbyHostColor === 'b' ? '2px solid #14F195' : '1px solid rgba(255,255,255,0.2)'
+                                }}
                               >
                                 <span className="text-xl">♚</span>
                                 Black
@@ -3066,9 +3072,16 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                             onClick={() => socket?.emit('match:startGame', { matchCode: wagerMatchCode })}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-solana-purple to-solana-green text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all"
+                            className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl shadow-lg transition-all"
+                            style={{
+                              background: 'linear-gradient(to right, #9945FF, #14F195)',
+                              color: '#ffffff',
+                              WebkitTextFillColor: '#ffffff',
+                              fontWeight: 700,
+                              border: 'none'
+                            }}
                           >
-                            <Swords className="h-5 w-5" />
+                            <Swords className="h-5 w-5" style={{ color: '#ffffff' }} />
                             Start Game
                           </motion.button>
                         )}
