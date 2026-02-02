@@ -2,10 +2,12 @@
 
 **Program Name:** SolMate Chess Escrow  
 **Program ID:** `H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV`  
-**Audit Date:** January 14, 2026  
+**Audit Date:** February 2, 2026 (Updated)  
+**Original Audit:** January 14, 2026  
 **Auditor:** Internal Security Review  
 **Framework:** Anchor v0.29.0  
-**Network:** Solana (Devnet → Mainnet)
+**Network:** Solana Mainnet  
+**App Version:** 1.5.0
 
 ---
 
@@ -21,6 +23,7 @@ This security audit report documents the comprehensive review of the SolMate Che
 | Arithmetic Safety | ✅ Pass | Uses checked operations |
 | Access Control | ✅ Pass | Proper signer validation |
 | PDA Security | ✅ Pass | Correct derivation & validation |
+| Frontend Security | ✅ Pass | Android WebView hardened |
 | Dependencies | ⚠️ Note | Upstream Solana SDK advisories |
 
 ---
@@ -317,6 +320,24 @@ $ anchor build
 
 ---
 
-**Report Generated:** January 14, 2026  
+## Appendix C: Recent Updates (February 2026)
+
+### Frontend Security Improvements
+- **Android WebView Compatibility:** All UI buttons and text now use inline styles with `-webkit-text-fill-color` for reliable rendering in Phantom's in-app browser
+- **Modal Security:** How to Play modal uses isolated rendering with z-index 99999 to prevent click-jacking
+- **Touch Event Handling:** Improved touch handlers for mobile wallet browsers
+
+### Anti-Abuse Measures
+- **Arena Leaderboard:** Resignations no longer count towards leaderboard standings (anti-farming protection)
+- **AI Difficulty:** Arena AI enhanced with opening book and move ordering (~1500 ELO) to prevent trivial wins
+
+### Platform Features
+- **Holder Arena:** Token-gated arena requiring 2M+ $MATE tokens
+- **$500 Prize Pool:** Monthly leaderboard competition for token holders
+- **Free Play Mode:** Non-wagered multiplayer accessible via Practice Mode or Play page
+
+---
+
+**Report Generated:** February 2, 2026  
 **Repository:** https://github.com/SerStakeAlot/SolMate  
 **Contact:** Telegram: @hotdogewketchup
