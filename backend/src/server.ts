@@ -544,6 +544,12 @@ io.on('connection', (socket) => {
     console.log(`Player registering: ${walletAddress}${isGuest ? ' (guest)' : ''}`);
     const player = playerStore.createPlayer(walletAddress, socket.id);
     
+    // Update hosted match socket ID if this wallet has an active match
+    // This handles reconnection scenarios where the socket ID changes
+    if (!isGuest) {
+      hostedMatchManager.updateHostSocket(walletAddress, socket.id);
+    }
+    
     socket.emit('player:registered', {
       playerId: player.id,
       xp: player.xp,

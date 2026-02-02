@@ -271,15 +271,18 @@ class HostedMatchManager {
   }
 
   // Update host socket ID on reconnect
-  updateHostSocket(walletAddress: string, newSocketId: string): void {
+  updateHostSocket(walletAddress: string, newSocketId: string): boolean {
     const matchCode = this.walletToMatch.get(walletAddress);
     if (matchCode) {
       const match = this.matches.get(matchCode);
-      if (match && match.status === 'waiting') {
+      if (match && (match.status === 'waiting' || match.status === 'lobby')) {
+        const oldSocketId = match.hostSocketId;
         match.hostSocketId = newSocketId;
-        console.log(`Updated socket for match ${matchCode}`);
+        console.log(`Updated host socket for match ${matchCode}: ${oldSocketId?.slice(0, 8)}... -> ${newSocketId.slice(0, 8)}...`);
+        return true;
       }
     }
+    return false;
   }
 
   // Get match by pubkey
