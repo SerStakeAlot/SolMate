@@ -1462,9 +1462,13 @@ export const ChessGame: React.FC<ChessGameProps> = ({
         return;
       }
 
-      const winnerPubkey = gameWinner === 'w' ? matchData.playerA : matchData.playerB!;
+      // IMPORTANT: The winner is the current player (we only call this if playerColor === gameWinner)
+      // playerA = host (match creator), playerB = guest (joiner)
+      // We use actualPlayerRole to determine which on-chain account is the winner
+      const isHost = actualPlayerRole === 'host';
+      const winnerPubkey = isHost ? matchData.playerA : matchData.playerB!;
       
-      console.log('Submitting result... Winner:', winnerPubkey.toBase58());
+      console.log('Submitting result... Winner:', winnerPubkey.toBase58(), 'isHost:', isHost, 'playerColor:', playerColor, 'gameWinner:', gameWinner);
       const signature = await client.submitResult(currentMatchPubkey, winnerPubkey);
       console.log('Result submitted:', signature);
       setTxSignature(signature);
