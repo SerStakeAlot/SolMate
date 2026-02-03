@@ -22,6 +22,19 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="fun.playsolmate.app">
 
+    <!-- Package visibility for MWA (Mobile Wallet Adapter) -->
+    <queries>
+        <!-- Allow querying for apps that handle solana-wallet:// scheme -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="solana-wallet" />
+        </intent>
+        <!-- Allow querying for specific wallet apps -->
+        <package android:name="app.phantom" />
+        <package android:name="com.solflare.mobile" />
+        <package android:name="com.solanamobile.seedvault" />
+    </queries>
+
     
         <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     
@@ -199,5 +212,20 @@
             <activity android:name=
         "com.google.androidbrowserhelper.locationdelegation.PermissionRequestActivity"/>
         
+
+        <!-- MWA Redirect Activity - handles solana-wallet:// URLs from web content -->
+        <activity
+            android:name=".MwaRedirectActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:noHistory="true"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="solana-wallet" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>

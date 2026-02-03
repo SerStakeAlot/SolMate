@@ -3,8 +3,8 @@
 # min_api: 21
 # common_typos_disable
 # {"id":"com.android.tools.r8.mapping","version":"2.2"}
-# pg_map_id: 16eb74e
-# pg_map_hash: SHA-256 16eb74e4416a3e68106084022e31fbe38179c99a508ceb4511096c3f3b418cf7
+# pg_map_id: 2e23e11
+# pg_map_hash: SHA-256 2e23e11cab61ac3a9f9635a5da34f527dc26a251f9faeafe30d1cde90962cc1e
 android.support.customtabs.ICustomTabsCallback -> a.a:
 # {"id":"sourceFile","fileName":"ICustomTabsCallback.java"}
     java.lang.String DESCRIPTOR -> a
@@ -36652,6 +36652,22 @@ fun.playsolmate.app.LauncherActivity -> fun.playsolmate.app.LauncherActivity:
     4:11:void onCreate(android.os.Bundle):38:38 -> onCreate
     12:16:void onCreate(android.os.Bundle):39:39 -> onCreate
     17:20:void onCreate(android.os.Bundle):41:41 -> onCreate
+fun.playsolmate.app.MwaRedirectActivity -> fun.playsolmate.app.MwaRedirectActivity:
+# {"id":"sourceFile","fileName":"MwaRedirectActivity.java"}
+    1:4:void <init>():13:13 -> <init>
+    1:3:void onCreate(android.os.Bundle):18:18 -> onCreate
+    4:7:void onCreate(android.os.Bundle):20:20 -> onCreate
+    8:13:void onCreate(android.os.Bundle):21:21 -> onCreate
+    14:17:void onCreate(android.os.Bundle):24:24 -> onCreate
+    18:43:void onCreate(android.os.Bundle):25:25 -> onCreate
+    44:51:void onCreate(android.os.Bundle):27:27 -> onCreate
+    52:56:void onCreate(android.os.Bundle):29:29 -> onCreate
+    57:65:void onCreate(android.os.Bundle):31:31 -> onCreate
+    66:70:void onCreate(android.os.Bundle):32:32 -> onCreate
+    71:73:void onCreate(android.os.Bundle):33:33 -> onCreate
+    74:78:void onCreate(android.os.Bundle):36:36 -> onCreate
+    79:83:void onCreate(android.os.Bundle):38:38 -> onCreate
+    84:87:void onCreate(android.os.Bundle):44:44 -> onCreate
 kotlin.Lazy -> n0.a:
 # {"id":"sourceFile","fileName":"Lazy.kt"}
     java.lang.Object getValue() -> getValue

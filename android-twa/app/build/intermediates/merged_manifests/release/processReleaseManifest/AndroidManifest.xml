@@ -23,18 +23,27 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="fun.playsolmate.app"
-    android:versionCode="7"
-    android:versionName="Version 6" >
+    android:versionCode="9"
+    android:versionName="Version 8 - MWA Support" >
 
     <uses-sdk
         android:minSdkVersion="21"
         android:targetSdkVersion="35" />
 
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-
+    <!-- Package visibility for MWA (Mobile Wallet Adapter) -->
     <queries>
+
+        <!-- Allow querying for apps that handle solana-wallet:// scheme -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+
+            <data android:scheme="solana-wallet" />
+        </intent>
+        <!-- Allow querying for specific wallet apps -->
+        <package android:name="app.phantom" />
+        <package android:name="com.solflare.mobile" />
+        <package android:name="com.solanamobile.seedvault" />
+
         <intent>
             <action android:name="android.intent.action.VIEW" />
 
@@ -43,6 +52,10 @@
             <data android:scheme="https" />
         </intent>
     </queries>
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <permission
         android:name="fun.playsolmate.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
@@ -181,6 +194,23 @@
 
         <activity android:name="com.google.androidbrowserhelper.trusted.NotificationPermissionRequestActivity" />
         <activity android:name="com.google.androidbrowserhelper.locationdelegation.PermissionRequestActivity" />
+
+        <!-- MWA Redirect Activity - handles solana-wallet:// URLs from web content -->
+        <activity
+            android:name="fun.playsolmate.app.MwaRedirectActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" >
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="solana-wallet" />
+            </intent-filter>
+        </activity>
         <activity
             android:name="com.google.android.gms.common.api.GoogleApiActivity"
             android:exported="false"
