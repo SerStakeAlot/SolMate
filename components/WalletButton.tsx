@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletName, WalletReadyState } from '@solana/wallet-adapter-base';
+import { transact } from '@solana-mobile/mobile-wallet-adapter-protocol-web3js';
 
 // Detect if we're on a mobile device
 const isMobileDevice = () => {
@@ -211,15 +212,35 @@ const StandardWalletButton: React.FC = () => {
     
     const isMWA = walletName === 'Mobile Wallet Adapter';
     
-    // For MWA on mobile - the adapter isn't working properly
-    // Redirect to Phantom browser instead as a workaround
+    // For MWA on mobile, use transact() directly
     if (isMWA && isMobile) {
-      setDebugInfo('MWA: Opening Phantom browser...');
+      setDebugInfo('MWA: Calling transact()...');
       
-      // The MWA protocol isn't working in Seeker's browser
-      // Use Phantom's universal link to open in Phantom's in-app browser
-      const currentUrl = encodeURIComponent(window.location.href);
-      window.location.href = `https://phantom.app/ul/browse/${currentUrl}`;
+      // transact() will create a solana-wallet:// URL and navigate to it
+      transact(async (wallet) => {
+        setDebugInfo('MWA: transact callback, authorizing...');
+        const authResult = await wallet.authorize({
+          cluster: 'mainnet-beta',
+          identity: {
+            name: 'SolMate',
+            uri: 'https://playsolmate.fun',
+            icon: 'https://playsolmate.fun/images/chess-hero.png',
+          },
+        });
+        setDebugInfo(`MWA: Auth success! ${authResult.accounts[0]?.address?.slice(0,8)}...`);
+        return authResult;
+      }).then((result: any) => {
+        const addr = result?.accounts?.[0]?.address;
+        setDebugInfo(`MWA: Done! ${addr?.slice(0,8) || 'no addr'}`);
+        // Sync with wallet adapter
+        select('Mobile Wallet Adapter' as WalletName);
+        setTimeout(() => connect().catch(e => console.log('sync:', e)), 200);
+      }).catch((error: any) => {
+        const msg = error?.message || error?.code || String(error);
+        setDebugInfo(`MWA error: ${msg.slice(0, 100)}`);
+        console.log('[MWA] transact error:', error);
+      });
+      
       return;
     }
     
@@ -444,13 +465,39 @@ const StandardWalletButton: React.FC = () => {
               {/* On mobile, show options */}
               {isMobile && !isInWalletBrowser() && (
                 <>
-                  {/* Open in Phantom browser - this works! */}
+                  {/* MWA option for Seeker/Saga */}
                   <button
                     style={{
                       ...walletButtonStyle,
-                      background: 'linear-gradient(135deg, rgba(171, 159, 242, 0.3), rgba(171, 159, 242, 0.1))',
-                      borderColor: 'rgba(171, 159, 242, 0.5)',
+                      background: 'linear-gradient(135deg, rgba(153, 69, 255, 0.2), rgba(20, 241, 149, 0.2))',
+                      borderColor: 'rgba(153, 69, 255, 0.4)',
                       marginBottom: '8px',
+                    }}
+                    onClick={() => handleSelectWallet('Mobile Wallet Adapter' as WalletName)}
+                  >
+                    <div style={{ 
+                      width: '32px', 
+                      height: '32px', 
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #9945FF, #14F195)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px'
+                    }}>
+                      📱
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                      <span>Seeker / Saga Wallet</span>
+                      <span style={{ fontSize: '11px', color: '#14F195' }}>For Solana Mobile devices</span>
+                    </div>
+                  </button>
+                  
+                  {/* Open in Phantom browser - fallback */}
+                  <button
+                    style={{
+                      ...walletButtonStyle,
+                      marginBottom: '16px',
                     }}
                     onClick={() => {
                       setDebugInfo('Opening Phantom browser...');
@@ -472,37 +519,7 @@ const StandardWalletButton: React.FC = () => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                       <span>Open in Phantom</span>
-                      <span style={{ fontSize: '11px', color: '#14F195' }}>Recommended for mobile</span>
-                    </div>
-                  </button>
-                  
-                  {/* Open in Solflare browser */}
-                  <button
-                    style={{
-                      ...walletButtonStyle,
-                      marginBottom: '16px',
-                    }}
-                    onClick={() => {
-                      setDebugInfo('Opening Solflare browser...');
-                      const currentUrl = encodeURIComponent(window.location.href);
-                      window.location.href = `https://solflare.com/ul/v1/browse/${currentUrl}?ref=${currentUrl}`;
-                    }}
-                  >
-                    <div style={{ 
-                      width: '32px', 
-                      height: '32px', 
-                      borderRadius: '8px',
-                      background: '#FC7227',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '16px'
-                    }}>
-                      🔥
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                      <span>Open in Solflare</span>
-                      <span style={{ fontSize: '11px', color: '#888' }}>Alternative wallet</span>
+                      <span style={{ fontSize: '11px', color: '#888' }}>If Seeker doesn't work</span>
                     </div>
                   </button>
                 </>
