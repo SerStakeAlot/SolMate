@@ -210,20 +210,7 @@
 
         <!-- Location delegation removed - was causing Google Play Services AR requirement -->
 
-        <!-- MWA Redirect Activity - handles solana-wallet:// URLs from web content -->
-        <activity
-            android:name=".MwaRedirectActivity"
-            android:exported="true"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar"
-            android:excludeFromRecents="true"
-            android:taskAffinity=""
-            android:launchMode="singleTask">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="solana-wallet" />
-            </intent-filter>
-        </activity>
+        <!-- MWA: Removed custom redirect activity - let Chrome handle solana-wallet:// natively -->
+        <!-- The <queries> section above ensures wallet apps are visible to the system -->
     </application>
 </manifest>

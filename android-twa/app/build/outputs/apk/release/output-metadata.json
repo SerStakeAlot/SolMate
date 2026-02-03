@@ -11,8 +11,8 @@
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 11,
-      "versionName": "Version 10 - MWA Fix",
+      "versionCode": 12,
+      "versionName": "Version 11 - Native MWA",
       "outputFile": "app-release-unsigned.apk"
     }
   ],

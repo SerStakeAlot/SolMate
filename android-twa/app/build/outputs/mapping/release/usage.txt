@@ -10278,8 +10278,7 @@ com.google.thirdparty.publicsuffix.PublicSuffixPatterns
 com.google.thirdparty.publicsuffix.PublicSuffixType
 com.google.thirdparty.publicsuffix.TrieParser
 fun.playsolmate.app.MwaIntentHelper
-fun.playsolmate.app.MwaRedirectActivity:
-    private static final java.lang.String TAG
+fun.playsolmate.app.MwaRedirectActivity
 fun.playsolmate.app.R$bool
 fun.playsolmate.app.R$color
 fun.playsolmate.app.R$drawable
