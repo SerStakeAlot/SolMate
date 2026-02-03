@@ -108,6 +108,11 @@ const StandardWalletButton: React.FC = () => {
       clearTimeout(connectTimeoutRef.current);
     }
 
+    // Update debug info
+    if (isMobile) {
+      setDebugInfo(prev => prev + ' | Clicked Connect');
+    }
+
     // If in wallet browser (Phantom app, etc.), try to auto-detect the wallet
     if (isInWalletBrowser()) {
       console.log('In-wallet browser detected, trying to auto-connect...');
@@ -139,10 +144,29 @@ const StandardWalletButton: React.FC = () => {
       }
     }
     
-    // For all other cases (including Seeker native browser), just show the modal
-    // This is more reliable than trying MWA auto-connect which can hang
+    // On Android, try MWA directly instead of showing modal
+    if (isMobile && /android/i.test(navigator.userAgent)) {
+      setDebugInfo(prev => prev + ' | Trying MWA...');
+      const mwaWallet = wallets.find(w => w.adapter.name === 'Mobile Wallet Adapter');
+      if (mwaWallet) {
+        try {
+          setConnectionStatus('Opening wallet...');
+          select(mwaWallet.adapter.name as WalletName);
+          await new Promise(resolve => setTimeout(resolve, 150));
+          await connect();
+          setDebugInfo(prev => prev + ' | MWA Success!');
+          return;
+        } catch (error: any) {
+          setDebugInfo(prev => prev + ` | MWA Error: ${error?.message || error}`);
+          setConnectionStatus('');
+          // Fall through to show modal
+        }
+      }
+    }
+    
+    // For all other cases, show the modal
     setShowModal(true);
-  }, [wallets, select, connect]);
+  }, [wallets, select, connect, isMobile]);
 
   const handleSelectWallet = useCallback(async (walletName: WalletName) => {
     console.log('[WalletModal] Connecting with type:', walletName);
