@@ -29,8 +29,8 @@ public class MwaRedirectActivity extends Activity {
                 Log.d(TAG, "Forwarding solana-wallet intent to wallet app");
                 
                 Intent walletIntent = new Intent(Intent.ACTION_VIEW, uri);
-                walletIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                walletIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                // Don't add extra flags - let the system handle the task naturally
+                // This allows the wallet bottom sheet to appear properly
                 
                 try {
                     startActivity(walletIntent);
@@ -40,7 +40,14 @@ public class MwaRedirectActivity extends Activity {
             }
         }
         
-        // Finish this activity immediately
+        // Finish this activity immediately so it doesn't block wallet UI
+        finish();
+    }
+    
+    @Override
+    protected void onPause() {
+        super.onPause();
+        // Ensure we finish when paused to not interfere
         finish();
     }
 }

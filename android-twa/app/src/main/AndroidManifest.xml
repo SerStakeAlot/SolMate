@@ -215,8 +215,9 @@
             android:name=".MwaRedirectActivity"
             android:exported="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
-            android:noHistory="true"
-            android:excludeFromRecents="true">
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

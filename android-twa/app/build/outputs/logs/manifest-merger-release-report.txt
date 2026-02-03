@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:22:1-228:12
-INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:22:1-228:12
-INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:22:1-228:12
-INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:22:1-228:12
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:22:1-229:12
+INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:22:1-229:12
+INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:22:1-229:12
+INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:22:1-229:12
 MERGED from [com.google.androidbrowserhelper:androidbrowserhelper:2.6.2] /home/codespace/.gradle/caches/8.11.1/transforms/5053e02be90783e54992393be394bb70/transformed/androidbrowserhelper-2.6.2/AndroidManifest.xml:17:1-32:12
 MERGED from [androidx.appcompat:appcompat-resources:1.7.0] /home/codespace/.gradle/caches/8.11.1/transforms/d6f2e3c3aeb152384c7f6efcc9d99697/transformed/appcompat-resources-1.7.0/AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.appcompat:appcompat:1.7.0] /home/codespace/.gradle/caches/8.11.1/transforms/183ebbc8ed821348f80a6d36d20b75e3/transformed/appcompat-1.7.0/AndroidManifest.xml:2:1-7:12
@@ -77,8 +77,8 @@ ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:39:9
 	android:name
 		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:39:26-78
 application
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:48:5-227:19
-INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:48:5-227:19
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:48:5-228:19
+INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:48:5-228:19
 MERGED from [androidx.emoji2:emoji2:1.3.0] /home/codespace/.gradle/caches/8.11.1/transforms/5cb7738f5242d8c4e38c8ffa2b265b31/transformed/emoji2-1.3.0/AndroidManifest.xml:23:5-33:19
 MERGED from [androidx.emoji2:emoji2:1.3.0] /home/codespace/.gradle/caches/8.11.1/transforms/5cb7738f5242d8c4e38c8ffa2b265b31/transformed/emoji2-1.3.0/AndroidManifest.xml:23:5-33:19
 MERGED from [androidx.core:core:1.13.0] /home/codespace/.gradle/caches/8.11.1/transforms/a5429f7b20c607b890f08b5283ad4ec0/transformed/core-1.13.0/AndroidManifest.xml:28:5-89
@@ -316,19 +316,21 @@ ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:208:
 	android:name
 		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:208:23-115
 activity#fun.playsolmate.app.MwaRedirectActivity
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:214:9-226:20
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:214:9-227:20
 	android:excludeFromRecents
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:219:13-46
-	android:noHistory
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:218:13-37
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:218:13-46
+	android:launchMode
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:220:13-44
 	android:exported
 		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:216:13-36
 	android:theme
 		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:217:13-72
+	android:taskAffinity
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:219:13-36
 	android:name
 		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:215:13-48
 intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:scheme:solana-wallet
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:220:13-225:29
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:221:13-226:29
 uses-sdk
 INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml

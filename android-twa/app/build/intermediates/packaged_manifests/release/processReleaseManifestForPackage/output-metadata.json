@@ -11,8 +11,8 @@
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 10,
-      "versionName": "Version 9 - MWA Support",
+      "versionCode": 11,
+      "versionName": "Version 10 - MWA Fix",
       "outputFile": "AndroidManifest.xml"
     }
   ],

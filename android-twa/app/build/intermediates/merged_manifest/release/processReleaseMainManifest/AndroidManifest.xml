@@ -23,8 +23,8 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="fun.playsolmate.app"
-    android:versionCode="10"
-    android:versionName="Version 9 - MWA Support" >
+    android:versionCode="11"
+    android:versionName="Version 10 - MWA Fix" >
 
     <uses-sdk
         android:minSdkVersion="21"
@@ -200,7 +200,8 @@
             android:name="fun.playsolmate.app.MwaRedirectActivity"
             android:excludeFromRecents="true"
             android:exported="true"
-            android:noHistory="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar" >
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
