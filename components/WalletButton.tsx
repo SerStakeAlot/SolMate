@@ -675,7 +675,7 @@ const StandardWalletButton: React.FC = () => {
                 padding: '8px 12px',
                 marginBottom: '16px',
                 fontSize: '12px',
-                color: debugInfo.includes('Error') || debugInfo.includes('No wallet') 
+                color: debugInfo.includes('Error') || debugInfo.includes('No wallet') || debugInfo.includes('timed out')
                   ? '#f87171' 
                   : debugInfo.includes('Connected') 
                     ? '#4ade80' 
@@ -684,6 +684,21 @@ const StandardWalletButton: React.FC = () => {
                 wordBreak: 'break-all',
               }}>
                 {debugInfo}
+              </div>
+            )}
+            
+            {/* MWA browser requirement note */}
+            {showMWAOption && (
+              <div style={{
+                backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                border: '1px solid rgba(255, 193, 7, 0.3)',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                marginBottom: '16px',
+                fontSize: '11px',
+                color: '#ffc107',
+              }}>
+                ⚠️ MWA requires <strong>Chrome browser</strong> + a wallet app (Phantom/Solflare) installed
               </div>
             )}
             
@@ -753,8 +768,8 @@ const StandardWalletButton: React.FC = () => {
                     📱
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                    <span>{mwaConnecting ? 'Connecting...' : 'Seeker / Mobile Wallet'}</span>
-                    <span style={{ fontSize: '11px', color: '#14F195' }}>MWA Protocol (Android)</span>
+                    <span>{mwaConnecting ? 'Connecting...' : 'Mobile Wallet (MWA)'}</span>
+                    <span style={{ fontSize: '11px', color: '#14F195' }}>Requires Phantom/Solflare app</span>
                   </div>
                 </button>
               )}
