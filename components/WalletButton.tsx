@@ -208,16 +208,34 @@ const StandardWalletButton: React.FC = () => {
     
     const isMWA = walletName === 'Mobile Wallet Adapter';
     
-    // For MWA on mobile, try to open wallet via deep link
+    // For MWA on mobile, use transact() to trigger Seeker/wallet app
     if (isMWA && isMobile) {
-      setDebugInfo('Opening wallet app via deep link...');
+      setDebugInfo('Calling transact() for Seeker...');
       
-      // Try to open Phantom via deep link - this actually launches the app
-      const currentUrl = encodeURIComponent(window.location.href);
-      const phantomDeepLink = `https://phantom.app/ul/browse/${currentUrl}?ref=${currentUrl}`;
+      // Call transact in a non-blocking way
+      transact(async (wallet) => {
+        setDebugInfo('transact callback - authorizing...');
+        const auth = await wallet.authorize({
+          cluster: 'mainnet-beta',
+          identity: {
+            name: 'SolMate',
+            uri: 'https://playsolmate.fun',
+            icon: 'https://playsolmate.fun/images/chess-hero.png',
+          },
+        });
+        setDebugInfo(`Authorized: ${auth.accounts[0]?.address?.slice(0,8)}...`);
+        return auth;
+      }).then((result) => {
+        setDebugInfo(`Success! ${result.accounts[0]?.address?.slice(0,8)}...`);
+        // Sync with wallet adapter
+        select('Mobile Wallet Adapter' as WalletName);
+        setTimeout(() => connect().catch(e => console.log('sync error:', e)), 100);
+      }).catch((error) => {
+        const msg = error?.message || String(error);
+        setDebugInfo(`transact error: ${msg.slice(0, 60)}`);
+        console.log('transact error:', error);
+      });
       
-      // Open in same window to trigger app switch
-      window.location.href = phantomDeepLink;
       return;
     }
     
