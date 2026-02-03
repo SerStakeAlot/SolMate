@@ -18,6 +18,14 @@ const isInWalletBrowser = () => {
   return ua.includes('phantom') || ua.includes('solflare') || ua.includes('backpack');
 };
 
+// Detect if we're in Seeker browser (Solana Mobile)
+const isSeekerBrowser = () => {
+  if (typeof window === 'undefined') return false;
+  const ua = navigator.userAgent.toLowerCase();
+  // Seeker identifies as Chrome on Android with Seeker-specific markers
+  return /android/i.test(ua) && (ua.includes('seeker') || ua.includes('solana mobile'));
+};
+
 // MWA Detection - checks for solana mobile wallet support
 const detectMWA = () => {
   if (typeof window === 'undefined') return { supported: false, detection: null };
@@ -83,8 +91,9 @@ const StandardWalletButton: React.FC = () => {
     // Run MWA detection on mount and show on screen for mobile debugging
     const { supported, detection } = detectMWA();
     if (isMobileDevice()) {
-      // v5 - Listen for wallet-standard registration events
+      // v6 - Enhanced wallet detection with Seeker-specific handling
       const win = window as any;
+      const isSeeker = isSeekerBrowser();
       
       const checkWallets = () => {
         const injections = [];
@@ -109,7 +118,13 @@ const StandardWalletButton: React.FC = () => {
       // Initial check
       let { injections, registeredWallets } = checkWallets();
       const ua = navigator.userAgent.slice(0, 40);
-      setDebugInfo(`v5 ws:[${registeredWallets.join(',')||'wait'}] inj:[${injections.join(',')||'none'}] ${ua}`);
+      
+      // Display Seeker-specific status
+      if (isSeeker) {
+        setDebugInfo(`v6 SEEKER ws:[${registeredWallets.join(',')||'none'}] inj:[${injections.join(',')||'none'}]`);
+      } else {
+        setDebugInfo(`v6 ws:[${registeredWallets.join(',')||'wait'}] inj:[${injections.join(',')||'none'}] ${ua}`);
+      }
       
       // Listen for wallet registration events
       const walletStandard = win.navigator?.wallets;
@@ -117,7 +132,7 @@ const StandardWalletButton: React.FC = () => {
         walletStandard.on('register', (wallet: any) => {
           console.log('[wallet-standard] Wallet registered:', wallet?.name);
           const { registeredWallets: updated } = checkWallets();
-          setDebugInfo(`v5 REGISTERED: ${wallet?.name || 'unknown'} ws:[${updated.join(',')}]`);
+          setDebugInfo(`v6 REGISTERED: ${wallet?.name || 'unknown'} ws:[${updated.join(',')}]`);
         });
       }
       
@@ -125,7 +140,10 @@ const StandardWalletButton: React.FC = () => {
       setTimeout(() => {
         const { injections: inj2, registeredWallets: ws2 } = checkWallets();
         if (ws2.length > 0 || inj2.length > 0) {
-          setDebugInfo(`v5 delayed ws:[${ws2.join(',')||'empty'}] inj:[${inj2.join(',')||'none'}]`);
+          setDebugInfo(`v6 delayed ws:[${ws2.join(',')||'empty'}] inj:[${inj2.join(',')||'none'}]`);
+        } else if (isSeeker && ws2.length === 0 && inj2.length === 0) {
+          // Seeker browser with no wallets detected
+          setDebugInfo('v6 SEEKER: No wallet injection. Use Chrome or enable Privy.');
         }
       }, 2000);
     }
@@ -254,10 +272,34 @@ const StandardWalletButton: React.FC = () => {
     
     const isMWA = walletName === 'Mobile Wallet Adapter';
     
-    // For MWA on mobile, try direct intent first
+    // For MWA on mobile, provide Seeker-specific guidance
     if (isMWA && isMobile) {
-      // v6 - Try direct solana-wallet intent to test if Seeker handles it
-      setDebugInfo('v6: Trying direct intent...');
+      const isSeeker = isSeekerBrowser();
+      
+      // v7 - Detect Seeker and provide specific guidance
+      if (isSeeker) {
+        setDebugInfo('v7: Seeker detected - MWA may not work in embedded browser');
+        
+        // Show guidance alert for Seeker users
+        const guidance = `⚠️ Solana Seeker Browser Issue
+
+The Seeker browser doesn't support Mobile Wallet Adapter (MWA) connections.
+
+✅ Recommended Solutions:
+1. Open this site in Chrome browser instead
+2. Or use Phantom's in-app browser (tap "Open in Phantom" below)
+3. Or contact admin to enable Privy (works everywhere)
+
+🔗 Chrome URL: ${window.location.href}`;
+        
+        alert(guidance);
+        
+        setDebugInfo('v7: Seeker - opened guidance. Try Chrome or Phantom browser.');
+        return;
+      }
+      
+      // v7 - Try direct intent first for non-Seeker Android
+      setDebugInfo('v7: Trying MWA intent...');
       
       // Generate a simple association URL like MWA does
       const testIntent = 'solana-wallet://v1/associate/local?association=test123&port=12345';
@@ -269,7 +311,7 @@ const StandardWalletButton: React.FC = () => {
       
       // Wait a moment then check if we're still here (intent didn't work)
       setTimeout(() => {
-        setDebugInfo('v6: Intent did not open wallet. Seeker may need different approach.');
+        setDebugInfo('v7: Intent attempt completed, trying transact...');
         
         // Fall back to trying transact anyway
         transact(async (wallet) => {
@@ -292,6 +334,9 @@ const StandardWalletButton: React.FC = () => {
         }).catch((error: any) => {
           const msg = error?.message || error?.code || String(error);
           setDebugInfo(`MWA fail: ${msg.slice(0, 80)}`);
+          
+          // Show helpful error message
+          alert('⚠️ Mobile Wallet Adapter Failed\n\nTry:\n1. Open in Chrome (not in-app browser)\n2. Install Phantom or Solflare\n3. Use "Open in Phantom" button');
         });
       }, 1500);
       
@@ -516,16 +561,42 @@ const StandardWalletButton: React.FC = () => {
             </button>
             <div style={modalTitleStyle}>Connect Wallet</div>
             <div>
+              {/* Seeker-specific warning banner */}
+              {isMobile && isSeekerBrowser() && (
+                <div style={{
+                  padding: '12px',
+                  marginBottom: '16px',
+                  backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                  border: '1px solid rgba(255, 193, 7, 0.3)',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                  color: '#FFC107',
+                  lineHeight: '1.4',
+                }}>
+                  <div style={{ fontWeight: 600, marginBottom: '4px' }}>⚠️ Seeker Browser Limitation</div>
+                  <div>Wallet connection doesn't work in Seeker's browser. Please:</div>
+                  <div style={{ marginTop: '6px', paddingLeft: '12px' }}>
+                    • Use Chrome browser instead<br/>
+                    • Or tap "Open in Phantom" below
+                  </div>
+                </div>
+              )}
+              
               {/* On mobile, show options */}
               {isMobile && !isInWalletBrowser() && (
                 <>
-                  {/* MWA option for Seeker/Saga */}
+                  {/* MWA option for Seeker/Saga - with warning for Seeker browser */}
                   <button
                     style={{
                       ...walletButtonStyle,
-                      background: 'linear-gradient(135deg, rgba(153, 69, 255, 0.2), rgba(20, 241, 149, 0.2))',
-                      borderColor: 'rgba(153, 69, 255, 0.4)',
+                      background: isSeekerBrowser() 
+                        ? 'rgba(255, 193, 7, 0.1)' 
+                        : 'linear-gradient(135deg, rgba(153, 69, 255, 0.2), rgba(20, 241, 149, 0.2))',
+                      borderColor: isSeekerBrowser() 
+                        ? 'rgba(255, 193, 7, 0.3)' 
+                        : 'rgba(153, 69, 255, 0.4)',
                       marginBottom: '8px',
+                      opacity: isSeekerBrowser() ? 0.6 : 1,
                     }}
                     onClick={() => handleSelectWallet('Mobile Wallet Adapter' as WalletName)}
                   >
@@ -533,17 +604,21 @@ const StandardWalletButton: React.FC = () => {
                       width: '32px', 
                       height: '32px', 
                       borderRadius: '8px',
-                      background: 'linear-gradient(135deg, #9945FF, #14F195)',
+                      background: isSeekerBrowser() 
+                        ? '#FFC107' 
+                        : 'linear-gradient(135deg, #9945FF, #14F195)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: '16px'
                     }}>
-                      📱
+                      {isSeekerBrowser() ? '⚠️' : '📱'}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                       <span>Seeker / Saga Wallet</span>
-                      <span style={{ fontSize: '11px', color: '#14F195' }}>For Solana Mobile devices</span>
+                      <span style={{ fontSize: '11px', color: isSeekerBrowser() ? '#FFC107' : '#14F195' }}>
+                        {isSeekerBrowser() ? 'Not available in Seeker browser' : 'For Solana Mobile devices'}
+                      </span>
                     </div>
                   </button>
                   

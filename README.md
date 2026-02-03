@@ -14,6 +14,8 @@ SolMate is a decentralized chess gaming application built on Solana blockchain w
 
 ### Current Implementation
 - ✅ Wallet Connection: Integrated Solana wallet adapter with support for Phantom and Solflare
+- ✅ **Mobile Wallet Support**: MWA protocol for Solana Mobile (Saga/Seeker phones)
+- ✅ **Privy Integration**: Embedded wallet support (optional - see [Seeker Wallet Setup](SEEKER_WALLET_SETUP.md))
 - ✅ Modern UI: Built with Next.js 16, React 19, and Tailwind CSS
 - ✅ Chess Board Interface: Visual chess board layout with full game logic
 - ✅ **Anchor Escrow Program**: Complete smart contract for match stakes and payouts
@@ -63,6 +65,7 @@ npm install
 ```bash
 cp .env.local.example .env.local
 # Edit .env.local if needed
+# For Solana Seeker browser support, see SEEKER_WALLET_SETUP.md
 ```
 
 ### Backend (Multiplayer Server)
@@ -282,6 +285,12 @@ The real-time backend enables live gameplay:
 npm run dev
 # Visit http://localhost:3000
 ```
+
+### Mobile / Solana Seeker
+For wallet connection on Solana Seeker phones:
+- **Chrome Browser**: Works out of the box with MWA
+- **Seeker Browser**: Requires Privy setup (see [SEEKER_WALLET_SETUP.md](SEEKER_WALLET_SETUP.md))
+- **Testing**: Use Chrome on Seeker or set up Privy App ID
 
 ### Anchor Program
 ```bash
