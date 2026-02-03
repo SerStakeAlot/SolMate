@@ -82,16 +82,19 @@ const StandardWalletButton: React.FC = () => {
     }
   }, []);
 
-  // Auto-close modal when connected
+  // Auto-close modal when connected and update debug
   useEffect(() => {
-    if (connected) {
+    if (connected && publicKey) {
       setShowModal(false);
       setConnectionStatus('');
+      if (isMobile) {
+        setDebugInfo(`CONNECTED: ${publicKey.toBase58().slice(0,8)}...`);
+      }
       if (connectTimeoutRef.current) {
         clearTimeout(connectTimeoutRef.current);
       }
     }
-  }, [connected]);
+  }, [connected, publicKey, isMobile]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -154,6 +157,7 @@ const StandardWalletButton: React.FC = () => {
           select(mwaWallet.adapter.name as WalletName);
           await new Promise(resolve => setTimeout(resolve, 150));
           await connect();
+          setConnectionStatus(''); // Clear the overlay!
           setDebugInfo(prev => prev + ' | MWA Success!');
           return;
         } catch (error: any) {
