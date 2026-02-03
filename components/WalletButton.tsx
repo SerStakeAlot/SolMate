@@ -254,34 +254,46 @@ const StandardWalletButton: React.FC = () => {
     
     const isMWA = walletName === 'Mobile Wallet Adapter';
     
-    // For MWA on mobile, use transact() directly
+    // For MWA on mobile, try direct intent first
     if (isMWA && isMobile) {
-      setDebugInfo('MWA: Calling transact()...');
+      // v6 - Try direct solana-wallet intent to test if Seeker handles it
+      setDebugInfo('v6: Trying direct intent...');
       
-      // transact() will create a solana-wallet:// URL and navigate to it
-      transact(async (wallet) => {
-        setDebugInfo('MWA: transact callback, authorizing...');
-        const authResult = await wallet.authorize({
-          cluster: 'mainnet-beta',
-          identity: {
-            name: 'SolMate',
-            uri: 'https://playsolmate.fun',
-            icon: 'https://playsolmate.fun/images/chess-hero.png',
-          },
+      // Generate a simple association URL like MWA does
+      const testIntent = 'solana-wallet://v1/associate/local?association=test123&port=12345';
+      
+      // Try to open it
+      const link = document.createElement('a');
+      link.href = testIntent;
+      link.click();
+      
+      // Wait a moment then check if we're still here (intent didn't work)
+      setTimeout(() => {
+        setDebugInfo('v6: Intent did not open wallet. Seeker may need different approach.');
+        
+        // Fall back to trying transact anyway
+        transact(async (wallet) => {
+          setDebugInfo('MWA: transact callback, authorizing...');
+          const authResult = await wallet.authorize({
+            cluster: 'mainnet-beta',
+            identity: {
+              name: 'SolMate',
+              uri: 'https://playsolmate.fun',
+              icon: 'https://playsolmate.fun/images/chess-hero.png',
+            },
+          });
+          setDebugInfo(`MWA: Auth success! ${authResult.accounts[0]?.address?.slice(0,8)}...`);
+          return authResult;
+        }).then((result: any) => {
+          const addr = result?.accounts?.[0]?.address;
+          setDebugInfo(`MWA: Done! ${addr?.slice(0,8) || 'no addr'}`);
+          select('Mobile Wallet Adapter' as WalletName);
+          setTimeout(() => connect().catch(e => console.log('sync:', e)), 200);
+        }).catch((error: any) => {
+          const msg = error?.message || error?.code || String(error);
+          setDebugInfo(`MWA fail: ${msg.slice(0, 80)}`);
         });
-        setDebugInfo(`MWA: Auth success! ${authResult.accounts[0]?.address?.slice(0,8)}...`);
-        return authResult;
-      }).then((result: any) => {
-        const addr = result?.accounts?.[0]?.address;
-        setDebugInfo(`MWA: Done! ${addr?.slice(0,8) || 'no addr'}`);
-        // Sync with wallet adapter
-        select('Mobile Wallet Adapter' as WalletName);
-        setTimeout(() => connect().catch(e => console.log('sync:', e)), 200);
-      }).catch((error: any) => {
-        const msg = error?.message || error?.code || String(error);
-        setDebugInfo(`MWA error: ${msg.slice(0, 100)}`);
-        console.log('[MWA] transact error:', error);
-      });
+      }, 1500);
       
       return;
     }
