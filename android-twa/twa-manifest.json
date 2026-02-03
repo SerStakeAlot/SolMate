@@ -28,7 +28,7 @@
   "fallbackType": "customtabs",
   "features": {
     "locationDelegation": {
-      "enabled": true
+      "enabled": false
     }
   },
   "alphaDependencies": {

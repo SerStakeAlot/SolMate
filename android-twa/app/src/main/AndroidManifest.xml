@@ -208,10 +208,7 @@
             <activity android:name="com.google.androidbrowserhelper.trusted.NotificationPermissionRequestActivity" />
         
 
-        
-            <activity android:name=
-        "com.google.androidbrowserhelper.locationdelegation.PermissionRequestActivity"/>
-        
+        <!-- Location delegation removed - was causing Google Play Services AR requirement -->
 
         <!-- MWA Redirect Activity - handles solana-wallet:// URLs from web content -->
         <activity

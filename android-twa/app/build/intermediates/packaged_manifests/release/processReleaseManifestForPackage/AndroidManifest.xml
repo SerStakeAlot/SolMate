@@ -23,8 +23,8 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="fun.playsolmate.app"
-    android:versionCode="9"
-    android:versionName="Version 8 - MWA Support" >
+    android:versionCode="10"
+    android:versionName="Version 9 - MWA Support" >
 
     <uses-sdk
         android:minSdkVersion="21"
@@ -54,8 +54,6 @@
     </queries>
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <permission
         android:name="fun.playsolmate.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
@@ -193,7 +191,9 @@
         </service>
 
         <activity android:name="com.google.androidbrowserhelper.trusted.NotificationPermissionRequestActivity" />
-        <activity android:name="com.google.androidbrowserhelper.locationdelegation.PermissionRequestActivity" />
+
+        <!-- Location delegation removed - was causing Google Play Services AR requirement -->
+
 
         <!-- MWA Redirect Activity - handles solana-wallet:// URLs from web content -->
         <activity
@@ -211,14 +211,6 @@
                 <data android:scheme="solana-wallet" />
             </intent-filter>
         </activity>
-        <activity
-            android:name="com.google.android.gms.common.api.GoogleApiActivity"
-            android:exported="false"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
-
-        <meta-data
-            android:name="com.google.android.gms.version"
-            android:value="@integer/google_play_services_version" />
 
         <provider
             android:name="androidx.startup.InitializationProvider"

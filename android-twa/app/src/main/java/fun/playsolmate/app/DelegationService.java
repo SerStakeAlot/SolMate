@@ -1,7 +1,7 @@
 package fun.playsolmate.app;
 
-
-import com.google.androidbrowserhelper.locationdelegation.LocationDelegationExtraCommandHandler;
+// Location delegation removed - was causing Google Play Services AR requirement
+// import com.google.androidbrowserhelper.locationdelegation.LocationDelegationExtraCommandHandler;
 
 
 public class DelegationService extends
@@ -10,9 +10,8 @@ public class DelegationService extends
     public void onCreate() {
         super.onCreate();
 
-        
-            registerExtraCommandHandler(new LocationDelegationExtraCommandHandler());
-        
+        // Location delegation removed for Seeker compatibility
+        // registerExtraCommandHandler(new LocationDelegationExtraCommandHandler());
     }
 }
 
