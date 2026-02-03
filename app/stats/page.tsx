@@ -201,44 +201,44 @@ export default function StatsPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatCard
                 label="Record"
-                value={`${myStats.gamesWon}W - ${myStats.gamesLost}L`}
+                value={`${myStats.gamesWon ?? 0}W - ${myStats.gamesLost ?? 0}L`}
                 icon="📈"
                 highlight
               />
               <StatCard
                 label="Win Rate"
-                value={`${myStats.winRate}%`}
+                value={`${myStats.winRate ?? 0}%`}
                 icon="🎯"
               />
               <StatCard
                 label="Net Profit"
-                value={`${myStats.netProfit > 0 ? '+' : ''}${myStats.netProfit.toFixed(2)} ◎`}
-                icon={myStats.netProfit >= 0 ? '💰' : '📉'}
+                value={`${(myStats.netProfit ?? 0) > 0 ? '+' : ''}${(myStats.netProfit ?? 0).toFixed(2)} ◎`}
+                icon={(myStats.netProfit ?? 0) >= 0 ? '💰' : '📉'}
                 highlight
               />
               <StatCard
                 label="Best Streak"
-                value={myStats.bestStreak > 0 ? `🔥 ${myStats.bestStreak}` : '-'}
+                value={(myStats.bestStreak ?? 0) > 0 ? `🔥 ${myStats.bestStreak}` : '-'}
                 icon="⚡"
               />
               <StatCard
                 label="Total Games"
-                value={myStats.gamesPlayed.toString()}
+                value={(myStats.gamesPlayed ?? 0).toString()}
                 icon="🎮"
               />
               <StatCard
                 label="Wager Games"
-                value={`${myStats.wagerGamesWon}/${myStats.wagerGamesPlayed}`}
+                value={`${myStats.wagerGamesWon ?? 0}/${myStats.wagerGamesPlayed ?? 0}`}
                 icon="⚔️"
               />
               <StatCard
                 label="SOL Wagered"
-                value={`${myStats.totalSolWagered.toFixed(2)} ◎`}
+                value={`${(myStats.totalSolWagered ?? 0).toFixed(2)} ◎`}
                 icon="🪙"
               />
               <StatCard
                 label="SOL Won"
-                value={`${myStats.totalSolWon.toFixed(2)} ◎`}
+                value={`${(myStats.totalSolWon ?? 0).toFixed(2)} ◎`}
                 icon="🏆"
               />
             </div>

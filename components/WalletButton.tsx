@@ -428,14 +428,14 @@ const StandardWalletButton: React.FC = () => {
               }}
             >
               <span>{username || shortenAddress(publicKey.toBase58())}</span>
-              {playerStats && playerStats.gamesPlayed > 0 && (
+              {playerStats && (playerStats.gamesPlayed ?? 0) > 0 && (
                 <span style={{ 
                   marginLeft: '8px', 
                   fontSize: '11px', 
                   color: '#888',
                   fontWeight: 400 
                 }}>
-                  {playerStats.gamesWon}W-{playerStats.gamesLost}L
+                  {playerStats.gamesWon ?? 0}W-{playerStats.gamesLost ?? 0}L
                 </span>
               )}
             </button>
@@ -478,19 +478,19 @@ const StandardWalletButton: React.FC = () => {
                   }}>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#4ade80' }}>
-                        {playerStats.gamesWon}
+                        {playerStats.gamesWon ?? 0}
                       </div>
                       <div style={{ fontSize: '10px', color: '#888', textTransform: 'uppercase' }}>Wins</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#f87171' }}>
-                        {playerStats.gamesLost}
+                        {playerStats.gamesLost ?? 0}
                       </div>
                       <div style={{ fontSize: '10px', color: '#888', textTransform: 'uppercase' }}>Losses</div>
                     </div>
                     <div style={{ textAlign: 'center' }}>
                       <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#fff' }}>
-                        {playerStats.winRate}%
+                        {playerStats.winRate ?? 0}%
                       </div>
                       <div style={{ fontSize: '10px', color: '#888', textTransform: 'uppercase' }}>Win Rate</div>
                     </div>
@@ -498,9 +498,9 @@ const StandardWalletButton: React.FC = () => {
                       <div style={{ 
                         fontSize: '18px', 
                         fontWeight: 'bold', 
-                        color: playerStats.netProfit >= 0 ? '#4ade80' : '#f87171' 
+                        color: (playerStats.netProfit ?? 0) >= 0 ? '#4ade80' : '#f87171' 
                       }}>
-                        {playerStats.netProfit >= 0 ? '+' : ''}{playerStats.netProfit.toFixed(2)}
+                        {(playerStats.netProfit ?? 0) >= 0 ? '+' : ''}{(playerStats.netProfit ?? 0).toFixed(2)}
                       </div>
                       <div style={{ fontSize: '10px', color: '#888', textTransform: 'uppercase' }}>SOL P/L</div>
                     </div>
