@@ -180,7 +180,7 @@ export default function StatsPage() {
             />
             <StatCard
               label="Last Updated"
-              value={new Date(stats.updatedAt).toLocaleTimeString('en-US', { 
+              value={new Date(stats.updatedAt + 'Z').toLocaleTimeString('en-US', { 
                 timeZone: 'America/New_York',
                 hour: '2-digit',
                 minute: '2-digit',
