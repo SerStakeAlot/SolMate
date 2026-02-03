@@ -167,17 +167,24 @@ const StandardWalletButton: React.FC = () => {
       }
     }
     
-    // On Android, use transact() directly to FORCE wallet app to open
+    // On Android, try to connect via MWA
     if (isMobile && /android/i.test(navigator.userAgent)) {
-      setDebugInfo('Android: Using transact()...');
-      setConnectionStatus(''); // Clear any status overlay
+      setDebugInfo('Android: Trying MWA...');
+      
+      // Try transact with a timeout - if it hangs, fall back to modal
+      let transactTimedOut = false;
+      const timeoutId = setTimeout(() => {
+        transactTimedOut = true;
+        setDebugInfo('transact() timed out - showing modal');
+        setShowModal(true);
+      }, 3000); // 3 second timeout
       
       try {
-        // transact() MUST open the wallet app via Android intent
         const authResult = await transact(async (wallet) => {
-          setDebugInfo('Wallet opened, authorizing...');
+          if (transactTimedOut) throw new Error('Timed out');
+          clearTimeout(timeoutId);
+          setDebugInfo('Wallet responding...');
           
-          // Request authorization - this shows the wallet's approve screen
           const result = await wallet.authorize({
             cluster: 'mainnet-beta',
             identity: {
@@ -190,12 +197,13 @@ const StandardWalletButton: React.FC = () => {
           return result;
         });
         
-        // Got authorization - now we have the account
+        clearTimeout(timeoutId);
+        if (transactTimedOut) return;
+        
         const address = authResult.accounts[0]?.address;
         if (address) {
-          setDebugInfo(`Authorized: ${address.slice(0, 8)}...`);
+          setDebugInfo(`Connected: ${address.slice(0, 8)}...`);
           
-          // Now sync with wallet adapter by selecting MWA and connecting
           const mwaWallet = wallets.find(w => w.adapter.name === 'Mobile Wallet Adapter');
           if (mwaWallet) {
             select(mwaWallet.adapter.name as WalletName);
@@ -203,32 +211,21 @@ const StandardWalletButton: React.FC = () => {
             try {
               await connect();
             } catch (e) {
-              // Adapter might already be connected from transact
-              console.log('Adapter connect after transact:', e);
+              console.log('Adapter sync:', e);
             }
           }
         }
         return;
       } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (transactTimedOut) return;
+        
         const errMsg = error?.message || String(error);
         console.log('[transact] Error:', errMsg);
-        setConnectionStatus(''); // Clear overlay before showing modal
-        
-        // Check for specific errors
-        if (errMsg.includes('not found') || errMsg.includes('No wallet')) {
-          setDebugInfo('No wallet app found! Install Phantom.');
-          // Show modal so user can pick a wallet to install
-          setShowModal(true);
-          return;
-        } else if (errMsg.includes('cancelled') || errMsg.includes('rejected')) {
-          setDebugInfo('User cancelled');
-          return; // Don't show modal if user cancelled
-        } else {
-          setDebugInfo(`transact error: ${errMsg.slice(0, 60)}`);
-          // Show modal as fallback
-          setShowModal(true);
-          return;
-        }
+        setDebugInfo(`MWA: ${errMsg.slice(0, 50)}`);
+        // Show modal as fallback
+        setShowModal(true);
+        return;
       }
     }
   }, [wallets, select, connect, disconnect, connected, publicKey, isMobile]);
