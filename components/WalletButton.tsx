@@ -83,32 +83,51 @@ const StandardWalletButton: React.FC = () => {
     // Run MWA detection on mount and show on screen for mobile debugging
     const { supported, detection } = detectMWA();
     if (isMobileDevice()) {
-      // v4 - Check for Seeker and wallet-standard
+      // v5 - Listen for wallet-standard registration events
       const win = window as any;
-      const injections = [];
-      if (win.solana) injections.push('solana');
-      if (win.phantom) injections.push('phantom');
-      if (win.solanaMobile) injections.push('solanaMobile');
-      if (win.seedVault) injections.push('seedVault');
       
-      // Check wallet-standard registry
-      const walletStandard = win.navigator?.wallets;
-      const hasWalletStandard = !!walletStandard;
-      
-      // Check for registered wallets via get() method
-      let registeredWallets: string[] = [];
-      if (walletStandard?.get) {
-        try {
-          const walletList = walletStandard.get();
-          registeredWallets = walletList?.map((w: any) => w.name || 'unnamed') || [];
-        } catch (e) {
-          console.log('wallet-standard get error:', e);
+      const checkWallets = () => {
+        const injections = [];
+        if (win.solana) injections.push('solana');
+        if (win.phantom) injections.push('phantom');
+        if (win.solanaMobile) injections.push('solanaMobile');
+        if (win.seedVault) injections.push('seedVault');
+        
+        // Check wallet-standard registry
+        const walletStandard = win.navigator?.wallets;
+        let registeredWallets: string[] = [];
+        if (walletStandard?.get) {
+          try {
+            const walletList = walletStandard.get();
+            registeredWallets = walletList?.map((w: any) => w.name || 'unnamed') || [];
+          } catch (e) {}
         }
+        
+        return { injections, registeredWallets };
+      };
+      
+      // Initial check
+      let { injections, registeredWallets } = checkWallets();
+      const ua = navigator.userAgent.slice(0, 40);
+      setDebugInfo(`v5 ws:[${registeredWallets.join(',')||'wait'}] inj:[${injections.join(',')||'none'}] ${ua}`);
+      
+      // Listen for wallet registration events
+      const walletStandard = win.navigator?.wallets;
+      if (walletStandard?.on) {
+        walletStandard.on('register', (wallet: any) => {
+          console.log('[wallet-standard] Wallet registered:', wallet?.name);
+          const { registeredWallets: updated } = checkWallets();
+          setDebugInfo(`v5 REGISTERED: ${wallet?.name || 'unknown'} ws:[${updated.join(',')}]`);
+        });
       }
       
-      const ua = navigator.userAgent.slice(0, 50);
-      const wsInfo = hasWalletStandard ? `ws:[${registeredWallets.join(',')||'empty'}]` : 'ws:no';
-      setDebugInfo(`v4 ${wsInfo} inj:[${injections.join(',')||'none'}] ${ua}`);
+      // Also check after a delay in case registration is slow
+      setTimeout(() => {
+        const { injections: inj2, registeredWallets: ws2 } = checkWallets();
+        if (ws2.length > 0 || inj2.length > 0) {
+          setDebugInfo(`v5 delayed ws:[${ws2.join(',')||'empty'}] inj:[${inj2.join(',')||'none'}]`);
+        }
+      }, 2000);
     }
   }, [wallets]);
 
