@@ -22,20 +22,24 @@ const isInWalletBrowser = () => {
 const detectMWA = () => {
   if (typeof window === 'undefined') return { supported: false, detection: null };
   
+  const win = window as any;
   const detection = {
     hasNavigator: typeof navigator !== 'undefined',
     userAgent: navigator?.userAgent || 'unknown',
     isMobile: isMobileDevice(),
     isAndroid: /android/i.test(navigator?.userAgent || ''),
-    // Check for injected wallet (Seeker's embedded wallet or Phantom)
-    hasSolanaWallet: !!(window as any).solana,
-    hasSolanaMobile: !!(window as any).solanaMobile,
-    hasPhantom: !!(window as any).phantom?.solana,
-    // Check for wallet-standard wallets
-    hasWalletStandard: typeof (window as any).navigator?.wallets !== 'undefined',
+    // Check for injected wallets
+    hasSolanaWallet: !!win.solana,
+    hasSolanaMobile: !!win.solanaMobile,
+    hasPhantom: !!win.phantom?.solana,
+    // Seeker-specific detection
+    isSeeker: /seeker|solana\s*mobile/i.test(navigator?.userAgent || ''),
+    hasSeedVault: !!win.seedVault,
+    // Check wallet-standard
+    hasWalletStandard: typeof win.navigator?.wallets !== 'undefined',
   };
   
-  const supported = detection.isAndroid && (detection.hasSolanaMobile || detection.hasSolanaWallet || detection.hasPhantom);
+  const supported = detection.isAndroid;
   
   console.log('[MWA] Detection:', detection);
   
@@ -79,9 +83,10 @@ const StandardWalletButton: React.FC = () => {
     // Run MWA detection on mount and show on screen for mobile debugging
     const { supported, detection } = detectMWA();
     if (isMobileDevice()) {
-      // Also log available wallets
-      const walletInfo = wallets.map(w => `${w.adapter.name}:${w.readyState}`).join(', ');
-      setDebugInfo(`MWA: ${supported ? 'YES' : 'NO'} | Wallets: ${walletInfo}`);
+      // Show Seeker-specific info
+      const seekerInfo = detection?.isSeeker ? 'SEEKER!' : 'notSeeker';
+      const walletInfo = wallets.map(w => `${w.adapter.name.slice(0,3)}:${w.readyState.slice(0,4)}`).join(', ');
+      setDebugInfo(`${seekerInfo} | Android:${detection?.isAndroid ? 'Y' : 'N'} | ${walletInfo}`);
     }
   }, [wallets]);
 
