@@ -17,6 +17,30 @@ const isInWalletBrowser = () => {
   return ua.includes('phantom') || ua.includes('solflare') || ua.includes('backpack');
 };
 
+// MWA Detection - checks for solana mobile wallet support
+const detectMWA = () => {
+  if (typeof window === 'undefined') return { supported: false, detection: null };
+  
+  const detection = {
+    hasNavigator: typeof navigator !== 'undefined',
+    userAgent: navigator?.userAgent || 'unknown',
+    isMobile: isMobileDevice(),
+    isAndroid: /android/i.test(navigator?.userAgent || ''),
+    // Check for MWA global (injected by Seeker/Saga)
+    hasSolanaWallet: !!(window as any).solana,
+    hasSolanaMobile: !!(window as any).solanaMobile,
+    // Check for intent support
+    canUseIntents: /android/i.test(navigator?.userAgent || ''),
+  };
+  
+  const supported = detection.isAndroid && (detection.hasSolanaMobile || detection.canUseIntents);
+  
+  console.log('[MWA] Supported:', supported);
+  console.log('[MWA] Detection:', detection);
+  
+  return { supported, detection };
+};
+
 const connectButtonStyle: React.CSSProperties = {
   position: 'relative',
   zIndex: 101,
@@ -50,6 +74,8 @@ const StandardWalletButton: React.FC = () => {
 
   useEffect(() => {
     setIsMobile(isMobileDevice());
+    // Run MWA detection on mount
+    detectMWA();
   }, []);
 
   // Auto-close modal when connected
@@ -115,13 +141,16 @@ const StandardWalletButton: React.FC = () => {
   }, [wallets, select, connect]);
 
   const handleSelectWallet = useCallback(async (walletName: WalletName) => {
-    console.log('Selected wallet:', walletName);
+    console.log('[WalletModal] Connecting with type:', walletName);
     setShowModal(false);
     
     // For MWA, show status and set a shorter timeout
     const isMWA = walletName === 'Mobile Wallet Adapter';
     if (isMWA) {
       setConnectionStatus('Opening wallet app...');
+      // Re-run detection when attempting MWA connect
+      const { supported } = detectMWA();
+      console.log('[Connect] Type:', walletName, 'shouldUseMWA:', supported);
     }
     
     try {
