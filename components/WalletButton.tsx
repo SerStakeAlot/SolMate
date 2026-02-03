@@ -79,9 +79,11 @@ const StandardWalletButton: React.FC = () => {
     // Run MWA detection on mount and show on screen for mobile debugging
     const { supported, detection } = detectMWA();
     if (isMobileDevice()) {
-      setDebugInfo(`MWA: ${supported ? 'YES' : 'NO'} | Android: ${detection?.isAndroid ? 'YES' : 'NO'} | solanaMobile: ${detection?.hasSolanaMobile ? 'YES' : 'NO'}`);
+      // Also log available wallets
+      const walletInfo = wallets.map(w => `${w.adapter.name}:${w.readyState}`).join(', ');
+      setDebugInfo(`MWA: ${supported ? 'YES' : 'NO'} | Wallets: ${walletInfo}`);
     }
-  }, []);
+  }, [wallets]);
 
   // Auto-close modal when connected and update debug
   useEffect(() => {
@@ -148,44 +150,41 @@ const StandardWalletButton: React.FC = () => {
       }
     }
     
-    // On Android, try MWA directly using transact()
+    // On Android, use the wallet adapter's MWA support
     if (isMobile && /android/i.test(navigator.userAgent)) {
-      setDebugInfo('Trying transact()...');
-      // Don't show overlay - it blocks wallet from opening!
-      // setConnectionStatus('Opening wallet...');
+      setDebugInfo('Android detected, using MWA adapter...');
       
-      try {
-        setDebugInfo('Calling transact now...');
-        // Use transact directly - this WILL open the wallet app
-        const result = await transact(async (wallet) => {
-          setDebugInfo('Inside transact callback!');
-          const authResult = await wallet.authorize({
-            cluster: 'mainnet-beta',
-            identity: {
-              name: 'SolMate',
-              uri: 'https://playsolmate.fun',
-              icon: 'https://playsolmate.fun/images/chess-hero.png',
-            },
-          });
-          return authResult;
-        });
+      // Find the MWA adapter
+      const mwaWallet = wallets.find(w => w.adapter.name === 'Mobile Wallet Adapter');
+      if (mwaWallet) {
+        setDebugInfo(`MWA found, state: ${mwaWallet.readyState}`);
         
-        setConnectionStatus('');
-        setDebugInfo(`Authorized: ${result.accounts[0]?.address?.slice(0,8)}...`);
-        
-        // Now connect with wallet adapter to sync state
-        const mwaWallet = wallets.find(w => w.adapter.name === 'Mobile Wallet Adapter');
-        if (mwaWallet) {
+        try {
+          // Select MWA
           select(mwaWallet.adapter.name as WalletName);
-          await new Promise(resolve => setTimeout(resolve, 100));
+          await new Promise(resolve => setTimeout(resolve, 200));
+          
+          setDebugInfo('Calling connect()...');
+          
+          // Set a timeout to update debug if it takes too long
+          const debugTimeout = setTimeout(() => {
+            setDebugInfo('Waiting for wallet app to respond...');
+          }, 3000);
+          
+          // Connect - this should trigger MWA to open wallet
           await connect();
+          
+          clearTimeout(debugTimeout);
+          setDebugInfo('Connected!');
+          return;
+        } catch (error: any) {
+          const errMsg = error?.message || String(error);
+          console.log('[MWA] Connect error:', errMsg);
+          setDebugInfo(`MWA Error: ${errMsg.slice(0, 80)}`);
+          // Fall through to show modal
         }
-        return;
-      } catch (error: any) {
-        const errMsg = error?.message || String(error);
-        setDebugInfo(`Error: ${errMsg.slice(0, 100)}`);
-        setConnectionStatus('');
-        // Fall through to show modal
+      } else {
+        setDebugInfo('No MWA adapter found in wallets list');
       }
     }
     
