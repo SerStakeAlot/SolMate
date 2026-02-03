@@ -3,6 +3,7 @@ import { Server as SocketServer } from 'socket.io';
 import { timeControl } from './timeControl';
 import { playerStore } from './playerStore';
 import { statsStore } from './statsStore';
+import { userStore } from './userStore';
 import { Chess } from 'chess.js';
 
 class GameRoomManager {
@@ -249,6 +250,10 @@ class GameRoomManager {
       const winnerWallet = winner === 'w' ? room.playerWhite.walletAddress :
                           winner === 'b' ? room.playerBlack.walletAddress : null;
 
+      // Lookup usernames for both players
+      const whiteUsername = userStore.getUsername(room.playerWhite.walletAddress);
+      const blackUsername = userStore.getUsername(room.playerBlack.walletAddress);
+      
       statsStore.recordGame({
         gameId: roomId,
         whiteWallet: room.playerWhite.walletAddress,
@@ -259,6 +264,8 @@ class GameRoomManager {
         matchPubkey: room.matchPubkey,
         durationSeconds,
         totalMoves: room.moves.length,
+        whiteUsername: whiteUsername || undefined,
+        blackUsername: blackUsername || undefined,
       });
     } catch (error) {
       console.error('Failed to record game stats:', error);

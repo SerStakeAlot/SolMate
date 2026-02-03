@@ -615,6 +615,26 @@ class StatsStore {
       games: badGames,
     };
   }
+
+  // Sync usernames from userStore to player_stats
+  syncUsernames(userStore: { getUsername: (wallet: string) => string | null }): number {
+    // Get all players without usernames
+    const players = db.prepare(`
+      SELECT wallet_address FROM player_stats WHERE username IS NULL
+    `).all() as { wallet_address: string }[];
+
+    let synced = 0;
+    for (const player of players) {
+      const username = userStore.getUsername(player.wallet_address);
+      if (username) {
+        db.prepare(`
+          UPDATE player_stats SET username = ? WHERE wallet_address = ?
+        `).run(username, player.wallet_address);
+        synced++;
+      }
+    }
+    return synced;
+  }
 }
 
 export const statsStore = new StatsStore();

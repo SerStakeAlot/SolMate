@@ -391,6 +391,29 @@ app.post('/api/admin/fix-stakes', (req, res) => {
   }
 });
 
+// Admin endpoint to sync usernames from userStore to player_stats
+app.post('/api/admin/sync-usernames', (req, res) => {
+  try {
+    const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
+    const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
+    
+    if (adminKey !== expectedKey) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    const synced = statsStore.syncUsernames(userStore);
+    console.log('Usernames synced:', synced);
+    res.json({ 
+      success: true, 
+      message: `Synced ${synced} usernames`,
+      synced,
+    });
+  } catch (error) {
+    console.error('Error syncing usernames:', error);
+    res.status(500).json({ error: 'Failed to sync usernames' });
+  }
+});
+
 // ============= Holder Arena API Endpoints =============
 
 // Get arena status for a wallet (games remaining, cooldown, stats)
