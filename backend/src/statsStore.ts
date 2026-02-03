@@ -24,6 +24,7 @@ db.exec(`
     total_sol_wagered REAL DEFAULT 0,
     total_sol_paid_out REAL DEFAULT 0,
     total_fees_collected REAL DEFAULT 0,
+    unique_players INTEGER DEFAULT 0,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -77,6 +78,14 @@ db.exec(`
   -- Initialize platform_stats if empty
   INSERT OR IGNORE INTO platform_stats (id) VALUES (1);
 `);
+
+// Migration: Add unique_players column if it doesn't exist
+try {
+  db.prepare('SELECT unique_players FROM platform_stats LIMIT 1').get();
+} catch (e) {
+  console.log('Adding unique_players column to platform_stats...');
+  db.exec('ALTER TABLE platform_stats ADD COLUMN unique_players INTEGER DEFAULT 0');
+}
 
 // Prepared statements for performance
 const statements = {
