@@ -687,18 +687,18 @@ const StandardWalletButton: React.FC = () => {
               </div>
             )}
             
-            {/* MWA browser requirement note */}
-            {showMWAOption && (
+            {/* MWA browser requirement note - show only on Android */}
+            {/android/i.test(navigator?.userAgent || '') && (
               <div style={{
-                backgroundColor: 'rgba(255, 193, 7, 0.1)',
-                border: '1px solid rgba(255, 193, 7, 0.3)',
+                backgroundColor: 'rgba(20, 241, 149, 0.1)',
+                border: '1px solid rgba(20, 241, 149, 0.3)',
                 borderRadius: '8px',
                 padding: '8px 12px',
                 marginBottom: '16px',
                 fontSize: '11px',
-                color: '#ffc107',
+                color: '#14F195',
               }}>
-                ⚠️ MWA requires <strong>Chrome browser</strong> + a wallet app (Phantom/Solflare) installed
+                📱 On Seeker? Tap "<strong>Mobile Wallet Adapter</strong>" to use Seed Vault Wallet
               </div>
             )}
             
@@ -740,44 +740,21 @@ const StandardWalletButton: React.FC = () => {
                 </>
               )}
               
-              {/* MWA / Seeker Wallet option - shows on Android devices */}
-              {showMWAOption && (
-                <button
-                  style={{
-                    ...walletButtonStyle,
-                    marginBottom: '16px',
-                    background: mwaConnecting 
-                      ? 'rgba(255, 255, 255, 0.1)' 
-                      : 'linear-gradient(135deg, rgba(20, 241, 149, 0.2), rgba(153, 69, 255, 0.1))',
-                    borderColor: 'rgba(20, 241, 149, 0.4)',
-                    opacity: mwaConnecting ? 0.7 : 1,
-                  }}
-                  onClick={handleMWAConnect}
-                  disabled={mwaConnecting}
-                >
-                  <div style={{ 
-                    width: '32px', 
-                    height: '32px', 
-                    borderRadius: '8px',
-                    background: 'linear-gradient(135deg, #14F195, #9945FF)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '16px'
-                  }}>
-                    📱
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                    <span>{mwaConnecting ? 'Connecting...' : 'Mobile Wallet (MWA)'}</span>
-                    <span style={{ fontSize: '11px', color: '#14F195' }}>Requires Phantom/Solflare app</span>
-                  </div>
-                </button>
-              )}
+              {/* Custom MWA button removed - using standard Mobile Wallet Adapter instead */}
               
               {wallets
-                .filter(w => w.adapter.name !== 'Mobile Wallet Adapter')
+                .filter(w => {
+                  // Show Mobile Wallet Adapter ONLY on Android (don't filter it out)
+                  if (w.adapter.name === 'Mobile Wallet Adapter') {
+                    return /android/i.test(navigator?.userAgent || '');
+                  }
+                  return true;
+                })
                 .sort((a, b) => {
-                  // Phantom always first
+                  // Mobile Wallet Adapter first on Android (for Seeker/Seed Vault)
+                  if (a.adapter.name === 'Mobile Wallet Adapter') return -1;
+                  if (b.adapter.name === 'Mobile Wallet Adapter') return 1;
+                  // Phantom next
                   if (a.adapter.name === 'Phantom') return -1;
                   if (b.adapter.name === 'Phantom') return 1;
                   // Then Solflare
