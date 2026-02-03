@@ -229,12 +229,12 @@ const StandardWalletButton: React.FC = () => {
         });
         setDebugInfo(`Authorized: ${auth.accounts[0]?.address?.slice(0,8)}...`);
         return auth;
-      }).then((result) => {
-        setDebugInfo(`Success! ${result.accounts[0]?.address?.slice(0,8)}...`);
+      }).then((result: any) => {
+        setDebugInfo(`Success! ${result?.accounts?.[0]?.address?.slice(0,8) || 'connected'}...`);
         // Sync with wallet adapter
         select('Mobile Wallet Adapter' as WalletName);
         setTimeout(() => connect().catch(e => console.log('sync error:', e)), 100);
-      }).catch((error) => {
+      }).catch((error: any) => {
         const msg = error?.message || String(error);
         setDebugInfo(`transact error: ${msg.slice(0, 60)}`);
         console.log('transact error:', error);
