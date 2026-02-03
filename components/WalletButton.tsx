@@ -83,9 +83,19 @@ const StandardWalletButton: React.FC = () => {
     // Run MWA detection on mount and show on screen for mobile debugging
     const { supported, detection } = detectMWA();
     if (isMobileDevice()) {
-      // v2 - Show user agent to identify Seeker
-      const ua = navigator.userAgent;
-      setDebugInfo(`v2 UA: ${ua.slice(0, 100)}`);
+      // v3 - Check ALL possible wallet injections
+      const win = window as any;
+      const injections = [];
+      if (win.solana) injections.push('solana');
+      if (win.phantom) injections.push('phantom');
+      if (win.solanaMobile) injections.push('solanaMobile');
+      if (win.seedVault) injections.push('seedVault');
+      if (win.solflare) injections.push('solflare');
+      if (win.backpack) injections.push('backpack');
+      if (win.glow) injections.push('glow');
+      
+      const ua = navigator.userAgent.slice(0, 60);
+      setDebugInfo(`v3 inject:[${injections.join(',')||'none'}] UA:${ua}`);
     }
   }, [wallets]);
 
