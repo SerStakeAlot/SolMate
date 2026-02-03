@@ -10,7 +10,7 @@ import Link from "next/link";
 import { WalletButton } from "@/components/WalletButton";
 import { EscrowClient, MatchAccount, MatchStatus, getStakeTierInfo } from "@/utils/escrow";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-backend.fly.dev';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-production.up.railway.app';
 
 interface MatchWithPubkey {
   pubkey: PublicKey;
@@ -18,6 +18,7 @@ interface MatchWithPubkey {
   isPlayerA: boolean;
   isWinner: boolean;           // On-chain winner
   isBackendWinner: boolean;    // Backend says this user won (even if not recorded on-chain yet)
+  isBackendLoser: boolean;     // Backend says someone ELSE won (this user lost)
 }
 
 export default function RefundPage() {
@@ -67,11 +68,17 @@ export default function RefundPage() {
             
             // Also check backend for winner (in case submit_result failed)
             let isBackendWinner = false;
+            let isBackendLoser = false;
             try {
               const res = await fetch(`${BACKEND_URL}/api/match-winner/${pubkey.toBase58()}`);
               const data = await res.json();
-              if (data.found && data.winnerWallet === publicKey.toBase58()) {
-                isBackendWinner = true;
+              if (data.found && data.winnerWallet) {
+                if (data.winnerWallet === publicKey.toBase58()) {
+                  isBackendWinner = true;
+                } else {
+                  // Someone else won - this user is the loser
+                  isBackendLoser = true;
+                }
               }
             } catch (e) {
               // Backend unavailable, just use on-chain data
@@ -83,6 +90,7 @@ export default function RefundPage() {
               isPlayerA,
               isWinner,
               isBackendWinner,
+              isBackendLoser,
             });
           }
         } catch (e) {
@@ -105,6 +113,12 @@ export default function RefundPage() {
   const handleAbandonMatch = async (match: MatchWithPubkey) => {
     if (!connected || !publicKey) {
       alert("Please connect your wallet");
+      return;
+    }
+
+    // Block losers from claiming refund - the winner gets the pot
+    if (match.isBackendLoser) {
+      alert("You lost this match. The winner will claim the winnings.");
       return;
     }
 
@@ -318,6 +332,11 @@ export default function RefundPage() {
                                 (Pending on-chain)
                               </span>
                             )}
+                            {match.isBackendLoser && (
+                              <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">
+                                You Lost - No Refund
+                              </span>
+                            )}
                             <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                               match.isPlayerA 
                                 ? "bg-blue-500/20 text-blue-400" 
@@ -347,28 +366,33 @@ export default function RefundPage() {
                             <span className="text-neutral-500 mx-2">•</span>
                             {(match.isWinner || match.isBackendWinner) ? (
                               <>Prize: <span className="text-green-400 font-bold">{potAmount.toFixed(2)} SOL</span></>
+                            ) : match.isBackendLoser ? (
+                              <>Lost: <span className="text-red-400 font-bold">-{tierInfo.stake} SOL</span></>
                             ) : (
                               <>Your refund: <span className="text-solana-green font-semibold">{tierInfo.label}</span></>
                             )}
                           </p>
                         </div>
-                        <button
-                          onClick={() => handleAbandonMatch(match)}
-                          disabled={isAbandoning}
-                          className={`px-6 py-3 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                            (match.isWinner || match.isBackendWinner) 
-                              ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 shadow-lg shadow-green-500/30' 
-                              : 'btn-glow'
-                          }`}
-                        >
-                          {isAbandoning 
-                            ? "Processing..." 
-                            : (match.isWinner || match.isBackendWinner)
-                              ? "🎉 Claim Winnings" 
-                              : match.account.status === MatchStatus.Open 
-                                ? "Cancel & Refund" 
-                                : "Claim Refund"}
-                        </button>
+                        {/* Hide button for losers, show for winners and stuck matches */}
+                        {!match.isBackendLoser && (
+                          <button
+                            onClick={() => handleAbandonMatch(match)}
+                            disabled={isAbandoning}
+                            className={`px-6 py-3 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                              (match.isWinner || match.isBackendWinner) 
+                                ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 shadow-lg shadow-green-500/30' 
+                                : 'btn-glow'
+                            }`}
+                          >
+                            {isAbandoning 
+                              ? "Processing..." 
+                              : (match.isWinner || match.isBackendWinner)
+                                ? "🎉 Claim Winnings" 
+                                : match.account.status === MatchStatus.Open 
+                                  ? "Cancel & Refund" 
+                                  : "Claim Refund"}
+                          </button>
+                        )}
                       </div>
                     </motion.div>
                   );
@@ -384,6 +408,7 @@ export default function RefundPage() {
               </h3>
               <ul className="text-sm text-neutral-400 space-y-1">
                 <li>• <strong className="text-green-400">Won matches:</strong> Claim your winnings if the auto-payout failed</li>
+                <li>• <strong className="text-red-400">Lost matches:</strong> No refund - the winner claims the pot</li>
                 <li>• <strong>Open matches:</strong> No one joined - you get your full stake back</li>
                 <li>• <strong>Stuck matches:</strong> Either player can abandon and both get refunds</li>
                 <li>• <strong>Failed payouts:</strong> Force refund returns stakes to both players</li>

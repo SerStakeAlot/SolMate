@@ -3,6 +3,7 @@ import { Server as SocketServer } from 'socket.io';
 import { timeControl } from './timeControl';
 import { playerStore } from './playerStore';
 import { statsStore } from './statsStore';
+import { Chess } from 'chess.js';
 
 class GameRoomManager {
   private rooms: Map<string, GameRoom> = new Map();
@@ -146,6 +147,21 @@ class GameRoomManager {
     room.currentFen = move.fen; // Track current position for spectators
 
     console.log(`Move made in room ${roomId}: ${move.san}. Total moves: ${room.moves.length}`);
+
+    // Check for game end (checkmate, stalemate, draw) using the FEN from the move
+    const chess = new Chess(move.fen);
+    if (chess.isCheckmate()) {
+      // The player who just moved wins (opponent is in checkmate)
+      const winner = isWhitePlayer ? 'w' : 'b';
+      console.log(`Checkmate detected in room ${roomId}! Winner: ${winner}`);
+      this.endGame(roomId, winner, 'checkmate', io);
+      return true;
+    }
+    if (chess.isStalemate() || chess.isDraw()) {
+      console.log(`Draw detected in room ${roomId}`);
+      this.endGame(roomId, 'draw', chess.isStalemate() ? 'stalemate' : 'draw', io);
+      return true;
+    }
 
     // Broadcast move to opponent
     const opponentSocketId = isWhitePlayer ? room.playerBlack.socketId : room.playerWhite.socketId;
