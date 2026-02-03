@@ -83,9 +83,9 @@ const StandardWalletButton: React.FC = () => {
     // Run MWA detection on mount and show on screen for mobile debugging
     const { supported, detection } = detectMWA();
     if (isMobileDevice()) {
-      // Show user agent to identify Seeker
-      const ua = navigator.userAgent.slice(0, 80);
-      setDebugInfo(`UA: ${ua}`);
+      // v2 - Show user agent to identify Seeker
+      const ua = navigator.userAgent;
+      setDebugInfo(`v2 UA: ${ua.slice(0, 100)}`);
     }
   }, [wallets]);
 
