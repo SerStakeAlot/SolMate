@@ -66,10 +66,18 @@ export function getMWAState() {
  */
 export async function connectMWA(): Promise<{ publicKey: PublicKey; authToken: string } | null> {
   console.log('[MWA] Starting connection...');
+  console.log('[MWA] User agent:', navigator.userAgent);
+  console.log('[MWA] App identity:', APP_IDENTITY);
   
   try {
-    const result = await transact(async (wallet) => {
+    // Add a timeout wrapper since transact() can hang if no wallet responds
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('MWA connection timed out after 30s. Make sure you have a compatible wallet installed (Phantom, Solflare, or Seeker).')), 30000);
+    });
+    
+    const connectPromise = transact(async (wallet) => {
       console.log('[MWA] Wallet session opened, authorizing...');
+      console.log('[MWA] Wallet object:', wallet);
       
       // Request authorization
       const authResult = await wallet.authorize({
@@ -92,6 +100,8 @@ export async function connectMWA(): Promise<{ publicKey: PublicKey; authToken: s
       return null;
     });
     
+    const result = await Promise.race([connectPromise, timeoutPromise]);
+    
     if (result) {
       mwaPublicKey = result.publicKey;
       mwaAuthToken = result.authToken;
@@ -103,13 +113,26 @@ export async function connectMWA(): Promise<{ publicKey: PublicKey; authToken: s
     return null;
   } catch (error: any) {
     console.error('[MWA] Connection error:', error);
+    console.error('[MWA] Error name:', error?.name);
+    console.error('[MWA] Error message:', error?.message);
+    console.error('[MWA] Error stack:', error?.stack);
     
-    // Check for specific MWA errors
-    if (error.message?.includes('No wallet found')) {
-      throw new Error('No MWA-compatible wallet found. Please install Seeker, Phantom, or Solflare.');
+    // Rethrow with more context
+    const errorMessage = error?.message || 'Unknown error';
+    
+    if (errorMessage.includes('timed out')) {
+      throw new Error('Connection timed out. Make sure Phantom, Solflare, or Seeker is installed and try again.');
     }
     
-    throw error;
+    if (errorMessage.includes('No wallet found') || errorMessage.includes('no wallet')) {
+      throw new Error('No MWA-compatible wallet found. Please install Phantom, Solflare, or Seeker.');
+    }
+    
+    if (errorMessage.includes('User rejected') || errorMessage.includes('cancelled')) {
+      throw new Error('Connection cancelled by user.');
+    }
+    
+    throw new Error(`MWA Error: ${errorMessage}`);
   }
 }
 

@@ -116,18 +116,23 @@ const StandardWalletButton: React.FC = () => {
   // Handle MWA connect
   const handleMWAConnect = useCallback(async () => {
     setMwaConnecting(true);
-    setDebugInfo('Connecting via MWA...');
+    setDebugInfo('MWA: Starting connection...');
+    console.log('[WalletButton] Starting MWA connection');
     try {
       const result = await connectMWA();
+      console.log('[WalletButton] MWA result:', result);
       if (result) {
         setDebugInfo(`MWA Connected: ${result.publicKey.toBase58().slice(0, 8)}...`);
         setShowModal(false);
       } else {
-        setDebugInfo('MWA: No account returned');
+        setDebugInfo('MWA: No wallet responded. Is Phantom/Solflare installed?');
+        // Keep modal open so user can see the message
       }
     } catch (error: any) {
-      console.error('[MWA] Connect error:', error);
-      setDebugInfo(`MWA Error: ${error.message?.slice(0, 50) || 'Unknown'}`);
+      console.error('[WalletButton] MWA Connect error:', error);
+      const errorMsg = error.message?.slice(0, 80) || 'Unknown error';
+      setDebugInfo(`MWA Error: ${errorMsg}`);
+      // Keep modal open so user can see the error
     } finally {
       setMwaConnecting(false);
     }
@@ -660,6 +665,28 @@ const StandardWalletButton: React.FC = () => {
               ✕
             </button>
             <div style={modalTitleStyle}>Connect Wallet</div>
+            
+            {/* Debug info display */}
+            {debugInfo && (
+              <div style={{
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '8px',
+                padding: '8px 12px',
+                marginBottom: '16px',
+                fontSize: '12px',
+                color: debugInfo.includes('Error') || debugInfo.includes('No wallet') 
+                  ? '#f87171' 
+                  : debugInfo.includes('Connected') 
+                    ? '#4ade80' 
+                    : '#fff',
+                fontFamily: 'monospace',
+                wordBreak: 'break-all',
+              }}>
+                {debugInfo}
+              </div>
+            )}
+            
             <div>
               {/* On mobile, show Open in Phantom option */}
               {isMobile && !isInWalletBrowser() && (
