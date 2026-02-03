@@ -150,13 +150,14 @@ const StandardWalletButton: React.FC = () => {
     
     // On Android, try MWA directly using transact()
     if (isMobile && /android/i.test(navigator.userAgent)) {
-      setDebugInfo(prev => prev + ' | Trying MWA...');
+      setDebugInfo('Trying transact()...');
       setConnectionStatus('Opening wallet...');
       
       try {
+        setDebugInfo('Calling transact now...');
         // Use transact directly - this WILL open the wallet app
         const result = await transact(async (wallet) => {
-          setDebugInfo(prev => prev + ' | Wallet opened!');
+          setDebugInfo('Inside transact callback!');
           const authResult = await wallet.authorize({
             cluster: 'mainnet-beta',
             identity: {
@@ -169,7 +170,7 @@ const StandardWalletButton: React.FC = () => {
         });
         
         setConnectionStatus('');
-        setDebugInfo(prev => prev + ` | Authorized: ${result.accounts[0]?.address?.slice(0,8)}...`);
+        setDebugInfo(`Authorized: ${result.accounts[0]?.address?.slice(0,8)}...`);
         
         // Now connect with wallet adapter to sync state
         const mwaWallet = wallets.find(w => w.adapter.name === 'Mobile Wallet Adapter');
@@ -180,7 +181,8 @@ const StandardWalletButton: React.FC = () => {
         }
         return;
       } catch (error: any) {
-        setDebugInfo(prev => prev + ` | MWA Error: ${error?.message || error}`);
+        const errMsg = error?.message || String(error);
+        setDebugInfo(`Error: ${errMsg.slice(0, 100)}`);
         setConnectionStatus('');
         // Fall through to show modal
       }
