@@ -83,19 +83,32 @@ const StandardWalletButton: React.FC = () => {
     // Run MWA detection on mount and show on screen for mobile debugging
     const { supported, detection } = detectMWA();
     if (isMobileDevice()) {
-      // v3 - Check ALL possible wallet injections
+      // v4 - Check for Seeker and wallet-standard
       const win = window as any;
       const injections = [];
       if (win.solana) injections.push('solana');
       if (win.phantom) injections.push('phantom');
       if (win.solanaMobile) injections.push('solanaMobile');
       if (win.seedVault) injections.push('seedVault');
-      if (win.solflare) injections.push('solflare');
-      if (win.backpack) injections.push('backpack');
-      if (win.glow) injections.push('glow');
       
-      const ua = navigator.userAgent.slice(0, 60);
-      setDebugInfo(`v3 inject:[${injections.join(',')||'none'}] UA:${ua}`);
+      // Check wallet-standard registry
+      const walletStandard = win.navigator?.wallets;
+      const hasWalletStandard = !!walletStandard;
+      
+      // Check for registered wallets via get() method
+      let registeredWallets: string[] = [];
+      if (walletStandard?.get) {
+        try {
+          const walletList = walletStandard.get();
+          registeredWallets = walletList?.map((w: any) => w.name || 'unnamed') || [];
+        } catch (e) {
+          console.log('wallet-standard get error:', e);
+        }
+      }
+      
+      const ua = navigator.userAgent.slice(0, 50);
+      const wsInfo = hasWalletStandard ? `ws:[${registeredWallets.join(',')||'empty'}]` : 'ws:no';
+      setDebugInfo(`v4 ${wsInfo} inj:[${injections.join(',')||'none'}] ${ua}`);
     }
   }, [wallets]);
 
