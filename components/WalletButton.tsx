@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletName, WalletReadyState } from '@solana/wallet-adapter-base';
+import { transact } from '@solana-mobile/mobile-wallet-adapter-protocol-web3js';
 
 // Detect if we're on a mobile device
 const isMobileDevice = () => {
@@ -147,24 +148,41 @@ const StandardWalletButton: React.FC = () => {
       }
     }
     
-    // On Android, try MWA directly instead of showing modal
+    // On Android, try MWA directly using transact()
     if (isMobile && /android/i.test(navigator.userAgent)) {
       setDebugInfo(prev => prev + ' | Trying MWA...');
-      const mwaWallet = wallets.find(w => w.adapter.name === 'Mobile Wallet Adapter');
-      if (mwaWallet) {
-        try {
-          setConnectionStatus('Opening wallet...');
+      setConnectionStatus('Opening wallet...');
+      
+      try {
+        // Use transact directly - this WILL open the wallet app
+        const result = await transact(async (wallet) => {
+          setDebugInfo(prev => prev + ' | Wallet opened!');
+          const authResult = await wallet.authorize({
+            cluster: 'mainnet-beta',
+            identity: {
+              name: 'SolMate',
+              uri: 'https://playsolmate.fun',
+              icon: 'https://playsolmate.fun/images/chess-hero.png',
+            },
+          });
+          return authResult;
+        });
+        
+        setConnectionStatus('');
+        setDebugInfo(prev => prev + ` | Authorized: ${result.accounts[0]?.address?.slice(0,8)}...`);
+        
+        // Now connect with wallet adapter to sync state
+        const mwaWallet = wallets.find(w => w.adapter.name === 'Mobile Wallet Adapter');
+        if (mwaWallet) {
           select(mwaWallet.adapter.name as WalletName);
-          await new Promise(resolve => setTimeout(resolve, 150));
+          await new Promise(resolve => setTimeout(resolve, 100));
           await connect();
-          setConnectionStatus(''); // Clear the overlay!
-          setDebugInfo(prev => prev + ' | MWA Success!');
-          return;
-        } catch (error: any) {
-          setDebugInfo(prev => prev + ` | MWA Error: ${error?.message || error}`);
-          setConnectionStatus('');
-          // Fall through to show modal
         }
+        return;
+      } catch (error: any) {
+        setDebugInfo(prev => prev + ` | MWA Error: ${error?.message || error}`);
+        setConnectionStatus('');
+        // Fall through to show modal
       }
     }
     
