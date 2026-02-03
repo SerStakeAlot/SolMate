@@ -23,7 +23,8 @@ const isSeekerBrowser = () => {
   if (typeof window === 'undefined') return false;
   const ua = navigator.userAgent.toLowerCase();
   // Seeker identifies as Chrome on Android with Seeker-specific markers
-  return /android/i.test(ua) && (ua.includes('seeker') || ua.includes('solana mobile'));
+  // More specific check to avoid false positives
+  return /android/i.test(ua) && /seeker/i.test(ua);
 };
 
 // MWA Detection - checks for solana mobile wallet support
@@ -84,6 +85,7 @@ const StandardWalletButton: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<string>('');
   const [debugInfo, setDebugInfo] = useState<string>('');
+  const [seekerGuidanceModal, setSeekerGuidanceModal] = useState(false);
   const connectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -278,23 +280,10 @@ const StandardWalletButton: React.FC = () => {
       
       // v7 - Detect Seeker and provide specific guidance
       if (isSeeker) {
-        setDebugInfo('v7: Seeker detected - MWA may not work in embedded browser');
+        setDebugInfo('v7: Seeker detected - MWA not supported in embedded browser');
         
-        // Show guidance alert for Seeker users
-        const guidance = `⚠️ Solana Seeker Browser Issue
-
-The Seeker browser doesn't support Mobile Wallet Adapter (MWA) connections.
-
-✅ Recommended Solutions:
-1. Open this site in Chrome browser instead
-2. Or use Phantom's in-app browser (tap "Open in Phantom" below)
-3. Or contact admin to enable Privy (works everywhere)
-
-🔗 Chrome URL: ${window.location.href}`;
-        
-        alert(guidance);
-        
-        setDebugInfo('v7: Seeker - opened guidance. Try Chrome or Phantom browser.');
+        // Show guidance modal for Seeker users
+        setSeekerGuidanceModal(true);
         return;
       }
       
@@ -335,8 +324,9 @@ The Seeker browser doesn't support Mobile Wallet Adapter (MWA) connections.
           const msg = error?.message || error?.code || String(error);
           setDebugInfo(`MWA fail: ${msg.slice(0, 80)}`);
           
-          // Show helpful error message
-          alert('⚠️ Mobile Wallet Adapter Failed\n\nTry:\n1. Open in Chrome (not in-app browser)\n2. Install Phantom or Solflare\n3. Use "Open in Phantom" button');
+          // Show error in status instead of alert
+          setConnectionStatus('Connection failed - Try Chrome or Phantom browser');
+          setTimeout(() => setConnectionStatus(''), 5000);
         });
       }, 1500);
       
@@ -474,6 +464,28 @@ The Seeker browser doesn't support Mobile Wallet Adapter (MWA) connections.
 
   return (
     <>
+      {/* Connection status message */}
+      {connectionStatus && (
+        <div style={{
+          position: 'fixed',
+          top: '80px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: 'rgba(255, 193, 7, 0.95)',
+          color: '#000',
+          padding: '12px 24px',
+          fontSize: '14px',
+          fontWeight: 500,
+          zIndex: 999999,
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+          maxWidth: '90%',
+          textAlign: 'center',
+        }}>
+          {connectionStatus}
+        </div>
+      )}
+      
       {/* Debug info for mobile - remove after testing */}
       {debugInfo && (
         <div style={{
@@ -715,6 +727,74 @@ The Seeker browser doesn't support Mobile Wallet Adapter (MWA) connections.
                   No wallet detected. Please install Phantom or Solflare.
                 </p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Seeker Guidance Modal */}
+      {seekerGuidanceModal && (
+        <div 
+          style={modalOverlayStyle}
+          onClick={() => setSeekerGuidanceModal(false)}
+        >
+          <div 
+            style={{
+              ...modalContainerStyle,
+              maxWidth: '400px',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button 
+              style={closeButtonStyle}
+              onClick={() => setSeekerGuidanceModal(false)}
+            >
+              ✕
+            </button>
+            <div style={{
+              ...modalTitleStyle,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+            }}>
+              <span>⚠️</span>
+              <span>Seeker Browser Limitation</span>
+            </div>
+            <div style={{ color: '#ccc', fontSize: '14px', lineHeight: '1.6' }}>
+              <p style={{ marginBottom: '16px' }}>
+                The Seeker browser doesn't support Mobile Wallet Adapter (MWA) connections.
+              </p>
+              <div style={{ 
+                backgroundColor: 'rgba(153, 69, 255, 0.1)', 
+                border: '1px solid rgba(153, 69, 255, 0.3)',
+                borderRadius: '8px',
+                padding: '12px',
+                marginBottom: '16px',
+              }}>
+                <div style={{ fontWeight: 600, color: '#14F195', marginBottom: '8px' }}>
+                  ✅ Recommended Solutions:
+                </div>
+                <div style={{ paddingLeft: '12px' }}>
+                  1. Open this site in <strong>Chrome browser</strong><br/>
+                  2. Use <strong>Phantom's in-app browser</strong><br/>
+                  3. Contact admin to enable Privy
+                </div>
+              </div>
+              <button
+                style={{
+                  ...walletButtonStyle,
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #9945FF, #14F195)',
+                  borderColor: 'rgba(153, 69, 255, 0.5)',
+                }}
+                onClick={() => {
+                  setSeekerGuidanceModal(false);
+                  setShowModal(true); // Reopen main modal to show other options
+                }}
+              >
+                Show Other Options
+              </button>
             </div>
           </div>
         </div>
