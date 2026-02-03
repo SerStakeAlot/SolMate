@@ -208,6 +208,19 @@ const StandardWalletButton: React.FC = () => {
     
     const isMWA = walletName === 'Mobile Wallet Adapter';
     
+    // For MWA on mobile, try to open wallet via deep link
+    if (isMWA && isMobile) {
+      setDebugInfo('Opening wallet app via deep link...');
+      
+      // Try to open Phantom via deep link - this actually launches the app
+      const currentUrl = encodeURIComponent(window.location.href);
+      const phantomDeepLink = `https://phantom.app/ul/browse/${currentUrl}?ref=${currentUrl}`;
+      
+      // Open in same window to trigger app switch
+      window.location.href = phantomDeepLink;
+      return;
+    }
+    
     // Select the wallet first
     select(walletName);
     
