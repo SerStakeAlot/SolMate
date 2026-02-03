@@ -380,25 +380,6 @@ const StandardWalletButton: React.FC = () => {
 
   return (
     <>
-      {/* Debug info for mobile - remove after testing */}
-      {debugInfo && (
-        <div style={{
-          position: 'fixed',
-          bottom: '10px',
-          left: '10px',
-          right: '10px',
-          backgroundColor: 'rgba(0,0,0,0.9)',
-          color: '#14F195',
-          padding: '8px',
-          fontSize: '10px',
-          fontFamily: 'monospace',
-          zIndex: 999999,
-          borderRadius: '4px',
-          wordBreak: 'break-all',
-        }}>
-          {debugInfo}
-        </div>
-      )}
       <div className="relative group" style={{ zIndex: 100, position: 'relative' }}>
         {connected && publicKey ? (
           <button
