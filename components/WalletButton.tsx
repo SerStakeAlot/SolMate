@@ -70,12 +70,16 @@ const StandardWalletButton: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<string>('');
+  const [debugInfo, setDebugInfo] = useState<string>('');
   const connectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setIsMobile(isMobileDevice());
-    // Run MWA detection on mount
-    detectMWA();
+    // Run MWA detection on mount and show on screen for mobile debugging
+    const { supported, detection } = detectMWA();
+    if (isMobileDevice()) {
+      setDebugInfo(`MWA: ${supported ? 'YES' : 'NO'} | Android: ${detection?.isAndroid ? 'YES' : 'NO'} | solanaMobile: ${detection?.hasSolanaMobile ? 'YES' : 'NO'}`);
+    }
   }, []);
 
   // Auto-close modal when connected
@@ -304,6 +308,25 @@ const StandardWalletButton: React.FC = () => {
 
   return (
     <>
+      {/* Debug info for mobile - remove after testing */}
+      {debugInfo && (
+        <div style={{
+          position: 'fixed',
+          bottom: '10px',
+          left: '10px',
+          right: '10px',
+          backgroundColor: 'rgba(0,0,0,0.9)',
+          color: '#14F195',
+          padding: '8px',
+          fontSize: '10px',
+          fontFamily: 'monospace',
+          zIndex: 999999,
+          borderRadius: '4px',
+          wordBreak: 'break-all',
+        }}>
+          {debugInfo}
+        </div>
+      )}
       <div className="relative group" style={{ zIndex: 100, position: 'relative' }}>
         {connected && publicKey ? (
           <button
