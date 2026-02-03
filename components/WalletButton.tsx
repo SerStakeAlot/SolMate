@@ -170,6 +170,7 @@ const StandardWalletButton: React.FC = () => {
     // On Android, use transact() directly to FORCE wallet app to open
     if (isMobile && /android/i.test(navigator.userAgent)) {
       setDebugInfo('Android: Using transact()...');
+      setConnectionStatus(''); // Clear any status overlay
       
       try {
         // transact() MUST open the wallet app via Android intent
@@ -211,21 +212,25 @@ const StandardWalletButton: React.FC = () => {
       } catch (error: any) {
         const errMsg = error?.message || String(error);
         console.log('[transact] Error:', errMsg);
+        setConnectionStatus(''); // Clear overlay before showing modal
         
         // Check for specific errors
         if (errMsg.includes('not found') || errMsg.includes('No wallet')) {
           setDebugInfo('No wallet app found! Install Phantom.');
+          // Show modal so user can pick a wallet to install
+          setShowModal(true);
+          return;
         } else if (errMsg.includes('cancelled') || errMsg.includes('rejected')) {
           setDebugInfo('User cancelled');
+          return; // Don't show modal if user cancelled
         } else {
-          setDebugInfo(`Error: ${errMsg.slice(0, 60)}`);
+          setDebugInfo(`transact error: ${errMsg.slice(0, 60)}`);
+          // Show modal as fallback
+          setShowModal(true);
+          return;
         }
-        // Fall through to show modal as backup
       }
     }
-    
-    // For all other cases, show the modal
-    setShowModal(true);
   }, [wallets, select, connect, disconnect, connected, publicKey, isMobile]);
 
   const handleSelectWallet = useCallback(async (walletName: WalletName) => {
@@ -456,55 +461,8 @@ const StandardWalletButton: React.FC = () => {
               }
             }}
           >
-            {connecting ? 'Connecting...' : connectionStatus || 'Connect Wallet'}
+            {connecting ? 'Connecting...' : 'Connect Wallet'}
           </button>
-        )}
-        
-        {/* Status indicator for MWA - tap anywhere to cancel */}
-        {connectionStatus && !showModal && (
-          <div 
-            onClick={() => {
-              setConnectionStatus('');
-              if (connectTimeoutRef.current) {
-                clearTimeout(connectTimeoutRef.current);
-              }
-              // Also try to disconnect/reset the wallet state
-              try {
-                disconnect();
-              } catch (e) {
-                // ignore
-              }
-            }}
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.85)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 999998,
-              cursor: 'pointer',
-            }}
-          >
-            <div style={{
-              backgroundColor: 'rgba(153, 69, 255, 0.9)',
-              color: '#fff',
-              padding: '20px 32px',
-              borderRadius: '16px',
-              fontSize: '16px',
-              textAlign: 'center',
-              maxWidth: '280px',
-            }}>
-              <div style={{ marginBottom: '8px' }}>{connectionStatus}</div>
-              <div style={{ fontSize: '13px', opacity: 0.8 }}>
-                Tap anywhere to cancel
-              </div>
-            </div>
-          </div>
         )}
       </div>
 
