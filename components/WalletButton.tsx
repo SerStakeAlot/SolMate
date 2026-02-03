@@ -151,7 +151,8 @@ const StandardWalletButton: React.FC = () => {
     // On Android, try MWA directly using transact()
     if (isMobile && /android/i.test(navigator.userAgent)) {
       setDebugInfo('Trying transact()...');
-      setConnectionStatus('Opening wallet...');
+      // Don't show overlay - it blocks wallet from opening!
+      // setConnectionStatus('Opening wallet...');
       
       try {
         setDebugInfo('Calling transact now...');
