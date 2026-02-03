@@ -3,7 +3,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletName, WalletReadyState } from '@solana/wallet-adapter-base';
-import { transact } from '@solana-mobile/mobile-wallet-adapter-protocol-web3js';
 
 // Detect if we're on a mobile device
 const isMobileDevice = () => {
@@ -212,33 +211,26 @@ const StandardWalletButton: React.FC = () => {
     
     const isMWA = walletName === 'Mobile Wallet Adapter';
     
-    // For MWA on mobile, use transact() to trigger Seeker/wallet app
+    // For MWA on mobile, use the wallet adapter's connect which handles the protocol
     if (isMWA && isMobile) {
-      setDebugInfo('Calling transact() for Seeker...');
+      setDebugInfo('MWA: Selecting adapter...');
       
-      // Call transact in a non-blocking way
-      transact(async (wallet) => {
-        setDebugInfo('transact callback - authorizing...');
-        const auth = await wallet.authorize({
-          cluster: 'mainnet-beta',
-          identity: {
-            name: 'SolMate',
-            uri: 'https://playsolmate.fun',
-            icon: 'https://playsolmate.fun/images/chess-hero.png',
-          },
-        });
-        setDebugInfo(`Authorized: ${auth.accounts[0]?.address?.slice(0,8)}...`);
-        return auth;
-      }).then((result: any) => {
-        setDebugInfo(`Success! ${result?.accounts?.[0]?.address?.slice(0,8) || 'connected'}...`);
-        // Sync with wallet adapter
-        select('Mobile Wallet Adapter' as WalletName);
-        setTimeout(() => connect().catch(e => console.log('sync error:', e)), 100);
-      }).catch((error: any) => {
-        const msg = error?.message || String(error);
-        setDebugInfo(`transact error: ${msg.slice(0, 60)}`);
-        console.log('transact error:', error);
-      });
+      // Select and connect via wallet adapter (not raw transact)
+      select(walletName);
+      
+      // Use setTimeout to not block UI, then connect
+      setTimeout(() => {
+        setDebugInfo('MWA: Calling connect()...');
+        connect()
+          .then(() => {
+            setDebugInfo('MWA: Connected!');
+          })
+          .catch((error: any) => {
+            const msg = error?.message || String(error);
+            setDebugInfo(`MWA error: ${msg.slice(0, 80)}`);
+            console.log('MWA connect error:', error);
+          });
+      }, 100);
       
       return;
     }
