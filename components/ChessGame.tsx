@@ -1523,25 +1523,18 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     }
   };
 
+  // NOTE: Auto-submit removed - user must click "Claim Winnings" button in modal
+  // This prevents mobile wallet popups from being auto-rejected when user taps screen
   useEffect(() => {
-    // Only the WINNER should submit the result to the blockchain
-    // The loser doesn't need to do anything - their stake is already in escrow
-    if (mode === 'wager' && gameWinner && currentMatchPubkey && !payoutComplete && !isSubmittingResult) {
-      // Check if the current player is the winner
+    if (mode === 'wager' && gameWinner && currentMatchPubkey) {
       const isWinner = playerColor === gameWinner;
-      
       if (isWinner) {
-        console.log('You won! Submitting result to claim payout...');
-        const timer = setTimeout(() => {
-          handleSubmitResult();
-        }, 2000);
-        return () => clearTimeout(timer);
+        console.log('You won! Click "Claim Winnings" to submit result and get your payout.');
       } else {
-        console.log('You lost. The winner will submit the result and claim the payout.');
-        // Just show the result modal, no transaction needed for the loser
+        console.log('You lost. The winner will claim the payout.');
       }
     }
-  }, [gameWinner, mode, currentMatchPubkey, payoutComplete, playerColor]);
+  }, [gameWinner, mode, currentMatchPubkey, playerColor]);
 
   const maybeAutoPromote = (from: string, to: string) => {
     const chess = chessRef.current!;
@@ -3338,10 +3331,27 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           +{getStakeTierInfo(selectedStakeTier).stake * 1.8} SOL
                         </p>
                       </div>
-                      {payoutComplete && (
+                      {payoutComplete ? (
                         <p className="text-[10px] text-emerald-400 mt-1 font-medium">
                           ✓ Claimed
                         </p>
+                      ) : (
+                        <motion.button
+                          onClick={() => {
+                            setShowResultModal(false);
+                            handleSubmitResult();
+                          }}
+                          disabled={isSubmittingResult}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className="mt-2 w-full bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 disabled:from-neutral-600 disabled:to-neutral-500 text-white font-bold py-2.5 px-4 rounded-lg transition-all text-sm flex items-center justify-center gap-2"
+                        >
+                          {isSubmittingResult ? (
+                            <><RefreshCw className="w-4 h-4 animate-spin" /> Claiming...</>
+                          ) : (
+                            <><Coins className="w-4 h-4" /> Claim Winnings</>
+                          )}
+                        </motion.button>
                       )}
                     </div>
                   )}
