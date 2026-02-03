@@ -167,52 +167,60 @@ const StandardWalletButton: React.FC = () => {
       }
     }
     
-    // On Android, use the wallet adapter's MWA support
+    // On Android, use transact() directly to FORCE wallet app to open
     if (isMobile && /android/i.test(navigator.userAgent)) {
-      setDebugInfo('Android: Trying MWA...');
+      setDebugInfo('Android: Using transact()...');
       
-      // Find the MWA adapter
-      const mwaWallet = wallets.find(w => w.adapter.name === 'Mobile Wallet Adapter');
-      if (mwaWallet) {
-        setDebugInfo(`MWA ready: ${mwaWallet.readyState}, adapter connected: ${mwaWallet.adapter.connected}`);
+      try {
+        // transact() MUST open the wallet app via Android intent
+        const authResult = await transact(async (wallet) => {
+          setDebugInfo('Wallet opened, authorizing...');
+          
+          // Request authorization - this shows the wallet's approve screen
+          const result = await wallet.authorize({
+            cluster: 'mainnet-beta',
+            identity: {
+              name: 'SolMate',
+              uri: 'https://playsolmate.fun',
+              icon: 'https://playsolmate.fun/images/chess-hero.png',
+            },
+          });
+          
+          return result;
+        });
         
-        // If adapter thinks it's connected but we don't have publicKey, reset it
-        if (mwaWallet.adapter.connected) {
-          setDebugInfo('Resetting stale MWA adapter...');
-          try {
-            await mwaWallet.adapter.disconnect();
-            await new Promise(resolve => setTimeout(resolve, 200));
-          } catch (e) {
-            console.log('MWA disconnect error (ignored):', e);
+        // Got authorization - now we have the account
+        const address = authResult.accounts[0]?.address;
+        if (address) {
+          setDebugInfo(`Authorized: ${address.slice(0, 8)}...`);
+          
+          // Now sync with wallet adapter by selecting MWA and connecting
+          const mwaWallet = wallets.find(w => w.adapter.name === 'Mobile Wallet Adapter');
+          if (mwaWallet) {
+            select(mwaWallet.adapter.name as WalletName);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            try {
+              await connect();
+            } catch (e) {
+              // Adapter might already be connected from transact
+              console.log('Adapter connect after transact:', e);
+            }
           }
         }
+        return;
+      } catch (error: any) {
+        const errMsg = error?.message || String(error);
+        console.log('[transact] Error:', errMsg);
         
-        try {
-          // Select MWA
-          select(mwaWallet.adapter.name as WalletName);
-          await new Promise(resolve => setTimeout(resolve, 200));
-          
-          setDebugInfo('Calling connect()...');
-          
-          // Set a timeout to update debug if it takes too long
-          const debugTimeout = setTimeout(() => {
-            setDebugInfo('Waiting for wallet app...');
-          }, 2000);
-          
-          // Connect - this should trigger MWA to open wallet
-          await connect();
-          
-          clearTimeout(debugTimeout);
-          setDebugInfo('Connected!');
-          return;
-        } catch (error: any) {
-          const errMsg = error?.message || String(error);
-          console.log('[MWA] Connect error:', errMsg);
-          setDebugInfo(`MWA Error: ${errMsg.slice(0, 80)}`);
-          // Fall through to show modal
+        // Check for specific errors
+        if (errMsg.includes('not found') || errMsg.includes('No wallet')) {
+          setDebugInfo('No wallet app found! Install Phantom.');
+        } else if (errMsg.includes('cancelled') || errMsg.includes('rejected')) {
+          setDebugInfo('User cancelled');
+        } else {
+          setDebugInfo(`Error: ${errMsg.slice(0, 60)}`);
         }
-      } else {
-        setDebugInfo('No MWA adapter found');
+        // Fall through to show modal as backup
       }
     }
     
