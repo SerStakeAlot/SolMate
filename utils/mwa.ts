@@ -27,7 +27,7 @@ const listeners: Set<MWAListener> = new Set();
 
 export function addMWAListener(listener: MWAListener) {
   listeners.add(listener);
-  return () => listeners.delete(listener);
+  return () => { listeners.delete(listener); };
 }
 
 function notifyListeners() {
