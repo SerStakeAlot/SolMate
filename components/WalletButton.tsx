@@ -211,26 +211,47 @@ const StandardWalletButton: React.FC = () => {
     
     const isMWA = walletName === 'Mobile Wallet Adapter';
     
-    // For MWA on mobile, use the wallet adapter's connect which handles the protocol
+    // For MWA on mobile, disconnect first to clear cache, then reconnect
     if (isMWA && isMobile) {
-      setDebugInfo('MWA: Selecting adapter...');
+      setDebugInfo('MWA: Clearing cache...');
       
-      // Select and connect via wallet adapter (not raw transact)
-      select(walletName);
+      // First disconnect any existing connection
+      const mwaAdapter = wallets.find(w => w.adapter.name === 'Mobile Wallet Adapter');
       
-      // Use setTimeout to not block UI, then connect
-      setTimeout(() => {
-        setDebugInfo('MWA: Calling connect()...');
-        connect()
+      const doConnect = () => {
+        select(walletName);
+        setDebugInfo('MWA: Selected, connecting...');
+        
+        // Give a moment for selection, then connect
+        setTimeout(() => {
+          connect()
+            .then(() => {
+              if (publicKey) {
+                setDebugInfo(`MWA: Connected! ${publicKey.toBase58().slice(0,8)}...`);
+              } else {
+                setDebugInfo('MWA: connect() returned but no publicKey');
+              }
+            })
+            .catch((error: any) => {
+              const msg = error?.message || String(error);
+              setDebugInfo(`MWA err: ${msg.slice(0, 80)}`);
+            });
+        }, 200);
+      };
+      
+      // If adapter exists and is connected, disconnect first
+      if (mwaAdapter?.adapter.connected) {
+        mwaAdapter.adapter.disconnect()
           .then(() => {
-            setDebugInfo('MWA: Connected!');
+            setDebugInfo('MWA: Disconnected, now connecting...');
+            setTimeout(doConnect, 100);
           })
-          .catch((error: any) => {
-            const msg = error?.message || String(error);
-            setDebugInfo(`MWA error: ${msg.slice(0, 80)}`);
-            console.log('MWA connect error:', error);
+          .catch(() => {
+            doConnect();
           });
-      }, 100);
+      } else {
+        doConnect();
+      }
       
       return;
     }
@@ -453,34 +474,66 @@ const StandardWalletButton: React.FC = () => {
             </button>
             <div style={modalTitleStyle}>Connect Wallet</div>
             <div>
-              {/* On mobile, show MWA option prominently */}
+              {/* On mobile, show options */}
               {isMobile && !isInWalletBrowser() && (
-                <button
-                  style={{
-                    ...walletButtonStyle,
-                    background: 'linear-gradient(135deg, rgba(153, 69, 255, 0.2), rgba(20, 241, 149, 0.2))',
-                    borderColor: 'rgba(153, 69, 255, 0.4)',
-                    marginBottom: '16px',
-                  }}
-                  onClick={() => handleSelectWallet('Mobile Wallet Adapter' as WalletName)}
-                >
-                  <div style={{ 
-                    width: '32px', 
-                    height: '32px', 
-                    borderRadius: '8px',
-                    background: 'linear-gradient(135deg, #9945FF, #14F195)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '16px'
-                  }}>
-                    📱
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                    <span>Open Wallet App</span>
-                    <span style={{ fontSize: '11px', color: '#14F195' }}>Phantom, Solflare, etc.</span>
-                  </div>
-                </button>
+                <>
+                  {/* MWA option for Seeker */}
+                  <button
+                    style={{
+                      ...walletButtonStyle,
+                      background: 'linear-gradient(135deg, rgba(153, 69, 255, 0.2), rgba(20, 241, 149, 0.2))',
+                      borderColor: 'rgba(153, 69, 255, 0.4)',
+                      marginBottom: '8px',
+                    }}
+                    onClick={() => handleSelectWallet('Mobile Wallet Adapter' as WalletName)}
+                  >
+                    <div style={{ 
+                      width: '32px', 
+                      height: '32px', 
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #9945FF, #14F195)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px'
+                    }}>
+                      📱
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                      <span>Seeker / Mobile Wallet</span>
+                      <span style={{ fontSize: '11px', color: '#14F195' }}>Uses MWA protocol</span>
+                    </div>
+                  </button>
+                  
+                  {/* Open in Phantom browser option */}
+                  <button
+                    style={{
+                      ...walletButtonStyle,
+                      marginBottom: '16px',
+                    }}
+                    onClick={() => {
+                      const currentUrl = encodeURIComponent(window.location.href);
+                      window.location.href = `https://phantom.app/ul/browse/${currentUrl}`;
+                    }}
+                  >
+                    <div style={{ 
+                      width: '32px', 
+                      height: '32px', 
+                      borderRadius: '8px',
+                      background: '#AB9FF2',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px'
+                    }}>
+                      👻
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                      <span>Open in Phantom</span>
+                      <span style={{ fontSize: '11px', color: '#888' }}>Opens Phantom app browser</span>
+                    </div>
+                  </button>
+                </>
               )}
               
               {wallets
