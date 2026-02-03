@@ -342,31 +342,31 @@ const StandardWalletButton: React.FC = () => {
 
   const handleSelectWallet = useCallback((walletName: WalletName) => {
     console.log('[WalletModal] Connecting with:', walletName);
+    
+    // Update debug immediately
+    setDebugInfo(`Connecting to ${walletName}...`);
+    
+    // Close modal FIRST to allow wallet bottom sheet to appear
     setShowModal(false);
     
-    // Select the wallet first
+    // Select the wallet
     select(walletName);
     
-    // Update debug
-    if (isMobile) {
-      setDebugInfo(`Selected: ${walletName}, connecting...`);
-    }
-    
-    // Connect asynchronously - don't await/block
+    // Give the modal time to fully unmount before triggering MWA
+    // This ensures the wallet bottom sheet can appear without being blocked
     setTimeout(() => {
+      console.log('[WalletModal] Triggering connect...');
       connect().then(() => {
-        console.log('Connected successfully!');
-        if (isMobile) {
-          setDebugInfo('Connected!');
-        }
+        console.log('[WalletModal] Connected successfully!');
+        setDebugInfo('Connected!');
       }).catch((error: any) => {
-        console.log('Connection error:', error?.message || error);
-        if (isMobile) {
-          setDebugInfo(`Error: ${error?.message?.slice(0, 50) || 'Failed'}`);
-        }
+        console.error('[WalletModal] Connection error:', error);
+        setDebugInfo(`Error: ${error?.message?.slice(0, 60) || 'Connection failed'}`);
+        // Re-show modal on error so user can try again
+        setShowModal(true);
       });
-    }, 100);
-  }, [select, connect, isMobile]);
+    }, 300); // Increased delay to ensure modal is fully gone
+  }, [select, connect]);
 
   const handleDisconnect = useCallback(() => {
     // Disconnect both wallet-adapter and MWA
@@ -396,7 +396,7 @@ const StandardWalletButton: React.FC = () => {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 999999,
+    zIndex: 9999, // Lowered from 999999 to allow native wallet UI to appear on top
     padding: '20px',
     boxSizing: 'border-box',
   };
@@ -479,9 +479,49 @@ const StandardWalletButton: React.FC = () => {
   const effectiveConnected = connected && publicKey ? true : mwaConnected;
   const effectivePublicKey = publicKey?.toBase58() || mwaPublicKey;
   const isMWAConnection = !connected && mwaConnected;
+  
+  // Show connecting status when debug indicates we're connecting
+  const isConnecting = debugInfo.includes('Connecting');
 
   return (
     <>
+      {/* Floating status indicator when connecting (modal closed) */}
+      {isConnecting && !showModal && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          border: '1px solid rgba(20, 241, 149, 0.5)',
+          borderRadius: '12px',
+          padding: '12px 20px',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          color: '#fff',
+          fontSize: '14px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
+        }}>
+          <div style={{
+            width: '16px',
+            height: '16px',
+            border: '2px solid #14F195',
+            borderTopColor: 'transparent',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+          }} />
+          <span>Waiting for wallet...</span>
+        </div>
+      )}
+      
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+      
       <div className="relative group" style={{ zIndex: 100, position: 'relative' }} ref={dropdownRef}>
         {effectiveConnected && effectivePublicKey ? (
           <>
