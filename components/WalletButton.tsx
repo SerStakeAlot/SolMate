@@ -27,16 +27,16 @@ const detectMWA = () => {
     userAgent: navigator?.userAgent || 'unknown',
     isMobile: isMobileDevice(),
     isAndroid: /android/i.test(navigator?.userAgent || ''),
-    // Check for MWA global (injected by Seeker/Saga)
+    // Check for injected wallet (Seeker's embedded wallet or Phantom)
     hasSolanaWallet: !!(window as any).solana,
     hasSolanaMobile: !!(window as any).solanaMobile,
-    // Check for intent support
-    canUseIntents: /android/i.test(navigator?.userAgent || ''),
+    hasPhantom: !!(window as any).phantom?.solana,
+    // Check for wallet-standard wallets
+    hasWalletStandard: typeof (window as any).navigator?.wallets !== 'undefined',
   };
   
-  const supported = detection.isAndroid && (detection.hasSolanaMobile || detection.canUseIntents);
+  const supported = detection.isAndroid && (detection.hasSolanaMobile || detection.hasSolanaWallet || detection.hasPhantom);
   
-  console.log('[MWA] Supported:', supported);
   console.log('[MWA] Detection:', detection);
   
   return { supported, detection };
@@ -167,75 +167,75 @@ const StandardWalletButton: React.FC = () => {
       }
     }
     
-    // On Android, skip transact() which hangs - just show modal directly
+    // On Android, check for injected wallet first (Seeker's embedded wallet)
     if (isMobile && /android/i.test(navigator.userAgent)) {
-      setDebugInfo('Android detected - showing wallet options');
+      const { detection } = detectMWA();
+      
+      // If there's an injected wallet (window.solana), use it directly
+      if (detection?.hasSolanaWallet || detection?.hasPhantom) {
+        setDebugInfo('Found injected wallet - connecting...');
+        
+        // Find the matching adapter (Phantom, etc)
+        const injectedWallet = wallets.find(w => 
+          w.readyState === WalletReadyState.Installed &&
+          w.adapter.name !== 'Mobile Wallet Adapter'
+        );
+        
+        if (injectedWallet) {
+          setDebugInfo(`Using ${injectedWallet.adapter.name}...`);
+          select(injectedWallet.adapter.name as WalletName);
+          // Don't await - let it connect asynchronously
+          connect().then(() => {
+            setDebugInfo('Connected!');
+          }).catch((e) => {
+            setDebugInfo(`Error: ${e.message?.slice(0, 40)}`);
+            setShowModal(true);
+          });
+          return;
+        }
+      }
+      
+      // No injected wallet - show modal for MWA or other options
+      setDebugInfo(`No injected wallet. solana:${detection?.hasSolanaWallet} phantom:${detection?.hasPhantom}`);
       setShowModal(true);
       return;
     }
   }, [wallets, select, connect, disconnect, connected, publicKey, isMobile]);
 
-  const handleSelectWallet = useCallback(async (walletName: WalletName) => {
+  const handleSelectWallet = useCallback((walletName: WalletName) => {
     console.log('[WalletModal] Connecting with type:', walletName);
     setShowModal(false);
     
-    // For MWA, show status and set a shorter timeout
     const isMWA = walletName === 'Mobile Wallet Adapter';
-    if (isMWA) {
-      setConnectionStatus('Opening wallet app...');
-      // Re-run detection when attempting MWA connect
-      const { supported } = detectMWA();
-      console.log('[Connect] Type:', walletName, 'shouldUseMWA:', supported);
+    
+    // Select the wallet first
+    select(walletName);
+    
+    // Update debug
+    if (isMobile) {
+      setDebugInfo(`Selected: ${walletName}, connecting...`);
     }
     
-    try {
-      // Select the wallet first
-      select(walletName);
-      
-      // Give the adapter a moment to initialize, then connect
-      await new Promise(resolve => setTimeout(resolve, 150));
-      
-      // Set a timeout to abort if connection hangs
-      if (isMWA) {
-        connectTimeoutRef.current = setTimeout(() => {
-          console.log('MWA connection timeout');
-          setConnectionStatus('');
-          alert('Could not open wallet app. Try opening Phantom first, then return to SolMate.');
-        }, 5000); // 5 second timeout for MWA
-      }
-      
-      // Now try to connect
-      await connect();
-      console.log('Connected successfully!');
-      setConnectionStatus('');
-      
-      if (connectTimeoutRef.current) {
-        clearTimeout(connectTimeoutRef.current);
-      }
-    } catch (error: any) {
-      console.log('Connection error:', error?.message || error);
-      setConnectionStatus('');
-      
-      if (connectTimeoutRef.current) {
-        clearTimeout(connectTimeoutRef.current);
-      }
-      
-      // If Mobile Wallet Adapter fails, guide user
-      if (isMWA) {
-        alert('Could not connect to wallet app.\n\nTry:\n1. Open Phantom app first\n2. Then come back to SolMate\n3. Or use Phantom\'s in-app browser to visit playsolmate.fun');
-        return;
-      }
-      
-      // If wallet not detected, try to open the wallet's website/app store
-      const selectedWallet = wallets.find(w => w.adapter.name === walletName);
-      if (selectedWallet?.adapter.readyState === WalletReadyState.NotDetected) {
-        const url = selectedWallet.adapter.url;
-        if (url) {
-          window.open(url, '_blank');
+    // Connect asynchronously - don't await/block
+    setTimeout(() => {
+      connect().then(() => {
+        console.log('Connected successfully!');
+        if (isMobile) {
+          setDebugInfo('Connected!');
         }
-      }
-    }
-  }, [select, connect, wallets]);
+      }).catch((error: any) => {
+        console.log('Connection error:', error?.message || error);
+        if (isMobile) {
+          setDebugInfo(`Error: ${error?.message?.slice(0, 50) || 'Failed'}`);
+        }
+        
+        // If MWA failed, show guidance
+        if (isMWA) {
+          alert('Could not connect. Try:\n1. Open Phantom/Solflare first\n2. Return to SolMate\n3. Or use wallet\'s in-app browser');
+        }
+      });
+    }, 100);
+  }, [select, connect, isMobile]);
 
   const handleDisconnect = useCallback(() => {
     disconnect();
