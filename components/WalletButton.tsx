@@ -4,6 +4,13 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletName, WalletReadyState } from '@solana/wallet-adapter-base';
 import { getPlayerStats, getUsername, PlayerStats } from '@/utils/username';
+import { 
+  connectMWA, 
+  disconnectMWA, 
+  getMWAState, 
+  addMWAListener, 
+  isMWAAvailable 
+} from '@/utils/mwa';
 
 // Detect if we're on a mobile device
 const isMobileDevice = () => {
@@ -81,18 +88,68 @@ const StandardWalletButton: React.FC = () => {
   const [username, setUsername] = useState<string | null>(null);
   const connectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // MWA state (separate from wallet-adapter)
+  const [mwaConnected, setMwaConnected] = useState(false);
+  const [mwaPublicKey, setMwaPublicKey] = useState<string | null>(null);
+  const [mwaConnecting, setMwaConnecting] = useState(false);
+  const [showMWAOption, setShowMWAOption] = useState(false);
 
-  // Fetch player stats when connected
+  // Listen for MWA state changes
   useEffect(() => {
-    if (connected && publicKey) {
-      const walletAddr = publicKey.toBase58();
+    const unsubscribe = addMWAListener((connected, pubkey) => {
+      setMwaConnected(connected);
+      setMwaPublicKey(pubkey?.toBase58() || null);
+    });
+    
+    // Check if MWA is available on this device
+    setShowMWAOption(isMWAAvailable());
+    
+    // Check initial state
+    const { connected: initialConnected, publicKey: initialPubkey } = getMWAState();
+    setMwaConnected(initialConnected);
+    setMwaPublicKey(initialPubkey?.toBase58() || null);
+    
+    return unsubscribe;
+  }, []);
+
+  // Handle MWA connect
+  const handleMWAConnect = useCallback(async () => {
+    setMwaConnecting(true);
+    setDebugInfo('Connecting via MWA...');
+    try {
+      const result = await connectMWA();
+      if (result) {
+        setDebugInfo(`MWA Connected: ${result.publicKey.toBase58().slice(0, 8)}...`);
+        setShowModal(false);
+      } else {
+        setDebugInfo('MWA: No account returned');
+      }
+    } catch (error: any) {
+      console.error('[MWA] Connect error:', error);
+      setDebugInfo(`MWA Error: ${error.message?.slice(0, 50) || 'Unknown'}`);
+    } finally {
+      setMwaConnecting(false);
+    }
+  }, []);
+
+  // Handle MWA disconnect
+  const handleMWADisconnect = useCallback(() => {
+    disconnectMWA();
+    setDebugInfo('MWA Disconnected');
+  }, []);
+
+  // Fetch player stats when connected (either wallet-adapter or MWA)
+  useEffect(() => {
+    const walletAddr = publicKey?.toBase58() || mwaPublicKey;
+    if (walletAddr) {
       getPlayerStats(walletAddr).then(setPlayerStats);
       getUsername(walletAddr).then(setUsername);
     } else {
       setPlayerStats(null);
       setUsername(null);
     }
-  }, [connected, publicKey]);
+  }, [connected, publicKey, mwaConnected, mwaPublicKey]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -307,8 +364,15 @@ const StandardWalletButton: React.FC = () => {
   }, [select, connect, isMobile]);
 
   const handleDisconnect = useCallback(() => {
-    disconnect();
-  }, [disconnect]);
+    // Disconnect both wallet-adapter and MWA
+    if (connected) {
+      disconnect();
+    }
+    if (mwaConnected) {
+      handleMWADisconnect();
+    }
+    setShowDropdown(false);
+  }, [disconnect, connected, mwaConnected, handleMWADisconnect]);
 
   const shortenAddress = (address: string) => {
     return `${address.slice(0, 4)}...${address.slice(-4)}`;
@@ -406,10 +470,15 @@ const StandardWalletButton: React.FC = () => {
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
   };
 
+  // Determine effective connection state (wallet-adapter OR MWA)
+  const effectiveConnected = connected && publicKey ? true : mwaConnected;
+  const effectivePublicKey = publicKey?.toBase58() || mwaPublicKey;
+  const isMWAConnection = !connected && mwaConnected;
+
   return (
     <>
       <div className="relative group" style={{ zIndex: 100, position: 'relative' }} ref={dropdownRef}>
-        {connected && publicKey ? (
+        {effectiveConnected && effectivePublicKey ? (
           <>
             <button
               onClick={() => setShowDropdown(!showDropdown)}
@@ -427,7 +496,8 @@ const StandardWalletButton: React.FC = () => {
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
-              <span>{username || shortenAddress(publicKey.toBase58())}</span>
+              {isMWAConnection && <span style={{ marginRight: '4px', fontSize: '12px' }}>📱</span>}
+              <span>{username || shortenAddress(effectivePublicKey)}</span>
               {playerStats && (playerStats.gamesPlayed ?? 0) > 0 && (
                 <span style={{ 
                   marginLeft: '8px', 
@@ -462,7 +532,8 @@ const StandardWalletButton: React.FC = () => {
                   marginBottom: '12px',
                   fontFamily: 'monospace'
                 }}>
-                  {shortenAddress(publicKey.toBase58())}
+                  {isMWAConnection && <span style={{ color: '#14F195', marginRight: '4px' }}>MWA</span>}
+                  {shortenAddress(effectivePublicKey)}
                 </div>
                 
                 {/* Stats */}
@@ -625,6 +696,40 @@ const StandardWalletButton: React.FC = () => {
                     </div>
                   </button>
                 </>
+              )}
+              
+              {/* MWA / Seeker Wallet option - shows on Android devices */}
+              {showMWAOption && (
+                <button
+                  style={{
+                    ...walletButtonStyle,
+                    marginBottom: '16px',
+                    background: mwaConnecting 
+                      ? 'rgba(255, 255, 255, 0.1)' 
+                      : 'linear-gradient(135deg, rgba(20, 241, 149, 0.2), rgba(153, 69, 255, 0.1))',
+                    borderColor: 'rgba(20, 241, 149, 0.4)',
+                    opacity: mwaConnecting ? 0.7 : 1,
+                  }}
+                  onClick={handleMWAConnect}
+                  disabled={mwaConnecting}
+                >
+                  <div style={{ 
+                    width: '32px', 
+                    height: '32px', 
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #14F195, #9945FF)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '16px'
+                  }}>
+                    📱
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <span>{mwaConnecting ? 'Connecting...' : 'Seeker / Mobile Wallet'}</span>
+                    <span style={{ fontSize: '11px', color: '#14F195' }}>MWA Protocol (Android)</span>
+                  </div>
+                </button>
               )}
               
               {wallets
