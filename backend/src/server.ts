@@ -272,7 +272,12 @@ app.post('/api/username', strictLimiter, (req, res) => {
 app.get('/api/stats', (req, res) => {
   try {
     const stats = statsStore.getPlatformStats();
-    res.json(stats);
+    // Use username count for unique players (more accurate than game history)
+    const usernameCount = userStore.getUserCount();
+    res.json({
+      ...stats,
+      uniquePlayers: usernameCount,
+    });
   } catch (error) {
     console.error('Error fetching platform stats:', error);
     res.status(500).json({ error: 'Failed to fetch stats' });
