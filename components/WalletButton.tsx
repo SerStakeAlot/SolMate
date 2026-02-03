@@ -3,7 +3,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletName, WalletReadyState } from '@solana/wallet-adapter-base';
-import { transact } from '@solana-mobile/mobile-wallet-adapter-protocol-web3js';
 
 // Detect if we're on a mobile device
 const isMobileDevice = () => {
@@ -241,62 +240,19 @@ const StandardWalletButton: React.FC = () => {
         }
       }
       
-      // No injected wallet - show modal for MWA or other options
+      // No injected wallet - show modal for other options
       setDebugInfo(`No injected wallet. solana:${detection?.hasSolanaWallet} phantom:${detection?.hasPhantom}`);
       setShowModal(true);
       return;
     }
+    
+    // Desktop or iOS: show wallet selection modal
+    setShowModal(true);
   }, [wallets, select, connect, disconnect, connected, publicKey, isMobile]);
 
   const handleSelectWallet = useCallback((walletName: WalletName) => {
-    console.log('[WalletModal] Connecting with type:', walletName);
+    console.log('[WalletModal] Connecting with:', walletName);
     setShowModal(false);
-    
-    const isMWA = walletName === 'Mobile Wallet Adapter';
-    
-    // For MWA on mobile, try direct intent first
-    if (isMWA && isMobile) {
-      // v6 - Try direct solana-wallet intent to test if Seeker handles it
-      setDebugInfo('v6: Trying direct intent...');
-      
-      // Generate a simple association URL like MWA does
-      const testIntent = 'solana-wallet://v1/associate/local?association=test123&port=12345';
-      
-      // Try to open it
-      const link = document.createElement('a');
-      link.href = testIntent;
-      link.click();
-      
-      // Wait a moment then check if we're still here (intent didn't work)
-      setTimeout(() => {
-        setDebugInfo('v6: Intent did not open wallet. Seeker may need different approach.');
-        
-        // Fall back to trying transact anyway
-        transact(async (wallet) => {
-          setDebugInfo('MWA: transact callback, authorizing...');
-          const authResult = await wallet.authorize({
-            cluster: 'mainnet-beta',
-            identity: {
-              name: 'SolMate',
-              uri: 'https://playsolmate.fun',
-              icon: 'https://playsolmate.fun/images/chess-hero.png',
-            },
-          });
-          setDebugInfo(`MWA: Auth success! ${authResult.accounts[0]?.address?.slice(0,8)}...`);
-          return authResult;
-        }).then((result: any) => {
-          const addr = result?.accounts?.[0]?.address;
-          setDebugInfo(`MWA: Done! ${addr?.slice(0,8) || 'no addr'}`);
-          select('Mobile Wallet Adapter' as WalletName);
-          setTimeout(() => connect().catch(e => console.log('sync:', e)), 200);
-        }).catch((error: any) => {
-          const msg = error?.message || error?.code || String(error);
-          setDebugInfo(`MWA fail: ${msg.slice(0, 80)}`);
-        });
-      }, 1500);
-      
-      return;
-    }
     
     // Select the wallet first
     select(walletName);
@@ -317,11 +273,6 @@ const StandardWalletButton: React.FC = () => {
         console.log('Connection error:', error?.message || error);
         if (isMobile) {
           setDebugInfo(`Error: ${error?.message?.slice(0, 50) || 'Failed'}`);
-        }
-        
-        // If MWA failed, show guidance
-        if (isMWA) {
-          alert('Could not connect. Try:\n1. Open Phantom/Solflare first\n2. Return to SolMate\n3. Or use wallet\'s in-app browser');
         }
       });
     }, 100);
@@ -516,42 +467,16 @@ const StandardWalletButton: React.FC = () => {
             </button>
             <div style={modalTitleStyle}>Connect Wallet</div>
             <div>
-              {/* On mobile, show options */}
+              {/* On mobile, show Open in Phantom option */}
               {isMobile && !isInWalletBrowser() && (
                 <>
-                  {/* MWA option for Seeker/Saga */}
-                  <button
-                    style={{
-                      ...walletButtonStyle,
-                      background: 'linear-gradient(135deg, rgba(153, 69, 255, 0.2), rgba(20, 241, 149, 0.2))',
-                      borderColor: 'rgba(153, 69, 255, 0.4)',
-                      marginBottom: '8px',
-                    }}
-                    onClick={() => handleSelectWallet('Mobile Wallet Adapter' as WalletName)}
-                  >
-                    <div style={{ 
-                      width: '32px', 
-                      height: '32px', 
-                      borderRadius: '8px',
-                      background: 'linear-gradient(135deg, #9945FF, #14F195)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '16px'
-                    }}>
-                      📱
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                      <span>Seeker / Saga Wallet</span>
-                      <span style={{ fontSize: '11px', color: '#14F195' }}>For Solana Mobile devices</span>
-                    </div>
-                  </button>
-                  
-                  {/* Open in Phantom browser - fallback */}
+                  {/* Open in Phantom browser - recommended for mobile */}
                   <button
                     style={{
                       ...walletButtonStyle,
                       marginBottom: '16px',
+                      background: 'linear-gradient(135deg, rgba(171, 159, 242, 0.2), rgba(171, 159, 242, 0.1))',
+                      borderColor: 'rgba(171, 159, 242, 0.4)',
                     }}
                     onClick={() => {
                       setDebugInfo('Opening Phantom browser...');
@@ -573,7 +498,7 @@ const StandardWalletButton: React.FC = () => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
                       <span>Open in Phantom</span>
-                      <span style={{ fontSize: '11px', color: '#888' }}>If Seeker doesn't work</span>
+                      <span style={{ fontSize: '11px', color: '#14F195' }}>Recommended for mobile</span>
                     </div>
                   </button>
                 </>
