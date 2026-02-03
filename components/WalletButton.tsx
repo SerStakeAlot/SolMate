@@ -114,9 +114,26 @@ const StandardWalletButton: React.FC = () => {
       clearTimeout(connectTimeoutRef.current);
     }
 
+    // If already properly connected with a public key, just return
+    if (connected && publicKey) {
+      setDebugInfo(`Already connected: ${publicKey.toBase58().slice(0,8)}...`);
+      return;
+    }
+    
+    // If "connected" but no publicKey, we have a stale connection - disconnect first
+    if (connected && !publicKey) {
+      setDebugInfo('Stale connection detected, disconnecting...');
+      try {
+        await disconnect();
+        await new Promise(resolve => setTimeout(resolve, 300));
+      } catch (e) {
+        console.log('Disconnect error (ignored):', e);
+      }
+    }
+
     // Update debug info
     if (isMobile) {
-      setDebugInfo(prev => prev + ' | Clicked Connect');
+      setDebugInfo('Starting connection...');
     }
 
     // If in wallet browser (Phantom app, etc.), try to auto-detect the wallet
@@ -152,12 +169,23 @@ const StandardWalletButton: React.FC = () => {
     
     // On Android, use the wallet adapter's MWA support
     if (isMobile && /android/i.test(navigator.userAgent)) {
-      setDebugInfo('Android detected, using MWA adapter...');
+      setDebugInfo('Android: Trying MWA...');
       
       // Find the MWA adapter
       const mwaWallet = wallets.find(w => w.adapter.name === 'Mobile Wallet Adapter');
       if (mwaWallet) {
-        setDebugInfo(`MWA found, state: ${mwaWallet.readyState}`);
+        setDebugInfo(`MWA ready: ${mwaWallet.readyState}, adapter connected: ${mwaWallet.adapter.connected}`);
+        
+        // If adapter thinks it's connected but we don't have publicKey, reset it
+        if (mwaWallet.adapter.connected) {
+          setDebugInfo('Resetting stale MWA adapter...');
+          try {
+            await mwaWallet.adapter.disconnect();
+            await new Promise(resolve => setTimeout(resolve, 200));
+          } catch (e) {
+            console.log('MWA disconnect error (ignored):', e);
+          }
+        }
         
         try {
           // Select MWA
@@ -168,8 +196,8 @@ const StandardWalletButton: React.FC = () => {
           
           // Set a timeout to update debug if it takes too long
           const debugTimeout = setTimeout(() => {
-            setDebugInfo('Waiting for wallet app to respond...');
-          }, 3000);
+            setDebugInfo('Waiting for wallet app...');
+          }, 2000);
           
           // Connect - this should trigger MWA to open wallet
           await connect();
@@ -184,13 +212,13 @@ const StandardWalletButton: React.FC = () => {
           // Fall through to show modal
         }
       } else {
-        setDebugInfo('No MWA adapter found in wallets list');
+        setDebugInfo('No MWA adapter found');
       }
     }
     
     // For all other cases, show the modal
     setShowModal(true);
-  }, [wallets, select, connect, isMobile]);
+  }, [wallets, select, connect, disconnect, connected, publicKey, isMobile]);
 
   const handleSelectWallet = useCallback(async (walletName: WalletName) => {
     console.log('[WalletModal] Connecting with type:', walletName);
