@@ -154,6 +154,26 @@ app.post('/api/matches', matchCreationLimiter, (req, res) => {
   res.json({ success: true, matchCode: match.matchCode });
 });
 
+// ============= Match Winner API Endpoint =============
+
+// Get game result by match pubkey (for refund page winner verification)
+app.get('/api/match-winner/:matchPubkey', (req, res) => {
+  const { matchPubkey } = req.params;
+  const game = statsStore.getGameByMatchPubkey(matchPubkey);
+  
+  if (!game) {
+    return res.json({ found: false, winnerWallet: null });
+  }
+  
+  res.json({
+    found: true,
+    winnerWallet: game.winnerWallet,
+    result: game.result,
+    whiteWallet: game.whiteWallet,
+    blackWallet: game.blackWallet,
+  });
+});
+
 // ============= Username API Endpoints =============
 
 // Get username for a wallet address

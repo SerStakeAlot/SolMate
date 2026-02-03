@@ -197,6 +197,13 @@ const statements = {
     LIMIT ?
   `),
 
+  // Get game by match pubkey (for refund page winner lookup)
+  getGameByMatchPubkey: db.prepare(`
+    SELECT * FROM game_history 
+    WHERE match_pubkey = ?
+    LIMIT 1
+  `),
+
   // Daily stats
   upsertDailyStats: db.prepare(`
     INSERT INTO daily_stats (date, games_played, wager_games, sol_wagered)
@@ -481,6 +488,25 @@ class StatsStore {
       totalMoves: row.total_moves,
       endedAt: row.ended_at,
     }));
+  }
+
+  // Get game by match pubkey (for refund page winner verification)
+  getGameByMatchPubkey(matchPubkey: string): GameRecord | null {
+    const row = statements.getGameByMatchPubkey.get(matchPubkey) as any;
+    if (!row) return null;
+    return {
+      gameId: row.game_id,
+      whiteWallet: row.white_wallet,
+      blackWallet: row.black_wallet,
+      winnerWallet: row.winner_wallet,
+      result: row.result,
+      stakeAmount: row.stake_amount,
+      isWagerGame: row.is_wager_game === 1,
+      matchPubkey: row.match_pubkey,
+      durationSeconds: row.game_duration_seconds,
+      totalMoves: row.total_moves,
+      endedAt: row.ended_at,
+    };
   }
 
   // Get daily stats for charts

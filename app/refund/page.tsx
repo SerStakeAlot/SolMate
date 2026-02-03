@@ -10,11 +10,14 @@ import Link from "next/link";
 import { WalletButton } from "@/components/WalletButton";
 import { EscrowClient, MatchAccount, MatchStatus, getStakeTierInfo } from "@/utils/escrow";
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-backend.fly.dev';
+
 interface MatchWithPubkey {
   pubkey: PublicKey;
   account: MatchAccount;
   isPlayerA: boolean;
-  isWinner: boolean;
+  isWinner: boolean;           // On-chain winner
+  isBackendWinner: boolean;    // Backend says this user won (even if not recorded on-chain yet)
 }
 
 export default function RefundPage() {
@@ -59,14 +62,27 @@ export default function RefundPage() {
           // Show matches where user is involved AND escrow has funds
           // This includes Open (no one joined yet), Active (stuck) or Finished (payout failed)
           if ((isPlayerA || isPlayerB) && escrowBalance > 0) {
-            // Check if current user is the winner
+            // Check if current user is the winner on-chain
             const isWinner = matchAccount.winner?.equals(publicKey) || false;
+            
+            // Also check backend for winner (in case submit_result failed)
+            let isBackendWinner = false;
+            try {
+              const res = await fetch(`${BACKEND_URL}/api/match-winner/${pubkey.toBase58()}`);
+              const data = await res.json();
+              if (data.found && data.winnerWallet === publicKey.toBase58()) {
+                isBackendWinner = true;
+              }
+            } catch (e) {
+              // Backend unavailable, just use on-chain data
+            }
             
             userMatches.push({
               pubkey,
               account: matchAccount,
               isPlayerA,
               isWinner,
+              isBackendWinner,
             });
           }
         } catch (e) {
@@ -99,7 +115,7 @@ export default function RefundPage() {
       const client = new EscrowClient(connection, wallet);
       let signature: string;
       
-      // If user is the winner, claim winnings via confirmPayout
+      // If user is the on-chain winner, claim winnings via confirmPayout
       if (match.isWinner && match.account.winner) {
         signature = await client.confirmPayout(
           match.pubkey,
@@ -110,6 +126,29 @@ export default function RefundPage() {
         setResult({
           success: true,
           message: `🎉 Winnings claimed! You received the pot. Signature: ${signature.slice(0, 8)}...`,
+        });
+      }
+      // If backend says user is winner but not recorded on-chain, submit result first then claim
+      else if (match.isBackendWinner && match.account.status === MatchStatus.Active) {
+        // First submit the result to record winner on-chain
+        const winnerPubkey = publicKey;
+        console.log('Backend says you won - submitting result to chain first...');
+        const resultSig = await client.submitResult(match.pubkey, winnerPubkey);
+        console.log('Result submitted:', resultSig);
+        
+        // Wait for confirmation
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Now claim payout
+        signature = await client.confirmPayout(
+          match.pubkey,
+          winnerPubkey,
+          match.account.playerA
+        );
+        
+        setResult({
+          success: true,
+          message: `🎉 Winnings claimed! Result submitted and payout received. Signature: ${signature.slice(0, 8)}...`,
         });
       }
       // Use cancelMatch for Open matches (no player B joined)
@@ -263,15 +302,20 @@ export default function RefundPage() {
                       key={match.pubkey.toBase58()}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`glass-card rounded-xl p-6 ${match.isWinner ? 'border-2 border-green-500/50' : ''}`}
+                      className={`glass-card rounded-xl p-6 ${(match.isWinner || match.isBackendWinner) ? 'border-2 border-green-500/50' : ''}`}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            {match.isWinner && (
+                            {(match.isWinner || match.isBackendWinner) && (
                               <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-400 flex items-center gap-1">
                                 <Trophy className="w-3 h-3" />
                                 Winner - Claim Your Prize!
+                              </span>
+                            )}
+                            {match.isBackendWinner && !match.isWinner && (
+                              <span className="px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/20 text-yellow-400">
+                                (Pending on-chain)
                               </span>
                             )}
                             <span className={`px-2 py-0.5 rounded text-xs font-medium ${
@@ -301,7 +345,7 @@ export default function RefundPage() {
                           <p className="text-sm">
                             Stake: <span className="text-white font-semibold">{tierInfo.label}</span>
                             <span className="text-neutral-500 mx-2">•</span>
-                            {match.isWinner ? (
+                            {(match.isWinner || match.isBackendWinner) ? (
                               <>Prize: <span className="text-green-400 font-bold">{potAmount.toFixed(2)} SOL</span></>
                             ) : (
                               <>Your refund: <span className="text-solana-green font-semibold">{tierInfo.label}</span></>
@@ -312,14 +356,14 @@ export default function RefundPage() {
                           onClick={() => handleAbandonMatch(match)}
                           disabled={isAbandoning}
                           className={`px-6 py-3 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                            match.isWinner 
+                            (match.isWinner || match.isBackendWinner) 
                               ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 shadow-lg shadow-green-500/30' 
                               : 'btn-glow'
                           }`}
                         >
                           {isAbandoning 
                             ? "Processing..." 
-                            : match.isWinner 
+                            : (match.isWinner || match.isBackendWinner)
                               ? "🎉 Claim Winnings" 
                               : match.account.status === MatchStatus.Open 
                                 ? "Cancel & Refund" 
