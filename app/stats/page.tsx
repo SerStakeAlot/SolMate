@@ -1,6 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useWallet } from '@solana/wallet-adapter-react';
+import dynamic from 'next/dynamic';
+
+// Dynamic import for wallet button to avoid SSR issues
+const WalletMultiButton = dynamic(
+  () => import('@solana/wallet-adapter-react-ui').then((mod) => mod.WalletMultiButton),
+  { ssr: false }
+);
 
 interface PlatformStats {
   totalGames: number;
@@ -11,6 +19,27 @@ interface PlatformStats {
   totalFeesCollected: number;
   uniquePlayers: number;
   updatedAt: string;
+}
+
+interface PlayerStats {
+  walletAddress: string;
+  username: string | null;
+  gamesPlayed: number;
+  gamesWon: number;
+  gamesLost: number;
+  gamesDrawn: number;
+  wagerGamesPlayed: number;
+  wagerGamesWon: number;
+  freeGamesPlayed: number;
+  freeGamesWon: number;
+  totalSolWagered: number;
+  totalSolWon: number;
+  netProfit: number;
+  currentStreak: number;
+  bestStreak: number;
+  winRate: number;
+  createdAt: string;
+  lastGameAt: string | null;
 }
 
 interface PlayerLeaderboardEntry {
@@ -30,10 +59,24 @@ interface PlayerLeaderboardEntry {
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-production.up.railway.app';
 
 export default function StatsPage() {
+  const { publicKey, connected } = useWallet();
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [leaderboard, setLeaderboard] = useState<PlayerLeaderboardEntry[]>([]);
+  const [myStats, setMyStats] = useState<PlayerStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch player stats when wallet connects
+  useEffect(() => {
+    if (connected && publicKey) {
+      fetch(`${BACKEND_URL}/api/stats/player/${publicKey.toBase58()}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(data => setMyStats(data))
+        .catch(() => setMyStats(null));
+    } else {
+      setMyStats(null);
+    }
+  }, [connected, publicKey]);
 
   useEffect(() => {
     async function fetchStats() {
@@ -142,6 +185,75 @@ export default function StatsPage() {
             />
           </div>
         )}
+
+        {/* Personal Stats Section */}
+        <div className="bg-[#12121a] rounded-2xl border border-purple-500/20 p-6 mb-8">
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            <span>📊</span> Your Stats
+          </h2>
+
+          {!connected ? (
+            <div className="text-center py-8">
+              <p className="text-gray-400 mb-4">Connect your wallet to see your personal stats</p>
+              <WalletMultiButton className="!bg-purple-600 hover:!bg-purple-500" />
+            </div>
+          ) : myStats ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard
+                label="Record"
+                value={`${myStats.gamesWon}W - ${myStats.gamesLost}L`}
+                icon="📈"
+                highlight
+              />
+              <StatCard
+                label="Win Rate"
+                value={`${myStats.winRate}%`}
+                icon="🎯"
+              />
+              <StatCard
+                label="Net Profit"
+                value={`${myStats.netProfit > 0 ? '+' : ''}${myStats.netProfit.toFixed(2)} ◎`}
+                icon={myStats.netProfit >= 0 ? '💰' : '📉'}
+                highlight
+              />
+              <StatCard
+                label="Best Streak"
+                value={myStats.bestStreak > 0 ? `🔥 ${myStats.bestStreak}` : '-'}
+                icon="⚡"
+              />
+              <StatCard
+                label="Total Games"
+                value={myStats.gamesPlayed.toString()}
+                icon="🎮"
+              />
+              <StatCard
+                label="Wager Games"
+                value={`${myStats.wagerGamesWon}/${myStats.wagerGamesPlayed}`}
+                icon="⚔️"
+              />
+              <StatCard
+                label="SOL Wagered"
+                value={`${myStats.totalSolWagered.toFixed(2)} ◎`}
+                icon="🪙"
+              />
+              <StatCard
+                label="SOL Won"
+                value={`${myStats.totalSolWon.toFixed(2)} ◎`}
+                icon="🏆"
+              />
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-400">No games played yet. Start playing to see your stats!</p>
+              <a
+                href="/play"
+                className="inline-block mt-4 px-6 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg transition-colors"
+              >
+                Play Now
+              </a>
+            </div>
+          )}
+        </div>
 
         {/* Leaderboard */}
         <div className="bg-[#12121a] rounded-2xl border border-purple-500/20 p-6">

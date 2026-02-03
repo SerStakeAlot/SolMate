@@ -9,7 +9,7 @@ import { io, Socket } from 'socket.io-client';
 
 import { Chess } from 'chess.js';
 import { EscrowClient, STAKE_TIERS, getStakeTierInfo, lamportsToSol, MatchStatus } from '@/utils/escrow';
-import { getUsername, formatDisplayName } from '@/utils/username';
+import { getUsername, formatDisplayName, getPlayerStats, PlayerStats } from '@/utils/username';
 
 type Mode = 'practice' | 'wager';
 type PlayerColor = 'w' | 'b' | null;
@@ -241,6 +241,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   // Opponent info for username display
   const [opponentWallet, setOpponentWallet] = useState<string | null>(null);
   const [opponentUsername, setOpponentUsername] = useState<string | null>(null);
+  const [opponentStats, setOpponentStats] = useState<PlayerStats | null>(null);
   const [myUsername, setMyUsername] = useState<string | null>(null);
   
   // Emoji reactions state
@@ -474,6 +475,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       if (opponent?.walletAddress) {
         setOpponentWallet(opponent.walletAddress);
         getUsername(opponent.walletAddress).then(setOpponentUsername);
+        getPlayerStats(opponent.walletAddress).then(setOpponentStats);
       }
       
       // Reset timer when game starts
@@ -692,8 +694,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       // Store opponent wallet for username lookup
       if (oppWallet) {
         setOpponentWallet(oppWallet);
-        // Fetch opponent's username
+        // Fetch opponent's username and stats
         getUsername(oppWallet).then(setOpponentUsername);
+        getPlayerStats(oppWallet).then(setOpponentStats);
       }
       
       // Reset timer when game starts
@@ -1898,9 +1901,15 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                 <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10">
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${playerColor === 'b' ? 'bg-white border border-neutral-400' : 'bg-neutral-800 border border-neutral-600'}`} />
-                    <span className="font-semibold text-sm truncate max-w-[120px]">
+                    <span className="font-semibold text-sm truncate max-w-[100px]">
                       {opponentUsername || (opponentWallet ? `${opponentWallet.slice(0, 4)}...${opponentWallet.slice(-4)}` : 'Opponent')}
                     </span>
+                    {/* Opponent W-L record */}
+                    {opponentStats && (
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-white/10 text-neutral-300">
+                        {opponentStats.gamesWon}W-{opponentStats.gamesLost}L
+                      </span>
+                    )}
                     {/* Spectator count */}
                     {isFreePlay && spectatorCount > 0 && (
                       <div className="flex items-center gap-1 bg-solana-purple/30 px-2 py-0.5 rounded-full">

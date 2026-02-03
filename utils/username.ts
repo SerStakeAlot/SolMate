@@ -77,3 +77,35 @@ export function formatDisplayName(walletAddress: string, username?: string | nul
   }
   return `${walletAddress.slice(0, 4)}...${walletAddress.slice(-4)}`;
 }
+
+// Player stats interface
+export interface PlayerStats {
+  walletAddress: string;
+  username: string | null;
+  gamesPlayed: number;
+  gamesWon: number;
+  gamesLost: number;
+  gamesDrawn: number;
+  wagerGamesPlayed: number;
+  wagerGamesWon: number;
+  totalWagered: number;
+  totalWinnings: number;
+  totalLosses: number;
+  netProfit: number;
+  biggestWin: number;
+  currentStreak: number;
+  bestStreak: number;
+  winRate: number;
+}
+
+// Get player stats from backend
+export async function getPlayerStats(walletAddress: string): Promise<PlayerStats | null> {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/stats/player/${walletAddress}`);
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching player stats:', error);
+    return null;
+  }
+}

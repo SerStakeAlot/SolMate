@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletName, WalletReadyState } from '@solana/wallet-adapter-base';
+import { getPlayerStats, getUsername, PlayerStats } from '@/utils/username';
 
 // Detect if we're on a mobile device
 const isMobileDevice = () => {
@@ -72,10 +73,37 @@ export const WalletButton: React.FC = () => {
 const StandardWalletButton: React.FC = () => {
   const { connected, publicKey, wallets, select, disconnect, connecting, connect, wallet } = useWallet();
   const [showModal, setShowModal] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<string>('');
   const [debugInfo, setDebugInfo] = useState<string>('');
+  const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
   const connectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fetch player stats when connected
+  useEffect(() => {
+    if (connected && publicKey) {
+      const walletAddr = publicKey.toBase58();
+      getPlayerStats(walletAddr).then(setPlayerStats);
+      getUsername(walletAddr).then(setUsername);
+    } else {
+      setPlayerStats(null);
+      setUsername(null);
+    }
+  }, [connected, publicKey]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     setIsMobile(isMobileDevice());
@@ -380,26 +408,140 @@ const StandardWalletButton: React.FC = () => {
 
   return (
     <>
-      <div className="relative group" style={{ zIndex: 100, position: 'relative' }}>
+      <div className="relative group" style={{ zIndex: 100, position: 'relative' }} ref={dropdownRef}>
         {connected && publicKey ? (
-          <button
-            onClick={handleDisconnect}
-            style={connectButtonStyle}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
-              e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset, 0 0 20px rgba(153, 69, 255, 0.15)';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05) inset';
-              e.currentTarget.style.transform = 'translateY(0)';
-            }}
-          >
-            {shortenAddress(publicKey.toBase58())}
-          </button>
+          <>
+            <button
+              onClick={() => setShowDropdown(!showDropdown)}
+              style={connectButtonStyle}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.25)';
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset, 0 0 20px rgba(153, 69, 255, 0.15)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05) inset';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+            >
+              <span>{username || shortenAddress(publicKey.toBase58())}</span>
+              {playerStats && playerStats.gamesPlayed > 0 && (
+                <span style={{ 
+                  marginLeft: '8px', 
+                  fontSize: '11px', 
+                  color: '#888',
+                  fontWeight: 400 
+                }}>
+                  {playerStats.gamesWon}W-{playerStats.gamesLost}L
+                </span>
+              )}
+            </button>
+            
+            {/* Dropdown Menu */}
+            {showDropdown && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                marginTop: '8px',
+                backgroundColor: '#1a1a1a',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+                borderRadius: '12px',
+                padding: '12px',
+                minWidth: '200px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+                zIndex: 1000,
+              }}>
+                {/* Wallet Address */}
+                <div style={{ 
+                  fontSize: '12px', 
+                  color: '#888', 
+                  marginBottom: '12px',
+                  fontFamily: 'monospace'
+                }}>
+                  {shortenAddress(publicKey.toBase58())}
+                </div>
+                
+                {/* Stats */}
+                {playerStats && (
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: '1fr 1fr', 
+                    gap: '8px',
+                    marginBottom: '12px',
+                    padding: '10px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#4ade80' }}>
+                        {playerStats.gamesWon}
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#888', textTransform: 'uppercase' }}>Wins</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#f87171' }}>
+                        {playerStats.gamesLost}
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#888', textTransform: 'uppercase' }}>Losses</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#fff' }}>
+                        {playerStats.winRate}%
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#888', textTransform: 'uppercase' }}>Win Rate</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ 
+                        fontSize: '18px', 
+                        fontWeight: 'bold', 
+                        color: playerStats.netProfit >= 0 ? '#4ade80' : '#f87171' 
+                      }}>
+                        {playerStats.netProfit >= 0 ? '+' : ''}{playerStats.netProfit.toFixed(2)}
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#888', textTransform: 'uppercase' }}>SOL P/L</div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Actions */}
+                <button
+                  onClick={() => { window.location.href = '/stats'; }}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    backgroundColor: 'rgba(153, 69, 255, 0.1)',
+                    border: '1px solid rgba(153, 69, 255, 0.3)',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    marginBottom: '8px',
+                  }}
+                >
+                  📊 View Full Stats
+                </button>
+                <button
+                  onClick={() => { setShowDropdown(false); handleDisconnect(); }}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    backgroundColor: 'rgba(248, 113, 113, 0.1)',
+                    border: '1px solid rgba(248, 113, 113, 0.3)',
+                    borderRadius: '8px',
+                    color: '#f87171',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Disconnect
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <button
             onClick={handleConnect}
