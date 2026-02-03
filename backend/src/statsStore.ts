@@ -635,6 +635,220 @@ class StatsStore {
     }
     return synced;
   }
+
+  // Recalculate all stats from game history
+  recalculateAllStats(): { 
+    playersUpdated: number; 
+    gamesProcessed: number; 
+    platformStats: any;
+  } {
+    // Get all games from history
+    const games = db.prepare(`
+      SELECT * FROM game_history ORDER BY ended_at ASC
+    `).all() as any[];
+
+    // Reset all player stats (keep username)
+    db.prepare(`
+      UPDATE player_stats SET
+        games_played = 0,
+        games_won = 0,
+        games_lost = 0,
+        games_drawn = 0,
+        wager_games_played = 0,
+        wager_games_won = 0,
+        total_wagered = 0,
+        total_winnings = 0,
+        total_losses = 0,
+        net_profit = 0,
+        biggest_win = 0,
+        current_streak = 0,
+        best_streak = 0
+    `).run();
+
+    // Reset platform stats
+    db.prepare(`
+      UPDATE platform_stats SET
+        total_games = 0,
+        total_wager_games = 0,
+        total_free_games = 0,
+        total_sol_wagered = 0,
+        total_sol_paid_out = 0,
+        total_fees_collected = 0,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = 1
+    `).run();
+
+    // Track unique players for this recalculation
+    const playerSet = new Set<string>();
+
+    // Process each game
+    for (const game of games) {
+      const isWager = game.is_wager_game === 1;
+      const stakeAmount = game.stake_amount || 0;
+      const totalPot = stakeAmount * 2;
+      const winnings = isWager ? totalPot * 0.9 : 0; // 90% to winner
+      const fee = isWager ? totalPot * 0.1 : 0; // 10% fee
+
+      // Track unique players
+      if (game.white_wallet && !game.white_wallet.startsWith('guest_')) {
+        playerSet.add(game.white_wallet);
+      }
+      if (game.black_wallet && !game.black_wallet.startsWith('guest_')) {
+        playerSet.add(game.black_wallet);
+      }
+
+      // Update platform stats
+      db.prepare(`
+        UPDATE platform_stats SET
+          total_games = total_games + 1,
+          total_wager_games = total_wager_games + @isWager,
+          total_free_games = total_free_games + @isFree,
+          total_sol_wagered = total_sol_wagered + @wagered,
+          total_sol_paid_out = total_sol_paid_out + @paidOut,
+          total_fees_collected = total_fees_collected + @fees,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = 1
+      `).run({
+        isWager: isWager ? 1 : 0,
+        isFree: isWager ? 0 : 1,
+        wagered: stakeAmount * 2, // Both players wagered
+        paidOut: (game.result === 'white' || game.result === 'black') ? winnings : 0,
+        fees: (game.result === 'white' || game.result === 'black') ? fee : 0,
+      });
+
+      // Skip guest wallets for player stats
+      const whiteIsReal = game.white_wallet && !game.white_wallet.startsWith('guest_');
+      const blackIsReal = game.black_wallet && !game.black_wallet.startsWith('guest_');
+
+      // Ensure players exist
+      if (whiteIsReal) {
+        db.prepare(`
+          INSERT OR IGNORE INTO player_stats (wallet_address) VALUES (?)
+        `).run(game.white_wallet);
+      }
+      if (blackIsReal) {
+        db.prepare(`
+          INSERT OR IGNORE INTO player_stats (wallet_address) VALUES (?)
+        `).run(game.black_wallet);
+      }
+
+      // Update player stats based on result
+      if (game.result === 'white') {
+        // White wins
+        if (whiteIsReal) {
+          const profit = winnings - stakeAmount;
+          db.prepare(`
+            UPDATE player_stats SET
+              games_played = games_played + 1,
+              games_won = games_won + 1,
+              wager_games_played = wager_games_played + @isWager,
+              wager_games_won = wager_games_won + @isWager,
+              total_wagered = total_wagered + @wagered,
+              total_winnings = total_winnings + @winnings,
+              net_profit = net_profit + @profit,
+              current_streak = current_streak + 1,
+              best_streak = MAX(best_streak, current_streak + 1),
+              biggest_win = MAX(biggest_win, @profit)
+            WHERE wallet_address = ?
+          `).run({
+            isWager: isWager ? 1 : 0,
+            wagered: stakeAmount,
+            winnings: winnings,
+            profit: profit,
+          }, game.white_wallet);
+        }
+        if (blackIsReal) {
+          db.prepare(`
+            UPDATE player_stats SET
+              games_played = games_played + 1,
+              games_lost = games_lost + 1,
+              wager_games_played = wager_games_played + @isWager,
+              total_wagered = total_wagered + @wagered,
+              total_losses = total_losses + @loss,
+              net_profit = net_profit - @loss,
+              current_streak = 0
+            WHERE wallet_address = ?
+          `).run({
+            isWager: isWager ? 1 : 0,
+            wagered: stakeAmount,
+            loss: stakeAmount,
+          }, game.black_wallet);
+        }
+      } else if (game.result === 'black') {
+        // Black wins
+        if (blackIsReal) {
+          const profit = winnings - stakeAmount;
+          db.prepare(`
+            UPDATE player_stats SET
+              games_played = games_played + 1,
+              games_won = games_won + 1,
+              wager_games_played = wager_games_played + @isWager,
+              wager_games_won = wager_games_won + @isWager,
+              total_wagered = total_wagered + @wagered,
+              total_winnings = total_winnings + @winnings,
+              net_profit = net_profit + @profit,
+              current_streak = current_streak + 1,
+              best_streak = MAX(best_streak, current_streak + 1),
+              biggest_win = MAX(biggest_win, @profit)
+            WHERE wallet_address = ?
+          `).run({
+            isWager: isWager ? 1 : 0,
+            wagered: stakeAmount,
+            winnings: winnings,
+            profit: profit,
+          }, game.black_wallet);
+        }
+        if (whiteIsReal) {
+          db.prepare(`
+            UPDATE player_stats SET
+              games_played = games_played + 1,
+              games_lost = games_lost + 1,
+              wager_games_played = wager_games_played + @isWager,
+              total_wagered = total_wagered + @wagered,
+              total_losses = total_losses + @loss,
+              net_profit = net_profit - @loss,
+              current_streak = 0
+            WHERE wallet_address = ?
+          `).run({
+            isWager: isWager ? 1 : 0,
+            wagered: stakeAmount,
+            loss: stakeAmount,
+          }, game.white_wallet);
+        }
+      } else if (game.result === 'draw') {
+        // Draw - no profit/loss, just record games
+        if (whiteIsReal) {
+          db.prepare(`
+            UPDATE player_stats SET
+              games_played = games_played + 1,
+              games_drawn = games_drawn + 1,
+              wager_games_played = wager_games_played + @isWager
+            WHERE wallet_address = ?
+          `).run({ isWager: isWager ? 1 : 0 }, game.white_wallet);
+        }
+        if (blackIsReal) {
+          db.prepare(`
+            UPDATE player_stats SET
+              games_played = games_played + 1,
+              games_drawn = games_drawn + 1,
+              wager_games_played = wager_games_played + @isWager
+            WHERE wallet_address = ?
+          `).run({ isWager: isWager ? 1 : 0 }, game.black_wallet);
+        }
+      }
+    }
+
+    // Update unique players count
+    db.prepare(`
+      UPDATE platform_stats SET unique_players = ? WHERE id = 1
+    `).run(playerSet.size);
+
+    return {
+      playersUpdated: playerSet.size,
+      gamesProcessed: games.length,
+      platformStats: this.getPlatformStats(),
+    };
+  }
 }
 
 export const statsStore = new StatsStore();

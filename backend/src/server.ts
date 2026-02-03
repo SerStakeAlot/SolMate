@@ -414,6 +414,33 @@ app.post('/api/admin/sync-usernames', (req, res) => {
   }
 });
 
+// Admin endpoint to recalculate all stats from game history
+app.post('/api/admin/recalculate-stats', (req, res) => {
+  try {
+    const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
+    const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
+    
+    if (adminKey !== expectedKey) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    const result = statsStore.recalculateAllStats();
+    // Also sync usernames after recalculating
+    const synced = statsStore.syncUsernames(userStore);
+    
+    console.log('Stats recalculated:', result);
+    res.json({ 
+      success: true, 
+      message: `Recalculated stats from ${result.gamesProcessed} games, ${result.playersUpdated} players, synced ${synced} usernames`,
+      ...result,
+      usernamesSynced: synced,
+    });
+  } catch (error) {
+    console.error('Error recalculating stats:', error);
+    res.status(500).json({ error: 'Failed to recalculate stats' });
+  }
+});
+
 // ============= Holder Arena API Endpoints =============
 
 // Get arena status for a wallet (games remaining, cooldown, stats)
