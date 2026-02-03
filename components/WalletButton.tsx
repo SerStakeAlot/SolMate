@@ -485,24 +485,26 @@ const StandardWalletButton: React.FC = () => {
 
   return (
     <>
-      {/* Floating status indicator when connecting (modal closed) */}
+      {/* Floating status indicator when connecting (modal closed) 
+          MOVED TO TOP to avoid blocking wallet bottom sheet on Android */}
       {isConnecting && !showModal && (
         <div style={{
           position: 'fixed',
-          bottom: '20px',
+          top: '80px', // Changed from bottom: 20px - wallet bottom sheet appears at bottom
           left: '50%',
           transform: 'translateX(-50%)',
           backgroundColor: 'rgba(0, 0, 0, 0.9)',
           border: '1px solid rgba(20, 241, 149, 0.5)',
           borderRadius: '12px',
           padding: '12px 20px',
-          zIndex: 10000,
+          zIndex: 50, // Lowered significantly to not interfere with native UI
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
           color: '#fff',
           fontSize: '14px',
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.5)',
+          pointerEvents: 'none', // Allow clicks to pass through
         }}>
           <div style={{
             width: '16px',
