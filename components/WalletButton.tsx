@@ -167,66 +167,11 @@ const StandardWalletButton: React.FC = () => {
       }
     }
     
-    // On Android, try to connect via MWA
+    // On Android, skip transact() which hangs - just show modal directly
     if (isMobile && /android/i.test(navigator.userAgent)) {
-      setDebugInfo('Android: Trying MWA...');
-      
-      // Try transact with a timeout - if it hangs, fall back to modal
-      let transactTimedOut = false;
-      const timeoutId = setTimeout(() => {
-        transactTimedOut = true;
-        setDebugInfo('transact() timed out - showing modal');
-        setShowModal(true);
-      }, 3000); // 3 second timeout
-      
-      try {
-        const authResult = await transact(async (wallet) => {
-          if (transactTimedOut) throw new Error('Timed out');
-          clearTimeout(timeoutId);
-          setDebugInfo('Wallet responding...');
-          
-          const result = await wallet.authorize({
-            cluster: 'mainnet-beta',
-            identity: {
-              name: 'SolMate',
-              uri: 'https://playsolmate.fun',
-              icon: 'https://playsolmate.fun/images/chess-hero.png',
-            },
-          });
-          
-          return result;
-        });
-        
-        clearTimeout(timeoutId);
-        if (transactTimedOut) return;
-        
-        const address = authResult.accounts[0]?.address;
-        if (address) {
-          setDebugInfo(`Connected: ${address.slice(0, 8)}...`);
-          
-          const mwaWallet = wallets.find(w => w.adapter.name === 'Mobile Wallet Adapter');
-          if (mwaWallet) {
-            select(mwaWallet.adapter.name as WalletName);
-            await new Promise(resolve => setTimeout(resolve, 100));
-            try {
-              await connect();
-            } catch (e) {
-              console.log('Adapter sync:', e);
-            }
-          }
-        }
-        return;
-      } catch (error: any) {
-        clearTimeout(timeoutId);
-        if (transactTimedOut) return;
-        
-        const errMsg = error?.message || String(error);
-        console.log('[transact] Error:', errMsg);
-        setDebugInfo(`MWA: ${errMsg.slice(0, 50)}`);
-        // Show modal as fallback
-        setShowModal(true);
-        return;
-      }
+      setDebugInfo('Android detected - showing wallet options');
+      setShowModal(true);
+      return;
     }
   }, [wallets, select, connect, disconnect, connected, publicKey, isMobile]);
 
