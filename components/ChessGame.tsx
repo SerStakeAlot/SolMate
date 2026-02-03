@@ -3344,12 +3344,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           disabled={isSubmittingResult}
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
-                          className="mt-2 w-full bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 disabled:from-neutral-600 disabled:to-neutral-500 text-white font-bold py-2.5 px-4 rounded-lg transition-all text-sm flex items-center justify-center gap-2"
+                          className="mt-2 w-full bg-gradient-to-r from-emerald-500 to-green-400 hover:from-emerald-400 hover:to-green-300 disabled:from-neutral-600 disabled:to-neutral-500 text-black font-bold py-3 px-4 rounded-lg transition-all text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30"
                         >
                           {isSubmittingResult ? (
-                            <><RefreshCw className="w-4 h-4 animate-spin" /> Claiming...</>
+                            <><RefreshCw className="w-5 h-5 animate-spin" /> Claiming...</>
                           ) : (
-                            <><Coins className="w-4 h-4" /> Claim Winnings</>
+                            <><Coins className="w-5 h-5" /> 💰 CLAIM WINNINGS</>
                           )}
                         </motion.button>
                       )}
