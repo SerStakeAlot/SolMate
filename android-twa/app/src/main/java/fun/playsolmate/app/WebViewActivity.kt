@@ -73,15 +73,33 @@ class WebViewActivity : ComponentActivity() {
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val url = request?.url?.toString() ?: return false
+                Log.d(TAG, "shouldOverrideUrlLoading: $url")
                 
-                // Handle external links (wallets, etc)
-                if (url.startsWith("solana-wallet:") || 
-                    url.startsWith("solflare:") || 
+                // IMPORTANT: Let the JS MWA SDK handle solana-wallet:// intents
+                // Don't intercept these - let them go through the iframe mechanism
+                if (url.startsWith("solana-wallet:")) {
+                    Log.d(TAG, "Allowing solana-wallet:// URL through iframe")
+                    // Try to launch via intent
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        intent.addCategory(Intent.CATEGORY_BROWSABLE)
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(intent)
+                        return true
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to launch solana-wallet intent: $url", e)
+                        return false
+                    }
+                }
+                
+                // Handle other wallet deep links
+                if (url.startsWith("solflare:") || 
                     url.startsWith("phantom:") ||
                     url.startsWith("https://phantom.app") ||
                     url.startsWith("https://solflare.com")) {
                     try {
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         startActivity(intent)
                         return true
                     } catch (e: Exception) {
@@ -112,17 +130,14 @@ class WebViewActivity : ComponentActivity() {
                 super.onPageFinished(view, url)
                 Log.d(TAG, "Page loaded: $url")
                 
-                // Inject a flag to let the web app know native MWA is available
+                // DON'T inject native MWA flag - let JS MWA SDK handle everything
+                // The JS SDK works in Chrome and should work here too
                 view?.evaluateJavascript("""
                     (function() {
-                        window.isNativeMwaAvailable = true;
-                        window.nativeMwaVersion = '1.0.0';
-                        console.log('[NativeMWA] Native MWA bridge is available');
-                        
-                        // Dispatch event to notify the app
-                        window.dispatchEvent(new CustomEvent('nativeMwaReady', { 
-                            detail: { version: '1.0.0' } 
-                        }));
+                        // Disable native MWA so JS SDK is used
+                        window.isNativeMwaAvailable = false;
+                        window.nativeMwaVersion = null;
+                        console.log('[WebView] Native MWA disabled - using JS MWA SDK');
                     })();
                 """.trimIndent(), null)
             }
