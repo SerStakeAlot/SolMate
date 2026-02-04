@@ -57,12 +57,19 @@ class WebViewActivity : ComponentActivity() {
             builtInZoomControls = false
             displayZoomControls = false
             setSupportZoom(false)
-            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+            
+            // IMPORTANT: Allow mixed content for localhost WebSocket (MWA uses ws://localhost)
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            
             cacheMode = WebSettings.LOAD_DEFAULT
             mediaPlaybackRequiresUserGesture = false
             
             // Enable modern web features
             javaScriptCanOpenWindowsAutomatically = true
+            
+            // Allow universal access for localhost connections
+            allowUniversalAccessFromFileURLs = true
+            allowFileAccessFromFileURLs = true
         }
         
         // Create and attach MWA Bridge
@@ -179,11 +186,21 @@ class WebViewActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         webView.onResume()
+        webView.resumeTimers()
+        Log.d(TAG, "onResume - WebView resumed")
     }
     
     override fun onPause() {
         super.onPause()
-        webView.onPause()
+        // DON'T pause WebView - keep WebSocket connections alive for MWA
+        // webView.onPause()
+        Log.d(TAG, "onPause - Keeping WebView active for MWA")
+    }
+    
+    override fun onStop() {
+        super.onStop()
+        // Still don't pause - MWA needs active WebSocket
+        Log.d(TAG, "onStop - Keeping WebView active")
     }
     
     override fun onDestroy() {
