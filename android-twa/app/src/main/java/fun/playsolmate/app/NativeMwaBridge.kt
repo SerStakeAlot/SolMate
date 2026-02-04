@@ -158,12 +158,14 @@ class NativeMwaBridge(
             var localAssociation: LocalAssociationScenario? = null
             
             try {
-                Log.d(TAG, "Creating LocalAssociationScenario...")
+                Log.d(TAG, "=== MWA CONNECTION STARTING ===")
+                Log.d(TAG, "Step 1: Creating LocalAssociationScenario...")
                 localAssociation = LocalAssociationScenario(Scenario.DEFAULT_CLIENT_TIMEOUT_MS)
                 pendingScenario = localAssociation
                 
                 val port = localAssociation.port
-                Log.d(TAG, "LocalAssociationScenario created on port $port")
+                Log.d(TAG, "Step 2: Scenario created on port $port")
+                Log.d(TAG, "Step 2b: Session: ${localAssociation.session}")
                 
                 // Create the association intent
                 val associationIntent = LocalAssociationIntentCreator.createAssociationIntent(
@@ -172,33 +174,63 @@ class NativeMwaBridge(
                     localAssociation.session
                 )
                 
-                Log.d(TAG, "Association Intent created: ${associationIntent.data}")
+                val intentUri = associationIntent.data
+                Log.d(TAG, "Step 3: Intent created")
+                Log.d(TAG, "  - Action: ${associationIntent.action}")
+                Log.d(TAG, "  - Data URI: $intentUri")
+                Log.d(TAG, "  - Categories: ${associationIntent.categories}")
+                
+                // Check what can handle this intent
+                val pm = activity.packageManager
+                val handlers = pm.queryIntentActivities(associationIntent, 0)
+                Log.d(TAG, "Step 4: Found ${handlers.size} handlers for intent")
+                for (handler in handlers) {
+                    Log.d(TAG, "  - Handler: ${handler.activityInfo.packageName}/${handler.activityInfo.name}")
+                }
+                
+                if (handlers.isEmpty()) {
+                    Log.e(TAG, "NO HANDLERS FOUND! Seed Vault may not be enabled or installed.")
+                    throw Exception("No wallet found that can handle MWA. Is Seed Vault enabled in Settings?")
+                }
                 
                 // Launch the intent on main thread
                 withContext(Dispatchers.Main) {
                     try {
-                        Log.d(TAG, "Launching wallet intent...")
+                        Log.d(TAG, "Step 5: Launching wallet intent from main thread...")
                         activity.startActivity(associationIntent)
-                        Log.d(TAG, "Wallet intent launched successfully")
+                        Log.d(TAG, "Step 5b: startActivity() completed without exception")
                     } catch (e: ActivityNotFoundException) {
-                        Log.e(TAG, "No wallet app found to handle intent", e)
+                        Log.e(TAG, "ActivityNotFoundException!", e)
                         throw Exception("No MWA wallet found. Please install Phantom, Solflare, or enable Seed Vault.")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Exception launching intent: ${e.javaClass.simpleName}", e)
+                        throw e
                     }
                 }
                 
+                // Small delay to let the wallet app start
+                Log.d(TAG, "Step 6: Waiting 500ms for wallet to initialize...")
+                Thread.sleep(500)
+                
                 // Start the local association and wait for connection
-                Log.d(TAG, "Starting local association (waiting for wallet to connect)...")
+                Log.d(TAG, "Step 7: Starting local association (WebSocket client)...")
+                Log.d(TAG, "  - Timeout: ${LOCAL_ASSOCIATION_START_TIMEOUT_MS}ms")
                 val mwaClient: MobileWalletAdapterClient
                 try {
-                    mwaClient = localAssociation.start()
-                        .get(LOCAL_ASSOCIATION_START_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-                    Log.d(TAG, "MWA client connected!")
+                    val startFuture = localAssociation.start()
+                    Log.d(TAG, "Step 7b: start() called, waiting for future...")
+                    mwaClient = startFuture.get(LOCAL_ASSOCIATION_START_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                    Log.d(TAG, "Step 8: MWA client connected successfully!")
                 } catch (e: TimeoutException) {
-                    Log.e(TAG, "Timeout waiting for wallet connection", e)
-                    throw Exception("Timeout: Wallet did not connect. Make sure Seed Vault is enabled and try again.")
+                    Log.e(TAG, "TIMEOUT waiting for wallet connection after ${LOCAL_ASSOCIATION_START_TIMEOUT_MS}ms", e)
+                    throw Exception("Timeout: Wallet did not connect. The wallet may have closed or Seed Vault may not be responding.")
                 } catch (e: ExecutionException) {
-                    Log.e(TAG, "Failed to establish connection", e)
+                    Log.e(TAG, "ExecutionException during connection", e)
+                    Log.e(TAG, "  - Cause: ${e.cause?.javaClass?.simpleName}: ${e.cause?.message}")
                     throw Exception("Connection failed: ${e.cause?.message ?: e.message}")
+                } catch (e: InterruptedException) {
+                    Log.e(TAG, "InterruptedException", e)
+                    throw Exception("Connection interrupted")
                 }
                 
                 // Now authorize
