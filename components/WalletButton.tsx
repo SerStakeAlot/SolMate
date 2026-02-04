@@ -340,45 +340,42 @@ const StandardWalletButton: React.FC = () => {
     setShowModal(true);
   }, [wallets, select, connect, disconnect, connected, publicKey, isMobile]);
 
-  const handleSelectWallet = useCallback((walletName: WalletName) => {
+  const handleSelectWallet = useCallback(async (walletName: WalletName) => {
     console.log('[WalletModal] Connecting with:', walletName);
+    const debugLog = (window as any).mwaDebugLog || console.log;
     
-    // Update debug immediately
+    debugLog(`Selecting: ${walletName}`);
     setDebugInfo(`Connecting to ${walletName}...`);
     
     // Close modal FIRST to allow wallet bottom sheet to appear
     setShowModal(false);
     
-    // Select the wallet
-    select(walletName);
-    
-    // Give the modal time to fully unmount before triggering MWA
-    // This ensures the wallet bottom sheet can appear without being blocked
-    setTimeout(() => {
-      console.log('[WalletModal] Triggering connect...');
-      setDebugInfo(`${walletName}: Waiting for wallet...`);
+    try {
+      // Select the wallet
+      debugLog(`Calling select()...`);
+      select(walletName);
       
-      // Add a timeout to detect if wallet never responds
-      const connectionTimeout = setTimeout(() => {
-        console.log('[WalletModal] Connection timeout - wallet not responding');
-        setDebugInfo(`${walletName}: Timed out. Is Battery Saver ON? Try disabling it.`);
-        setShowModal(true);
-      }, 35000); // 35 second timeout
+      // Small delay to let selection take effect
+      await new Promise(r => setTimeout(r, 100));
+      debugLog(`Selected, calling connect()...`);
       
-      connect().then(() => {
-        clearTimeout(connectionTimeout);
-        console.log('[WalletModal] Connected successfully!');
-        setDebugInfo('Connected!');
-      }).catch((error: any) => {
-        clearTimeout(connectionTimeout);
-        console.error('[WalletModal] Connection error:', error);
-        const errorCode = error?.code || error?.name || '';
-        const errorMsg = error?.message?.slice(0, 80) || 'Connection failed';
-        setDebugInfo(`Error [${errorCode}]: ${errorMsg}`);
-        // Re-show modal on error so user can try again
-        setShowModal(true);
-      });
-    }, 300); // Increased delay to ensure modal is fully gone
+      // Try to connect
+      await connect();
+      
+      debugLog(`✅ Connect returned successfully`);
+      setDebugInfo('Connected!');
+    } catch (error: any) {
+      const errorName = error?.name || 'Unknown';
+      const errorCode = error?.code || '';
+      const errorMsg = error?.message?.slice(0, 60) || 'Connection failed';
+      
+      debugLog(`❌ Error: [${errorName}${errorCode ? ':' + errorCode : ''}] ${errorMsg}`);
+      console.error('[WalletModal] Connection error:', error);
+      setDebugInfo(`Error: ${errorMsg}`);
+      
+      // Re-show modal on error so user can try again
+      setTimeout(() => setShowModal(true), 500);
+    }
   }, [select, connect]);
 
   const handleDisconnect = useCallback(() => {

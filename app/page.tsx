@@ -12,25 +12,33 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-prod
 
 // Debug component for MWA troubleshooting (only shows on Android)
 const MWADebug = () => {
-  const { connecting, connected, wallet, publicKey } = useWallet();
+  const { connecting, connected, wallet, publicKey, wallets } = useWallet();
   const [isAndroid, setIsAndroid] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
+  
+  // Expose addLog globally so WalletButton can use it
+  useEffect(() => {
+    (window as any).mwaDebugLog = (msg: string) => {
+      setLogs(prev => [...prev.slice(-5), msg]);
+    };
+  }, []);
   
   useEffect(() => {
     const android = /android/i.test(navigator.userAgent);
     setIsAndroid(android);
     
     if (android) {
-      setLogs(prev => [...prev.slice(-4), `Init: Android detected, secure=${window.isSecureContext}`]);
+      const mwaWallet = wallets.find(w => w.adapter.name === 'Mobile Wallet Adapter');
+      setLogs([`Android, secure=${window.isSecureContext}, MWA=${mwaWallet ? 'found' : 'NOT FOUND'}`]);
     }
-  }, []);
+  }, [wallets]);
   
   useEffect(() => {
     if (isAndroid) {
       if (connecting) {
-        setLogs(prev => [...prev.slice(-4), `Connecting to ${wallet?.adapter?.name || 'unknown'}...`]);
+        setLogs(prev => [...prev.slice(-5), `⏳ Connecting: ${wallet?.adapter?.name}...`]);
       } else if (connected && publicKey) {
-        setLogs(prev => [...prev.slice(-4), `Connected: ${publicKey.toBase58().slice(0, 8)}...`]);
+        setLogs(prev => [...prev.slice(-5), `✅ Connected: ${publicKey.toBase58().slice(0, 8)}...`]);
       }
     }
   }, [connecting, connected, wallet, publicKey, isAndroid]);
@@ -43,24 +51,31 @@ const MWADebug = () => {
       bottom: '10px',
       left: '10px',
       right: '10px',
-      backgroundColor: 'rgba(0,0,0,0.9)',
-      border: '1px solid #333',
+      backgroundColor: 'rgba(0,0,0,0.95)',
+      border: '1px solid #444',
       borderRadius: '8px',
-      padding: '8px',
+      padding: '10px',
       fontSize: '11px',
       fontFamily: 'monospace',
       color: '#0f0',
       zIndex: 9998,
-      maxHeight: '100px',
+      maxHeight: '120px',
       overflow: 'auto'
     }}>
-      <div style={{ color: '#888', marginBottom: '4px' }}>MWA Debug v3:</div>
+      <div style={{ color: '#888', marginBottom: '4px' }}>MWA Debug v4:</div>
       {logs.map((log, i) => (
-        <div key={i} style={{ color: log.includes('Error') ? '#f00' : log.includes('Connected') ? '#0f0' : '#fff' }}>
+        <div key={i} style={{ 
+          color: log.includes('Error') || log.includes('❌') ? '#f55' : 
+                 log.includes('✅') ? '#5f5' : 
+                 log.includes('⏳') ? '#ff5' : '#fff',
+          marginBottom: '2px'
+        }}>
           {log}
         </div>
       ))}
-      <div>Status: {connecting ? '⏳ Connecting' : connected ? '✅ Connected' : '❌ Not connected'}</div>
+      <div style={{ color: '#888', marginTop: '4px' }}>
+        State: {connecting ? '⏳connecting' : connected ? '✅connected' : '❌disconnected'} | Wallet: {wallet?.adapter?.name || 'none'}
+      </div>
     </div>
   );
 };
