@@ -1,6 +1,6 @@
 'use client';
 
-import React, { FC, ReactNode, useMemo, useEffect } from 'react';
+import React, { FC, ReactNode, useMemo, useEffect, useState } from 'react';
 import { ConnectionProvider, WalletProvider as SolanaWalletProvider } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
@@ -29,23 +29,38 @@ function getUriForAppIdentity() {
   return `${window.location.protocol}//${window.location.host}`;
 }
 
-// Register MWA globally (runs once at module load on client)
-// This uses wallet-standard which is the modern approach for MWA
-if (typeof window !== 'undefined' && isAndroidMobile()) {
-  registerMwa({
-    appIdentity: {
-      uri: getUriForAppIdentity(),
-      name: 'SolMate',
-      icon: 'https://playsolmate.fun/images/chess-hero.png',
-    },
-    authorizationCache: createDefaultAuthorizationCache(),
-    chains: ['solana:mainnet'], // mainnet chain ID
-    chainSelector: createDefaultChainSelector(),
-    onWalletNotFound: createDefaultWalletNotFoundHandler(),
-  });
-}
+// Track if MWA has been registered (module-level to prevent double registration)
+let mwaRegistered = false;
 
 export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
+  const [isMounted, setIsMounted] = useState(false);
+  
+  // Register MWA on client-side mount (not during SSR)
+  useEffect(() => {
+    setIsMounted(true);
+    
+    if (!mwaRegistered && isAndroidMobile()) {
+      console.log('[MWA] Registering Mobile Wallet Adapter...');
+      try {
+        registerMwa({
+          appIdentity: {
+            uri: getUriForAppIdentity(),
+            name: 'SolMate',
+            icon: 'https://playsolmate.fun/images/chess-hero.png',
+          },
+          authorizationCache: createDefaultAuthorizationCache(),
+          chains: ['solana:mainnet'], // mainnet chain ID
+          chainSelector: createDefaultChainSelector(),
+          onWalletNotFound: createDefaultWalletNotFoundHandler(),
+        });
+        mwaRegistered = true;
+        console.log('[MWA] Registration complete');
+      } catch (e) {
+        console.error('[MWA] Registration failed:', e);
+      }
+    }
+  }, []);
+
   // The network can be set to 'devnet', 'testnet', or 'mainnet-beta'.
   const network = WalletAdapterNetwork.Mainnet;
 
@@ -71,7 +86,7 @@ export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <SolanaWalletProvider wallets={wallets} autoConnect={isAndroidMobile()}>
+      <SolanaWalletProvider wallets={wallets} autoConnect={isMounted && isAndroidMobile()}>
         {children}
       </SolanaWalletProvider>
     </ConnectionProvider>
