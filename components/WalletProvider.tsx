@@ -5,31 +5,22 @@ import { ConnectionProvider, WalletProvider as SolanaWalletProvider } from '@sol
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 
-// We use @solana-mobile/wallet-standard-mobile's registerMwa() instead of 
-// SolanaMobileWalletAdapter to properly integrate with Seed Vault via wallet-standard
-
-// Component to register MWA with wallet-standard before wallet-adapter loads
-const MWARegistration: FC<{ children: ReactNode }> = ({ children }) => {
-  const [isRegistered, setIsRegistered] = useState(false);
+// Register MWA at module level (before React renders) - this is how the official example does it
+// The library will check if we're on Android + not in WebView before actually registering
+if (typeof window !== 'undefined') {
+  const isAndroid = /android/i.test(navigator.userAgent);
   
-  useEffect(() => {
-    // Register MWA on the client side only
-    if (typeof window === 'undefined') {
-      setIsRegistered(true);
-      return;
-    }
-    
-    const isAndroid = /android/i.test(navigator.userAgent);
-    
-    if (!isAndroid) {
-      // Not Android, no MWA needed
-      console.log('[MWA] Not Android, skipping registration');
-      setIsRegistered(true);
-      return;
-    }
-    
-    // Import and register MWA with wallet-standard
-    // This makes Seed Vault appear as a standard wallet option
+  // Debug logging
+  console.log('[MWA Init] UserAgent:', navigator.userAgent);
+  console.log('[MWA Init] isAndroid:', isAndroid);
+  console.log('[MWA Init] isSecureContext:', window.isSecureContext);
+  
+  // Check if the library would consider this a WebView (we want to know for debugging)
+  const isWebViewPattern = /(WebView|Version\/.+(Chrome)\/(\d+)\.(\d+)\.(\d+)\.(\d+)|; wv\).+(Chrome)\/(\d+)\.(\d+)\.(\d+)\.(\d+))/i;
+  const wouldBeWebView = isWebViewPattern.test(navigator.userAgent);
+  console.log('[MWA Init] Library would detect WebView:', wouldBeWebView);
+  
+  if (isAndroid && window.isSecureContext) {
     import('@solana-mobile/wallet-standard-mobile').then((module) => {
       const { 
         registerMwa, 
@@ -39,7 +30,7 @@ const MWARegistration: FC<{ children: ReactNode }> = ({ children }) => {
       } = module;
       
       try {
-        const unregister = registerMwa({
+        registerMwa({
           appIdentity: {
             name: 'SolMate',
             uri: 'https://playsolmate.fun',
@@ -50,28 +41,17 @@ const MWARegistration: FC<{ children: ReactNode }> = ({ children }) => {
           chainSelector: createDefaultChainSelector(),
           onWalletNotFound: createDefaultWalletNotFoundHandler(),
         });
-        console.log('[MWA] Registered with wallet-standard successfully');
-        
-        // Store unregister function for cleanup if needed
-        (window as any).__mwaUnregister = unregister;
+        console.log('[MWA] ✅ Registered with wallet-standard');
       } catch (err: any) {
-        console.error('[MWA] Registration failed:', err);
+        console.error('[MWA] ❌ Registration failed:', err);
       }
-      setIsRegistered(true);
     }).catch((err) => {
-      console.error('[MWA] Module load failed:', err);
-      setIsRegistered(true);
+      console.error('[MWA] ❌ Module load failed:', err);
     });
-  }, []);
-  
-  // Don't render children until MWA is registered (on Android)
-  // This ensures wallet-standard sees MWA before wallet-adapter initializes
-  if (!isRegistered) {
-    return null;
+  } else {
+    console.log('[MWA] Skipped: isAndroid=' + isAndroid + ', isSecureContext=' + window.isSecureContext);
   }
-  
-  return <>{children}</>;
-};
+}
 
 export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
   // Use a reliable RPC endpoint for mainnet
@@ -83,7 +63,7 @@ export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
   }, []);
 
   // Only include non-MWA wallets here
-  // MWA is registered via registerMwa() in MWARegistration component
+  // MWA is registered via registerMwa() at module level above
   // and will automatically appear via wallet-standard
   const wallets = useMemo(
     () => [
@@ -94,12 +74,10 @@ export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
   );
 
   return (
-    <MWARegistration>
-      <ConnectionProvider endpoint={endpoint}>
-        <SolanaWalletProvider wallets={wallets} autoConnect={false}>
-          {children}
-        </SolanaWalletProvider>
-      </ConnectionProvider>
-    </MWARegistration>
+    <ConnectionProvider endpoint={endpoint}>
+      <SolanaWalletProvider wallets={wallets} autoConnect={false}>
+        {children}
+      </SolanaWalletProvider>
+    </ConnectionProvider>
   );
 };
