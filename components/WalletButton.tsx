@@ -11,6 +11,13 @@ import {
   addMWAListener, 
   isMWAAvailable 
 } from '@/utils/mwa';
+import {
+  isNativeMwaAvailable,
+  connectNativeMwa,
+  disconnectNativeMwa,
+  getNativeMwaStatus,
+  waitForNativeMwa
+} from '@/utils/nativeMwa';
 
 // Detect if we're on a mobile device
 const isMobileDevice = () => {
@@ -120,9 +127,35 @@ const StandardWalletButton: React.FC = () => {
   const [mwaConnecting, setMwaConnecting] = useState(false);
   const [showMWAOption, setShowMWAOption] = useState(false);
   
-  // State for native TWA MWA connection
+  // State for native bridge MWA connection (Android WebView)
+  const [nativeMwaAvailable, setNativeMwaAvailable] = useState(false);
+  const [nativeMwaConnected, setNativeMwaConnected] = useState(false);
+  const [nativeMwaPublicKey, setNativeMwaPublicKey] = useState<string | null>(null);
+  
+  // State for native TWA MWA connection (legacy - deep links)
   const [twaPublicKey, setTwaPublicKey] = useState<string | null>(null);
   const [twaAuthToken, setTwaAuthToken] = useState<string | null>(null);
+  
+  // Check for native MWA bridge on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Wait for native MWA bridge to be ready
+    waitForNativeMwa(2000).then((available) => {
+      console.log('[WalletButton] Native MWA available:', available);
+      setNativeMwaAvailable(available);
+      
+      if (available) {
+        // Check if already connected
+        const status = getNativeMwaStatus();
+        if (status?.connected && status.publicKey) {
+          setNativeMwaConnected(true);
+          setNativeMwaPublicKey(status.publicKey);
+          setDebugInfo(`✅ Native MWA: ${status.publicKey.slice(0, 8)}...`);
+        }
+      }
+    });
+  }, []);
 
   // Handle callback from native TWA MWA
   useEffect(() => {
@@ -174,8 +207,8 @@ const StandardWalletButton: React.FC = () => {
       setMwaPublicKey(pubkey?.toBase58() || null);
     });
     
-    // Check if MWA is available on this device
-    setShowMWAOption(isMWAAvailable());
+    // Check if MWA is available on this device (WebSocket or Native)
+    setShowMWAOption(isMWAAvailable() || nativeMwaAvailable);
     
     // Check initial state
     const { connected: initialConnected, publicKey: initialPubkey } = getMWAState();
@@ -183,11 +216,41 @@ const StandardWalletButton: React.FC = () => {
     setMwaPublicKey(initialPubkey?.toBase58() || null);
     
     return unsubscribe;
-  }, []);
+  }, [nativeMwaAvailable]);
 
-  // Handle MWA connect
+  // Handle MWA connect - uses native bridge if available, falls back to WebSocket
   const handleMWAConnect = useCallback(async () => {
     setMwaConnecting(true);
+    
+    // Try native MWA bridge first (Android WebView)
+    if (nativeMwaAvailable) {
+      setDebugInfo('Native MWA: Connecting to Seed Vault...');
+      console.log('[WalletButton] Using native MWA bridge');
+      
+      try {
+        const result = await connectNativeMwa('mainnet-beta', 'SolMate', 'https://playsolmate.fun', 'https://playsolmate.fun/images/solmate-logo.png');
+        console.log('[WalletButton] Native MWA result:', result);
+        
+        if (result.success && result.publicKey) {
+          setNativeMwaConnected(true);
+          setNativeMwaPublicKey(result.publicKey);
+          setDebugInfo(`✅ Seed Vault Connected: ${result.publicKey.slice(0, 8)}...`);
+          setShowModal(false);
+          setMwaConnecting(false);
+          return;
+        } else {
+          setDebugInfo(`❌ Native MWA: ${result.error || 'Unknown error'}`);
+        }
+      } catch (e) {
+        console.error('[WalletButton] Native MWA error:', e);
+        setDebugInfo(`❌ Native MWA error: ${e}`);
+      }
+      
+      setMwaConnecting(false);
+      return;
+    }
+    
+    // Fall back to WebSocket MWA
     setDebugInfo('MWA: Starting connection (with attestation support)...');
     console.log('[WalletButton] Starting MWA connection');
     try {
@@ -219,17 +282,24 @@ const StandardWalletButton: React.FC = () => {
     } finally {
       setMwaConnecting(false);
     }
-  }, []);
+  }, [nativeMwaAvailable]);
 
   // Handle MWA disconnect
   const handleMWADisconnect = useCallback(() => {
+    // Disconnect native MWA if connected
+    if (nativeMwaConnected) {
+      disconnectNativeMwa();
+      setNativeMwaConnected(false);
+      setNativeMwaPublicKey(null);
+    }
+    // Also disconnect WebSocket MWA
     disconnectMWA();
     setDebugInfo('MWA Disconnected');
-  }, []);
+  }, [nativeMwaConnected]);
 
-  // Fetch player stats when connected (either wallet-adapter or MWA)
+  // Fetch player stats when connected (either wallet-adapter, MWA, or native MWA)
   useEffect(() => {
-    const walletAddr = publicKey?.toBase58() || mwaPublicKey;
+    const walletAddr = publicKey?.toBase58() || mwaPublicKey || nativeMwaPublicKey;
     if (walletAddr) {
       getPlayerStats(walletAddr).then(setPlayerStats);
       getUsername(walletAddr).then(setUsername);
@@ -237,7 +307,7 @@ const StandardWalletButton: React.FC = () => {
       setPlayerStats(null);
       setUsername(null);
     }
-  }, [connected, publicKey, mwaConnected, mwaPublicKey]);
+  }, [connected, publicKey, mwaConnected, mwaPublicKey, nativeMwaConnected, nativeMwaPublicKey]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

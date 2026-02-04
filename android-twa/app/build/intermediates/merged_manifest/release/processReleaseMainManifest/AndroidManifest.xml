@@ -23,11 +23,11 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="fun.playsolmate.app"
-    android:versionCode="12"
-    android:versionName="Version 11 - Native MWA" >
+    android:versionCode="13"
+    android:versionName="Version 12 - Native MWA Bridge" >
 
     <uses-sdk
-        android:minSdkVersion="21"
+        android:minSdkVersion="24"
         android:targetSdkVersion="35" />
 
     <!-- Package visibility for MWA (Mobile Wallet Adapter) -->
@@ -50,22 +50,32 @@
             <category android:name="android.intent.category.BROWSABLE" />
 
             <data android:scheme="https" />
+        </intent> <!-- Support querying whether an app with the wallet endpoint role is available -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+
+            <category android:name="android.intent.category.BROWSABLE" />
+
+            <data android:scheme="solana-wallet" />
         </intent>
     </queries>
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REORDER_TASKS" />
 
     <permission
         android:name="fun.playsolmate.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
         android:protectionLevel="signature" />
 
     <uses-permission android:name="fun.playsolmate.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:name="fun.playsolmate.app.Application"
         android:allowBackup="true"
         android:appComponentFactory="androidx.core.app.CoreComponentFactory"
-        android:extractNativeLibs="true"
+        android:extractNativeLibs="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/appName"
         android:manageSpaceActivity="com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity"
@@ -96,10 +106,27 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <!-- WebView Activity with Native MWA Bridge - Main Launcher -->
+        <activity
+            android:name="fun.playsolmate.app.WebViewActivity"
+            android:alwaysRetainTaskState="true"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:exported="true"
+            android:label="@string/launcherName"
+            android:theme="@android:style/Theme.NoTitleBar" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Original TWA Launcher (backup) -->
         <activity
             android:name="fun.playsolmate.app.LauncherActivity"
             android:alwaysRetainTaskState="true"
-            android:exported="true"
+            android:exported="false"
             android:label="@string/launcherName" >
             <meta-data
                 android:name="android.support.customtabs.trusted.DEFAULT_URL"
@@ -144,11 +171,6 @@
                 android:name="android.support.customtabs.trusted.SCREEN_ORIENTATION"
                 android:value="@string/orientation" />
 
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
             <intent-filter android:autoVerify="true" >
                 <action android:name="android.intent.action.VIEW" />
 
@@ -195,8 +217,50 @@
         <!-- Location delegation removed - was causing Google Play Services AR requirement -->
 
 
+        <!-- MWA Handler: Intercepts solmate-mwa:// deep links for native MWA -->
+        <activity
+            android:name="fun.playsolmate.app.MwaHandlerActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" >
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="solmate-mwa" />
+            </intent-filter>
+        </activity>
+
         <!-- MWA: Removed custom redirect activity - let Chrome handle solana-wallet:// natively -->
         <!-- The <queries> section above ensures wallet apps are visible to the system -->
+        <activity
+            android:name="androidx.test.core.app.InstrumentationActivityInvoker$BootstrapActivity"
+            android:exported="true"
+            android:theme="@style/WhiteBackgroundTheme" >
+            <intent-filter android:priority="-100" >
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name="androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity"
+            android:exported="true"
+            android:theme="@style/WhiteBackgroundTheme" >
+            <intent-filter android:priority="-100" >
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name="androidx.test.core.app.InstrumentationActivityInvoker$EmptyFloatingActivity"
+            android:exported="true"
+            android:theme="@style/WhiteBackgroundDialogTheme" >
+            <intent-filter android:priority="-100" >
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
         <provider
             android:name="androidx.startup.InitializationProvider"
             android:authorities="fun.playsolmate.app.androidx-startup"

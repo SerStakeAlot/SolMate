@@ -1235,6 +1235,8 @@ style ThemeOverlay_AppCompat_DayNight_ActionBar
 style ThemeOverlay_AppCompat_Dialog
 style ThemeOverlay_AppCompat_Dialog_Alert
 style ThemeOverlay_AppCompat_Light
+style WhiteBackgroundDialogTheme
+style WhiteBackgroundTheme
 style Widget_AppCompat_ActionBar
 style Widget_AppCompat_ActionBar_Solid
 style Widget_AppCompat_ActionBar_TabBar

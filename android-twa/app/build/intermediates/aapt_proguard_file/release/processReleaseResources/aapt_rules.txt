@@ -2,6 +2,9 @@
 -keep class androidx.core.content.FileProvider { <init>(); }
 -keep class androidx.profileinstaller.ProfileInstallReceiver { <init>(); }
 -keep class androidx.startup.InitializationProvider { <init>(); }
+-keep class androidx.test.core.app.InstrumentationActivityInvoker$BootstrapActivity { <init>(); }
+-keep class androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity { <init>(); }
+-keep class androidx.test.core.app.InstrumentationActivityInvoker$EmptyFloatingActivity { <init>(); }
 -keep class com.google.androidbrowserhelper.trusted.FocusActivity { <init>(); }
 -keep class com.google.androidbrowserhelper.trusted.ManageDataLauncherActivity { <init>(); }
 -keep class com.google.androidbrowserhelper.trusted.NotificationPermissionRequestActivity { <init>(); }
@@ -9,6 +12,8 @@
 -keep class fun.playsolmate.app.Application { <init>(); }
 -keep class fun.playsolmate.app.DelegationService { <init>(); }
 -keep class fun.playsolmate.app.LauncherActivity { <init>(); }
+-keep class fun.playsolmate.app.MwaHandlerActivity { <init>(); }
+-keep class fun.playsolmate.app.WebViewActivity { <init>(); }
 -keep class android.widget.Space { <init>(android.content.Context, android.util.AttributeSet); }
 
 -keep class androidx.appcompat.app.AlertController$RecycleListView { <init>(android.content.Context, android.util.AttributeSet); }

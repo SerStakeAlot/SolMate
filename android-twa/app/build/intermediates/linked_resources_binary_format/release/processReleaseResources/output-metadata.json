@@ -11,8 +11,8 @@
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 12,
-      "versionName": "Version 11 - Native MWA",
+      "versionCode": 13,
+      "versionName": "Version 12 - Native MWA Bridge",
       "outputFile": "linked-resources-binary-format-release.ap_"
     }
   ],
