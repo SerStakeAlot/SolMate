@@ -357,13 +357,30 @@ const StandardWalletButton: React.FC = () => {
       
       // Small delay to let selection take effect
       await new Promise(r => setTimeout(r, 100));
-      debugLog(`Selected, calling connect()...`);
       
-      // Try to connect
-      await connect();
+      // Log wallet state before connect
+      debugLog(`Pre-connect: wallet=${wallet?.adapter?.name}, connected=${connected}`);
+      debugLog(`Calling connect()...`);
       
-      debugLog(`✅ Connect returned successfully`);
-      setDebugInfo('Connected!');
+      // Try to connect with timeout
+      const connectPromise = connect();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout after 45s')), 45000)
+      );
+      
+      await Promise.race([connectPromise, timeoutPromise]);
+      
+      // Check state after connect
+      debugLog(`Post-connect: publicKey=${publicKey?.toBase58()?.slice(0,8) || 'null'}`);
+      
+      if (publicKey) {
+        debugLog(`✅ Connected: ${publicKey.toBase58().slice(0,8)}...`);
+        setDebugInfo('Connected!');
+      } else {
+        debugLog(`⚠️ connect() returned but no publicKey - wallet may have been dismissed`);
+        setDebugInfo('Wallet dismissed? Try again.');
+        setTimeout(() => setShowModal(true), 1000);
+      }
     } catch (error: any) {
       const errorName = error?.name || 'Unknown';
       const errorCode = error?.code || '';
@@ -376,7 +393,7 @@ const StandardWalletButton: React.FC = () => {
       // Re-show modal on error so user can try again
       setTimeout(() => setShowModal(true), 500);
     }
-  }, [select, connect]);
+  }, [select, connect, wallet, connected, publicKey]);
 
   const handleDisconnect = useCallback(() => {
     // Disconnect both wallet-adapter and MWA
