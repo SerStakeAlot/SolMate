@@ -1,36 +1,32 @@
 'use client';
 
-import React, { FC, ReactNode, useMemo, useEffect, useState } from 'react';
+import React, { FC, ReactNode, useMemo } from 'react';
 import { ConnectionProvider, WalletProvider as SolanaWalletProvider } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 
-// Register MWA at module level (before React renders) - this is how the official example does it
-// The library will check if we're on Android + not in WebView before actually registering
+// Register MWA directly, bypassing the library's WebView detection which blocks Seeker
+// The official registerMwa() checks isWebView() and skips registration - we don't want that
 if (typeof window !== 'undefined') {
   const isAndroid = /android/i.test(navigator.userAgent);
   
-  // Debug logging
-  console.log('[MWA Init] UserAgent:', navigator.userAgent);
-  console.log('[MWA Init] isAndroid:', isAndroid);
-  console.log('[MWA Init] isSecureContext:', window.isSecureContext);
-  
-  // Check if the library would consider this a WebView (we want to know for debugging)
-  const isWebViewPattern = /(WebView|Version\/.+(Chrome)\/(\d+)\.(\d+)\.(\d+)\.(\d+)|; wv\).+(Chrome)\/(\d+)\.(\d+)\.(\d+)\.(\d+))/i;
-  const wouldBeWebView = isWebViewPattern.test(navigator.userAgent);
-  console.log('[MWA Init] Library would detect WebView:', wouldBeWebView);
-  
   if (isAndroid && window.isSecureContext) {
-    import('@solana-mobile/wallet-standard-mobile').then((module) => {
+    // Dynamically import and directly register the wallet, bypassing WebView check
+    Promise.all([
+      import('@solana-mobile/wallet-standard-mobile'),
+      import('@wallet-standard/wallet')
+    ]).then(([mwaModule, walletStandardModule]) => {
       const { 
-        registerMwa, 
+        LocalSolanaMobileWalletAdapterWallet,
         createDefaultAuthorizationCache,
         createDefaultChainSelector,
         createDefaultWalletNotFoundHandler 
-      } = module;
+      } = mwaModule;
+      const { registerWallet } = walletStandardModule;
       
       try {
-        registerMwa({
+        // Directly create and register the wallet - this bypasses the isWebView check
+        const wallet = new LocalSolanaMobileWalletAdapterWallet({
           appIdentity: {
             name: 'SolMate',
             uri: 'https://playsolmate.fun',
@@ -41,15 +37,15 @@ if (typeof window !== 'undefined') {
           chainSelector: createDefaultChainSelector(),
           onWalletNotFound: createDefaultWalletNotFoundHandler(),
         });
-        console.log('[MWA] ✅ Registered with wallet-standard');
+        
+        registerWallet(wallet);
+        console.log('[MWA] ✅ Directly registered LocalSolanaMobileWalletAdapterWallet');
       } catch (err: any) {
-        console.error('[MWA] ❌ Registration failed:', err);
+        console.error('[MWA] ❌ Direct registration failed:', err);
       }
     }).catch((err) => {
       console.error('[MWA] ❌ Module load failed:', err);
     });
-  } else {
-    console.log('[MWA] Skipped: isAndroid=' + isAndroid + ', isSecureContext=' + window.isSecureContext);
   }
 }
 
