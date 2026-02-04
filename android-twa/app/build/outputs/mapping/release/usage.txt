@@ -152,6 +152,10 @@ androidx.activity.ComponentActivity$ReportFullyDrawnExecutorImpl:
     public final boolean getOnDrawScheduled()
     public final void setCurrentRunnable(java.lang.Runnable)
     public final void setOnDrawScheduled(boolean)
+androidx.activity.ComponentActivity$activityResultRegistry$1:
+    public void onLaunch(int,androidx.activity.result.contract.ActivityResultContract,java.lang.Object,androidx.core.app.ActivityOptionsCompat)
+    private static final void onLaunch$lambda$0(androidx.activity.ComponentActivity$activityResultRegistry$1,int,androidx.activity.result.contract.ActivityResultContract$SynchronousResult)
+    private static final void onLaunch$lambda$1(androidx.activity.ComponentActivity$activityResultRegistry$1,int,android.content.IntentSender$SendIntentException)
 androidx.activity.ComponentActivity:
     private static final java.lang.String ACTIVITY_RESULT_TAG
     public void <init>(int)
@@ -262,12 +266,15 @@ androidx.activity.result.ActivityResultCallerLauncher
 androidx.activity.result.ActivityResultKt
 androidx.activity.result.ActivityResultLauncher:
     public abstract androidx.activity.result.contract.ActivityResultContract getContract()
+    public void launch(java.lang.Object)
+    public abstract void launch(java.lang.Object,androidx.core.app.ActivityOptionsCompat)
     public abstract void unregister()
 androidx.activity.result.ActivityResultLauncherKt
 androidx.activity.result.ActivityResultRegistry$LifecycleContainer:
     public final androidx.lifecycle.Lifecycle getLifecycle()
 androidx.activity.result.ActivityResultRegistry$register$2:
     public androidx.activity.result.contract.ActivityResultContract getContract()
+    public void launch(java.lang.Object,androidx.core.app.ActivityOptionsCompat)
     public void unregister()
 androidx.activity.result.ActivityResultRegistry$register$3
 androidx.activity.result.ActivityResultRegistry:
@@ -277,20 +284,24 @@ androidx.activity.result.ActivityResultRegistry:
     private static final java.lang.String KEY_COMPONENT_ACTIVITY_REGISTERED_KEYS
     private static final java.lang.String KEY_COMPONENT_ACTIVITY_REGISTERED_RCS
     private static final java.lang.String LOG_TAG
+    public static final synthetic java.util.Map access$getKeyToRc$p(androidx.activity.result.ActivityResultRegistry)
+    public static final synthetic java.util.List access$getLaunchedKeys$p(androidx.activity.result.ActivityResultRegistry)
+    public final boolean dispatchResult(int,java.lang.Object)
+    public abstract void onLaunch(int,androidx.activity.result.contract.ActivityResultContract,java.lang.Object,androidx.core.app.ActivityOptionsCompat)
     public final androidx.activity.result.ActivityResultLauncher register(java.lang.String,androidx.activity.result.contract.ActivityResultContract,androidx.activity.result.ActivityResultCallback)
 androidx.activity.result.ActivityResultRegistryOwner
 androidx.activity.result.IntentSenderRequest$Builder$Flag
 androidx.activity.result.IntentSenderRequest$Builder
-androidx.activity.result.IntentSenderRequest$Companion:
-    public static synthetic void getCREATOR$annotations()
-androidx.activity.result.IntentSenderRequest:
-    public synthetic void <init>(android.content.IntentSender,android.content.Intent,int,int,int,kotlin.jvm.internal.DefaultConstructorMarker)
+androidx.activity.result.IntentSenderRequest$Companion$CREATOR$1
+androidx.activity.result.IntentSenderRequest$Companion
+androidx.activity.result.IntentSenderRequest
 androidx.activity.result.PickVisualMediaRequest$Builder
 androidx.activity.result.PickVisualMediaRequest
 androidx.activity.result.PickVisualMediaRequestKt
-androidx.activity.result.contract.ActivityResultContract$SynchronousResult:
-    private final java.lang.Object value
-    public void <init>(java.lang.Object)
+androidx.activity.result.contract.ActivityResultContract$SynchronousResult
+androidx.activity.result.contract.ActivityResultContract:
+    public abstract android.content.Intent createIntent(android.content.Context,java.lang.Object)
+    public androidx.activity.result.contract.ActivityResultContract$SynchronousResult getSynchronousResult(android.content.Context,java.lang.Object)
 androidx.activity.result.contract.ActivityResultContracts$CaptureVideo
 androidx.activity.result.contract.ActivityResultContracts$CreateDocument
 androidx.activity.result.contract.ActivityResultContracts$GetContent
@@ -314,6 +325,8 @@ androidx.activity.result.contract.ActivityResultContracts$RequestMultiplePermiss
 androidx.activity.result.contract.ActivityResultContracts$RequestPermission
 androidx.activity.result.contract.ActivityResultContracts$StartActivityForResult:
     public static final java.lang.String EXTRA_ACTIVITY_OPTIONS_BUNDLE
+    public android.content.Intent createIntent(android.content.Context,android.content.Intent)
+    public synthetic bridge android.content.Intent createIntent(android.content.Context,java.lang.Object)
 androidx.activity.result.contract.ActivityResultContracts$StartIntentSenderForResult$Companion
 androidx.activity.result.contract.ActivityResultContracts$StartIntentSenderForResult
 androidx.activity.result.contract.ActivityResultContracts$TakePicture
@@ -3547,6 +3560,8 @@ androidx.core.app.ActivityCompat:
     public static void setLocusContext(android.app.Activity,androidx.core.content.LocusIdCompat,android.os.Bundle)
     public static void setPermissionCompatDelegate(androidx.core.app.ActivityCompat$PermissionCompatDelegate)
     public static boolean shouldShowRequestPermissionRationale(android.app.Activity,java.lang.String)
+    public static void startActivityForResult(android.app.Activity,android.content.Intent,int,android.os.Bundle)
+    public static void startIntentSenderForResult(android.app.Activity,android.content.IntentSender,int,android.content.Intent,int,int,int,android.os.Bundle)
     public static void startPostponedEnterTransition(android.app.Activity)
 androidx.core.app.ActivityManagerCompat
 androidx.core.app.ActivityOptionsCompat$ActivityOptionsCompatImpl
@@ -3554,23 +3569,7 @@ androidx.core.app.ActivityOptionsCompat$Api21Impl
 androidx.core.app.ActivityOptionsCompat$Api23Impl
 androidx.core.app.ActivityOptionsCompat$Api24Impl
 androidx.core.app.ActivityOptionsCompat$Api34Impl
-androidx.core.app.ActivityOptionsCompat:
-    public static final java.lang.String EXTRA_USAGE_TIME_REPORT
-    public static final java.lang.String EXTRA_USAGE_TIME_REPORT_PACKAGES
-    protected void <init>()
-    public android.graphics.Rect getLaunchBounds()
-    public static androidx.core.app.ActivityOptionsCompat makeBasic()
-    public static androidx.core.app.ActivityOptionsCompat makeClipRevealAnimation(android.view.View,int,int,int,int)
-    public static androidx.core.app.ActivityOptionsCompat makeCustomAnimation(android.content.Context,int,int)
-    public static androidx.core.app.ActivityOptionsCompat makeScaleUpAnimation(android.view.View,int,int,int,int)
-    public static androidx.core.app.ActivityOptionsCompat makeSceneTransitionAnimation(android.app.Activity,android.view.View,java.lang.String)
-    public static varargs androidx.core.app.ActivityOptionsCompat makeSceneTransitionAnimation(android.app.Activity,androidx.core.util.Pair[])
-    public static androidx.core.app.ActivityOptionsCompat makeTaskLaunchBehind()
-    public static androidx.core.app.ActivityOptionsCompat makeThumbnailScaleUpAnimation(android.view.View,android.graphics.Bitmap,int,int)
-    public void requestUsageTimeReport(android.app.PendingIntent)
-    public androidx.core.app.ActivityOptionsCompat setLaunchBounds(android.graphics.Rect)
-    public androidx.core.app.ActivityOptionsCompat setShareIdentityEnabled(boolean)
-    public void update(androidx.core.app.ActivityOptionsCompat)
+androidx.core.app.ActivityOptionsCompat
 androidx.core.app.ActivityRecreator$1
 androidx.core.app.ActivityRecreator$2
 androidx.core.app.ActivityRecreator$3
@@ -6825,6 +6824,7 @@ androidx.lifecycle.ClassesInfoCache:
 androidx.lifecycle.CloseableCoroutineScope
 androidx.lifecycle.ComputableLiveData$_liveData$1
 androidx.lifecycle.ComputableLiveData
+androidx.lifecycle.DispatchQueue
 androidx.lifecycle.FlowExtKt$flowWithLifecycle$1$1$1
 androidx.lifecycle.FlowExtKt$flowWithLifecycle$1$1
 androidx.lifecycle.FlowExtKt$flowWithLifecycle$1
@@ -6844,8 +6844,7 @@ androidx.lifecycle.Lifecycle$Event:
 androidx.lifecycle.Lifecycle:
     public final java.util.concurrent.atomic.AtomicReference getInternalScopeRef()
     public final void setInternalScopeRef(java.util.concurrent.atomic.AtomicReference)
-androidx.lifecycle.LifecycleController:
-    private final void handleDestroy(kotlinx.coroutines.Job)
+androidx.lifecycle.LifecycleController
 androidx.lifecycle.LifecycleCoroutineScope$launchWhenCreated$1
 androidx.lifecycle.LifecycleCoroutineScope$launchWhenResumed$1
 androidx.lifecycle.LifecycleCoroutineScope$launchWhenStarted$1
@@ -6930,12 +6929,9 @@ androidx.lifecycle.MutableLiveData:
     public void postValue(java.lang.Object)
 androidx.lifecycle.Observer:
     public abstract void onChanged(java.lang.Object)
-androidx.lifecycle.PausingDispatcherKt:
-    public static final java.lang.Object whenCreated(androidx.lifecycle.Lifecycle,kotlin.jvm.functions.Function2,kotlin.coroutines.Continuation)
-    public static final java.lang.Object whenCreated(androidx.lifecycle.LifecycleOwner,kotlin.jvm.functions.Function2,kotlin.coroutines.Continuation)
-    public static final java.lang.Object whenResumed(androidx.lifecycle.LifecycleOwner,kotlin.jvm.functions.Function2,kotlin.coroutines.Continuation)
-    public static final java.lang.Object whenStarted(androidx.lifecycle.Lifecycle,kotlin.jvm.functions.Function2,kotlin.coroutines.Continuation)
-    public static final java.lang.Object whenStarted(androidx.lifecycle.LifecycleOwner,kotlin.jvm.functions.Function2,kotlin.coroutines.Continuation)
+androidx.lifecycle.PausingDispatcher
+androidx.lifecycle.PausingDispatcherKt$whenStateAtLeast$2
+androidx.lifecycle.PausingDispatcherKt
 androidx.lifecycle.ProcessLifecycleOwner$Companion:
     public static synthetic void getTIMEOUT_MS$lifecycle_process_release$annotations()
 androidx.lifecycle.ProcessLifecycleOwner:
@@ -10779,71 +10775,56 @@ com.neovisionaries.ws.client.WritingThread:
     private static final int SHOULD_SEND
     private static final int SHOULD_STOP
     public void queueFlush()
+com.solana.mobilewalletadapter.clientlib.ActivityResultSender$startActivityForResult$2$1
+com.solana.mobilewalletadapter.clientlib.ActivityResultSender$startActivityForResult$2
+com.solana.mobilewalletadapter.clientlib.ActivityResultSender
 com.solana.mobilewalletadapter.clientlib.AdapterOperations$DefaultImpls
-com.solana.mobilewalletadapter.clientlib.AdapterOperations:
-    public abstract java.lang.Object deauthorize(java.lang.String,kotlin.coroutines.Continuation)
-    public abstract java.lang.Object getCapabilities(kotlin.coroutines.Continuation)
-    public abstract java.lang.Object signAndSendTransactions(byte[][],com.solana.mobilewalletadapter.clientlib.TransactionParams,kotlin.coroutines.Continuation)
-    public abstract java.lang.Object signMessages(byte[][],byte[][],kotlin.coroutines.Continuation)
-    public abstract java.lang.Object signTransactions(byte[][],kotlin.coroutines.Continuation)
-com.solana.mobilewalletadapter.clientlib.AssociationDetails:
-    public synthetic void <init>(android.net.Uri,int,com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterSession,int,kotlin.jvm.internal.DefaultConstructorMarker)
-    public final android.net.Uri component1()
-    public final int component2()
-    public final com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterSession component3()
-    public final com.solana.mobilewalletadapter.clientlib.AssociationDetails copy(android.net.Uri,int,com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterSession)
-    public static synthetic com.solana.mobilewalletadapter.clientlib.AssociationDetails copy$default(com.solana.mobilewalletadapter.clientlib.AssociationDetails,android.net.Uri,int,com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterSession,int,java.lang.Object)
-com.solana.mobilewalletadapter.clientlib.Blockchain:
-    public final java.lang.String getCluster()
-    public final java.lang.String getName()
-    public static synthetic void getRpcCluster$annotations()
-com.solana.mobilewalletadapter.clientlib.ConnectionIdentity:
-    public final android.net.Uri component1()
-    public final android.net.Uri component2()
-    public final java.lang.String component3()
-    public final com.solana.mobilewalletadapter.clientlib.ConnectionIdentity copy(android.net.Uri,android.net.Uri,java.lang.String)
-    public static synthetic com.solana.mobilewalletadapter.clientlib.ConnectionIdentity copy$default(com.solana.mobilewalletadapter.clientlib.ConnectionIdentity,android.net.Uri,android.net.Uri,java.lang.String,int,java.lang.Object)
+com.solana.mobilewalletadapter.clientlib.AdapterOperations
+com.solana.mobilewalletadapter.clientlib.AssociationDetails
+com.solana.mobilewalletadapter.clientlib.AssociationScenarioProvider
+com.solana.mobilewalletadapter.clientlib.Blockchain
+com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
 com.solana.mobilewalletadapter.clientlib.DataModelsKt
 com.solana.mobilewalletadapter.clientlib.DefaultTransactionParams
+com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations$authorize$2
+com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations$authorize$4
 com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations$deauthorize$2
 com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations$getCapabilities$2
+com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations$reauthorize$2
 com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations$signAndSendTransactions$2
 com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations$signMessages$2
+com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations$signMessagesDetached$2
 com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations$signTransactions$2
-com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations:
-    public void <init>()
-    public synthetic void <init>(kotlinx.coroutines.CoroutineDispatcher,int,kotlin.jvm.internal.DefaultConstructorMarker)
-    public java.lang.Object deauthorize(java.lang.String,kotlin.coroutines.Continuation)
-    public java.lang.Object getCapabilities(kotlin.coroutines.Continuation)
-    public final void setClient(com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient)
-    public java.lang.Object signAndSendTransactions(byte[][],com.solana.mobilewalletadapter.clientlib.TransactionParams,kotlin.coroutines.Continuation)
-    public java.lang.Object signMessages(byte[][],byte[][],kotlin.coroutines.Continuation)
-    public java.lang.Object signTransactions(byte[][],kotlin.coroutines.Continuation)
-com.solana.mobilewalletadapter.clientlib.LocalAssociationDetailsKt:
-    public static synthetic com.solana.mobilewalletadapter.clientlib.AssociationDetails associationDetails$default(com.solana.mobilewalletadapter.clientlib.scenario.LocalAssociationScenario,android.net.Uri,int,java.lang.Object)
+com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations
+com.solana.mobilewalletadapter.clientlib.LocalAssociationDetailsKt
+com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter$Companion
+com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter$associate$2$1$1$1
+com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter$associate$2$1$1$2
+com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter$associate$2$1$1
+com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter$associate$2$1
+com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter$associate$2$2
+com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter$associate$2
+com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter$connect$2
 com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter$disconnect$2
 com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter$signIn$1
 com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter$signIn$result$1
-com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter:
-    public static final long ASSOCIATION_CONNECT_DISCONNECT_TIMEOUT_MS
-    public static final long ASSOCIATION_SEND_INTENT_TIMEOUT_MS
-    public static final java.lang.String TAG
-    public static final synthetic java.lang.Object access$associate(com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter,com.solana.mobilewalletadapter.clientlib.ActivityResultSender,kotlin.jvm.functions.Function3,kotlin.coroutines.Continuation)
-    public final java.lang.Object disconnect(com.solana.mobilewalletadapter.clientlib.ActivityResultSender,kotlin.coroutines.Continuation)
-    public final com.solana.mobilewalletadapter.clientlib.RpcCluster getRpcCluster()
-    public static synthetic void getRpcCluster$annotations()
-    public final void setRpcCluster(com.solana.mobilewalletadapter.clientlib.RpcCluster)
-    public final java.lang.Object signIn(com.solana.mobilewalletadapter.clientlib.ActivityResultSender,com.solana.mobilewalletadapter.common.signin.SignInWithSolana$Payload,kotlin.coroutines.Continuation)
+com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter$transact$2
+com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
 com.solana.mobilewalletadapter.clientlib.R
+com.solana.mobilewalletadapter.clientlib.RpcCluster$Custom
+com.solana.mobilewalletadapter.clientlib.RpcCluster$Devnet
+com.solana.mobilewalletadapter.clientlib.RpcCluster$MainnetBeta
+com.solana.mobilewalletadapter.clientlib.RpcCluster$Testnet
+com.solana.mobilewalletadapter.clientlib.RpcCluster
+com.solana.mobilewalletadapter.clientlib.Solana$Devnet
+com.solana.mobilewalletadapter.clientlib.Solana$Mainnet
+com.solana.mobilewalletadapter.clientlib.Solana$Testnet
 com.solana.mobilewalletadapter.clientlib.Solana
 com.solana.mobilewalletadapter.clientlib.TransactionParams
-com.solana.mobilewalletadapter.clientlib.TransactionResult$Failure:
-    public final java.lang.Exception getE()
-com.solana.mobilewalletadapter.clientlib.TransactionResult$NoWalletFound:
-    public final java.lang.String getMessage()
-com.solana.mobilewalletadapter.clientlib.TransactionResult$Success:
-    public synthetic void <init>(java.lang.Object,com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$AuthorizationResult,int,kotlin.jvm.internal.DefaultConstructorMarker)
-    public final java.lang.Object getPayload()
+com.solana.mobilewalletadapter.clientlib.TransactionResult$Failure
+com.solana.mobilewalletadapter.clientlib.TransactionResult$NoWalletFound
+com.solana.mobilewalletadapter.clientlib.TransactionResult$Success
+com.solana.mobilewalletadapter.clientlib.TransactionResult
 com.solana.mobilewalletadapter.clientlib.protocol.JsonRpc20Client$JsonRpc20RemoteException:
     public static final int SERVER_RESERVED_ERROR_MAX
     public static final int SERVER_RESERVED_ERROR_MIN
@@ -10856,31 +10837,36 @@ com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$Auth
 com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$AuthorizationResult:
     public static com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$AuthorizationResult create(java.lang.String,byte[],java.lang.String,android.net.Uri)
     public static com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$AuthorizationResult create(java.lang.String,com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$AuthorizationResult$AuthorizedAccount[],android.net.Uri)
+    public com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$AuthorizationResult with(com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$AuthorizationResult$SignInResult)
 com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$DeauthorizeFuture
 com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$GetCapabilitiesFuture
 com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$GetCapabilitiesResult
-com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$NotSubmittedException:
-    public final byte[][] signatures
-    private void <init>(java.lang.String,java.lang.String,int)
-    public java.lang.String getMessage()
+com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$InvalidPayloadsException
+com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$NotSubmittedException
 com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignAndSendTransactionsFuture
 com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignAndSendTransactionsResult
-com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignMessagesFuture:
-    private synthetic void lambda$notifyOnComplete$0(com.solana.mobilewalletadapter.common.util.NotifyOnCompleteFuture$OnCompleteCallback,com.solana.mobilewalletadapter.common.util.NotifyOnCompleteFuture)
-    public void notifyOnComplete(com.solana.mobilewalletadapter.common.util.NotifyOnCompleteFuture$OnCompleteCallback)
+com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignMessagesFuture
+com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignMessagesResult$SignedMessage
+com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignMessagesResult
 com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignPayloadsFuture
 com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignPayloadsResult
 com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient:
     private static final int OFFCHAIN_MESSAGE_SIGNATURE_LENGTH
+    public com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$AuthorizationFuture authorize(android.net.Uri,android.net.Uri,java.lang.String,java.lang.String)
     public com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$DeauthorizeFuture deauthorize(java.lang.String)
     public com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$GetCapabilitiesFuture getCapabilities()
+    public com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$AuthorizationFuture reauthorize(android.net.Uri,android.net.Uri,java.lang.String,java.lang.String)
     public com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignAndSendTransactionsFuture signAndSendTransactions(byte[][],java.lang.Integer)
     public com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignAndSendTransactionsFuture signAndSendTransactions(byte[][],java.lang.Integer,java.lang.String,java.lang.Boolean,java.lang.Integer,java.lang.Boolean)
     public com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignPayloadsFuture signMessages(byte[][],byte[][])
+    public com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignMessagesFuture signMessagesDetached(byte[][],byte[][])
     public com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignPayloadsFuture signTransactions(byte[][])
+    private static boolean[] unpackResponseBooleanArray(org.json.JSONObject,java.lang.String,int)
+    private static byte[][] unpackResponsePayloadArray(org.json.JSONObject,java.lang.String,int,boolean)
+com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterSession:
+    public com.solana.mobilewalletadapter.common.protocol.SessionProperties getSessionProperties()
 com.solana.mobilewalletadapter.clientlib.scenario.LocalAssociationIntentCreator:
     private void <init>()
-    public static boolean isWalletEndpointAvailable(android.content.pm.PackageManager)
 com.solana.mobilewalletadapter.clientlib.scenario.LocalAssociationScenario:
     private static final int CONNECT_MAX_ATTEMPTS
     private static final int CONNECT_TIMEOUT_MS
@@ -10927,7 +10913,9 @@ com.solana.mobilewalletadapter.common.protocol.SessionProperties:
     public byte[] serialize()
 com.solana.mobilewalletadapter.common.signin.SignInWithSolana$Parser
 com.solana.mobilewalletadapter.common.signin.SignInWithSolana$Payload:
+    public java.lang.String address
     public final java.lang.String chainId
+    public java.lang.String domain
     public final java.lang.String expirationTime
     public final java.lang.String issuedAt
     public final java.lang.String nonce
@@ -10945,6 +10933,7 @@ com.solana.mobilewalletadapter.common.signin.SignInWithSolana$Payload:
     private java.lang.String generateNonce()
     public int hashCode()
     public java.lang.String prepareMessage()
+    public java.lang.String prepareMessage(java.lang.String)
     private java.lang.String toV1Message()
 com.solana.mobilewalletadapter.common.signin.SignInWithSolana
 com.solana.mobilewalletadapter.common.signin.SignInWithSolanaContract
@@ -10954,6 +10943,8 @@ com.solana.mobilewalletadapter.common.util.Identifier:
 com.solana.mobilewalletadapter.common.util.JsonPack:
     private void <init>()
     public static org.json.JSONArray packBooleans(boolean[])
+    public static byte[][] unpackBase64PayloadsArrayToByteArrays(org.json.JSONArray,boolean)
+    public static boolean[] unpackBooleans(org.json.JSONArray)
     public static java.lang.String[] unpackStrings(org.json.JSONArray)
 com.solana.mobilewalletadapter.common.util.NotifyOnCompleteFuture:
     public abstract void notifyOnComplete(com.solana.mobilewalletadapter.common.util.NotifyOnCompleteFuture$OnCompleteCallback)
@@ -10963,6 +10954,8 @@ fun.playsolmate.app.MwaIntentHelper
 fun.playsolmate.app.MwaRedirectActivity
 fun.playsolmate.app.NativeMwaBridge:
     public static final java.lang.String JS_INTERFACE_NAME
+    private static final long LOCAL_ASSOCIATION_CLOSE_TIMEOUT_MS
+    private static final long LOCAL_ASSOCIATION_START_TIMEOUT_MS
 fun.playsolmate.app.R$bool
 fun.playsolmate.app.R$color
 fun.playsolmate.app.R$drawable
@@ -13468,7 +13461,6 @@ kotlin.collections.CollectionsKt___CollectionsKt:
     public static final int indexOfLast(java.lang.Iterable,kotlin.jvm.functions.Function1)
     public static final int indexOfLast(java.util.List,kotlin.jvm.functions.Function1)
     public static final java.util.Set intersect(java.lang.Iterable,java.lang.Iterable)
-    public static synthetic java.lang.Appendable joinTo$default(java.lang.Iterable,java.lang.Appendable,java.lang.CharSequence,java.lang.CharSequence,java.lang.CharSequence,int,java.lang.CharSequence,kotlin.jvm.functions.Function1,int,java.lang.Object)
     public static final java.lang.Object last(java.lang.Iterable)
     public static final java.lang.Object last(java.lang.Iterable,kotlin.jvm.functions.Function1)
     public static final java.lang.Object last(java.util.List)
@@ -13515,7 +13507,6 @@ kotlin.collections.CollectionsKt___CollectionsKt:
     private static final java.lang.Float minOfOrNull(java.lang.Iterable,kotlin.jvm.functions.Function1)
     private static final java.lang.Object minOfWith(java.lang.Iterable,java.util.Comparator,kotlin.jvm.functions.Function1)
     private static final java.lang.Object minOfWithOrNull(java.lang.Iterable,java.util.Comparator,kotlin.jvm.functions.Function1)
-    public static final java.lang.Comparable minOrNull(java.lang.Iterable)
     public static final java.lang.Double minOrNull(java.lang.Iterable)
     public static final java.lang.Float minOrNull(java.lang.Iterable)
     public static final double minOrThrow(java.lang.Iterable)
@@ -13565,9 +13556,7 @@ kotlin.collections.CollectionsKt___CollectionsKt:
     public static final java.util.List scan(java.lang.Iterable,java.lang.Object,kotlin.jvm.functions.Function2)
     public static final java.util.List scanIndexed(java.lang.Iterable,java.lang.Object,kotlin.jvm.functions.Function3)
     public static final void shuffle(java.util.List,kotlin.random.Random)
-    public static final java.lang.Object single(java.lang.Iterable)
     public static final java.lang.Object single(java.lang.Iterable,kotlin.jvm.functions.Function1)
-    public static final java.lang.Object single(java.util.List)
     public static final java.lang.Object singleOrNull(java.lang.Iterable)
     public static final java.lang.Object singleOrNull(java.lang.Iterable,kotlin.jvm.functions.Function1)
     public static final java.lang.Object singleOrNull(java.util.List)
@@ -13650,8 +13639,7 @@ kotlin.collections.IndexingIterable
 kotlin.collections.IndexingIterator
 kotlin.collections.IntIterator:
     public final java.lang.Integer next()
-kotlin.collections.LongIterator:
-    public final java.lang.Long next()
+kotlin.collections.LongIterator
 kotlin.collections.MapAccessorsKt
 kotlin.collections.MapWithDefault
 kotlin.collections.MapWithDefaultImpl
@@ -13983,7 +13971,14 @@ kotlin.coroutines.intrinsics.IntrinsicsKt__IntrinsicsKt:
     private static final java.lang.Object suspendCoroutineUninterceptedOrReturn(kotlin.jvm.functions.Function1,kotlin.coroutines.Continuation)
 kotlin.coroutines.jvm.internal.BaseContinuationImpl:
     public kotlin.coroutines.Continuation create(kotlin.coroutines.Continuation)
-kotlin.coroutines.jvm.internal.Boxing
+kotlin.coroutines.jvm.internal.Boxing:
+    public static final java.lang.Boolean boxBoolean(boolean)
+    public static final java.lang.Byte boxByte(byte)
+    public static final java.lang.Character boxChar(char)
+    public static final java.lang.Double boxDouble(double)
+    public static final java.lang.Float boxFloat(float)
+    public static final java.lang.Long boxLong(long)
+    public static final java.lang.Short boxShort(short)
 kotlin.coroutines.jvm.internal.DebugMetadata:
     public abstract int[] i()
     public abstract java.lang.String[] n()
@@ -14027,6 +14022,10 @@ kotlin.internal.PlatformImplementations:
 kotlin.internal.PlatformImplementationsKt:
     public static final boolean apiVersionIsAtLeast(int,int,int)
     private static final synthetic java.lang.Object castToBaseType(java.lang.Object)
+kotlin.internal.ProgressionUtilKt:
+    private static final long differenceModulo(long,long,long)
+    public static final long getProgressionLastElement(long,long,long)
+    private static final long mod(long,long)
 kotlin.internal.PureReifiable
 kotlin.internal.RequireKotlin$Container
 kotlin.internal.RequireKotlin
@@ -14179,6 +14178,8 @@ kotlin.jvm.functions.Function21:
     public abstract java.lang.Object invoke(java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object)
 kotlin.jvm.functions.Function22:
     public abstract java.lang.Object invoke(java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object)
+kotlin.jvm.functions.Function3:
+    public abstract java.lang.Object invoke(java.lang.Object,java.lang.Object,java.lang.Object)
 kotlin.jvm.functions.Function4:
     public abstract java.lang.Object invoke(java.lang.Object,java.lang.Object,java.lang.Object,java.lang.Object)
 kotlin.jvm.functions.Function5:
@@ -14562,40 +14563,18 @@ kotlin.ranges.ComparableOpenEndRange
 kotlin.ranges.ComparableRange
 kotlin.ranges.IntProgressionIterator:
     public final int getStep()
-kotlin.ranges.IntRange$Companion:
-    public final kotlin.ranges.IntRange getEMPTY()
 kotlin.ranges.IntRange:
-    public static final synthetic kotlin.ranges.IntRange access$getEMPTY$cp()
     public synthetic bridge boolean contains(java.lang.Comparable)
     public synthetic bridge java.lang.Comparable getEndExclusive()
     public java.lang.Integer getEndExclusive()
     public static synthetic void getEndExclusive$annotations()
     public synthetic bridge java.lang.Comparable getEndInclusive()
-    public java.lang.Integer getEndInclusive()
     public synthetic bridge java.lang.Comparable getStart()
-    public java.lang.Integer getStart()
-kotlin.ranges.LongProgression$Companion:
-    public final kotlin.ranges.LongProgression fromClosedRange(long,long,long)
-kotlin.ranges.LongProgression:
-    public boolean equals(java.lang.Object)
-    public final long getStep()
-    public int hashCode()
-    public boolean isEmpty()
-    public java.lang.String toString()
-kotlin.ranges.LongProgressionIterator:
-    public final long getStep()
-kotlin.ranges.LongRange$Companion:
-    public final kotlin.ranges.LongRange getEMPTY()
-kotlin.ranges.LongRange:
-    public static final synthetic kotlin.ranges.LongRange access$getEMPTY$cp()
-    public synthetic bridge boolean contains(java.lang.Comparable)
-    public synthetic bridge java.lang.Comparable getEndExclusive()
-    public java.lang.Long getEndExclusive()
-    public static synthetic void getEndExclusive$annotations()
-    public synthetic bridge java.lang.Comparable getEndInclusive()
-    public java.lang.Long getEndInclusive()
-    public synthetic bridge java.lang.Comparable getStart()
-    public java.lang.Long getStart()
+kotlin.ranges.LongProgression$Companion
+kotlin.ranges.LongProgression
+kotlin.ranges.LongProgressionIterator
+kotlin.ranges.LongRange$Companion
+kotlin.ranges.LongRange
 kotlin.ranges.OpenEndDoubleRange
 kotlin.ranges.OpenEndFloatRange
 kotlin.ranges.OpenEndRange$DefaultImpls
@@ -14636,8 +14615,8 @@ kotlin.ranges.RangesKt___RangesKt:
     public static final byte coerceIn(byte,byte,byte)
     public static final double coerceIn(double,double,double)
     public static final float coerceIn(float,float,float)
-    public static final int coerceIn(int,int,int)
     public static final int coerceIn(int,kotlin.ranges.ClosedRange)
+    public static final long coerceIn(long,long,long)
     public static final long coerceIn(long,kotlin.ranges.ClosedRange)
     public static final java.lang.Comparable coerceIn(java.lang.Comparable,java.lang.Comparable,java.lang.Comparable)
     public static final java.lang.Comparable coerceIn(java.lang.Comparable,kotlin.ranges.ClosedFloatingPointRange)
@@ -14752,7 +14731,6 @@ kotlin.ranges.RangesKt___RangesKt:
     public static final kotlin.ranges.IntRange until(byte,int)
     public static final kotlin.ranges.IntRange until(byte,short)
     public static final kotlin.ranges.IntRange until(int,byte)
-    public static final kotlin.ranges.IntRange until(int,int)
     public static final kotlin.ranges.IntRange until(int,short)
     public static final kotlin.ranges.IntRange until(short,byte)
     public static final kotlin.ranges.IntRange until(short,int)
@@ -15072,7 +15050,6 @@ kotlin.sequences.SequencesKt___SequencesKt:
     public static final int lastIndexOf(kotlin.sequences.Sequence,java.lang.Object)
     public static final java.lang.Object lastOrNull(kotlin.sequences.Sequence)
     public static final java.lang.Object lastOrNull(kotlin.sequences.Sequence,kotlin.jvm.functions.Function1)
-    public static final kotlin.sequences.Sequence map(kotlin.sequences.Sequence,kotlin.jvm.functions.Function1)
     public static final kotlin.sequences.Sequence mapIndexed(kotlin.sequences.Sequence,kotlin.jvm.functions.Function2)
     public static final kotlin.sequences.Sequence mapIndexedNotNull(kotlin.sequences.Sequence,kotlin.jvm.functions.Function2)
     public static final java.util.Collection mapIndexedNotNullTo(kotlin.sequences.Sequence,java.util.Collection,kotlin.jvm.functions.Function2)
@@ -15188,8 +15165,10 @@ kotlin.sequences.TakeWhileSequence$iterator$1
 kotlin.sequences.TakeWhileSequence
 kotlin.sequences.TransformingIndexedSequence$iterator$1
 kotlin.sequences.TransformingIndexedSequence
-kotlin.sequences.TransformingSequence$iterator$1
-kotlin.sequences.TransformingSequence
+kotlin.sequences.TransformingSequence$iterator$1:
+    public final java.util.Iterator getIterator()
+kotlin.sequences.TransformingSequence:
+    public final kotlin.sequences.Sequence flatten$kotlin_stdlib(kotlin.jvm.functions.Function1)
 kotlin.sequences.USequencesKt
 kotlin.sequences.USequencesKt___USequencesKt
 kotlin.streams.jdk8.StreamsKt$asSequence$$inlined$Sequence$1
@@ -15246,16 +15225,19 @@ kotlin.text.CharsKt__CharKt:
     public static final boolean isSurrogate(char)
     private static final java.lang.String plus(char,java.lang.String)
     public static final java.lang.String titlecase(char)
-kotlin.text.Charsets:
-    private static volatile java.nio.charset.Charset utf_32
-    private static volatile java.nio.charset.Charset utf_32be
-    private static volatile java.nio.charset.Charset utf_32le
-    public final java.nio.charset.Charset UTF32()
-    public final java.nio.charset.Charset UTF32_BE()
-    public final java.nio.charset.Charset UTF32_LE()
+kotlin.text.Charsets
 kotlin.text.CharsetsKt
-kotlin.text.DelimitedRangesSequence$iterator$1
-kotlin.text.DelimitedRangesSequence
+kotlin.text.DelimitedRangesSequence$iterator$1:
+    public final int getCounter()
+    public final int getCurrentStartIndex()
+    public final kotlin.ranges.IntRange getNextItem()
+    public final int getNextSearchIndex()
+    public final int getNextState()
+    public final void setCounter(int)
+    public final void setCurrentStartIndex(int)
+    public final void setNextItem(kotlin.ranges.IntRange)
+    public final void setNextSearchIndex(int)
+    public final void setNextState(int)
 kotlin.text.FlagEnum
 kotlin.text.HexExtensionsKt
 kotlin.text.HexFormat$Builder
@@ -15299,21 +15281,15 @@ kotlin.text.StringsKt__AppendableKt:
     private static final java.lang.Appendable appendLine(java.lang.Appendable,char)
     private static final java.lang.Appendable appendLine(java.lang.Appendable,java.lang.CharSequence)
     public static final java.lang.Appendable appendRange(java.lang.Appendable,java.lang.CharSequence,int,int)
-kotlin.text.StringsKt__IndentKt$getIndentFunction$1
-kotlin.text.StringsKt__IndentKt$getIndentFunction$2
 kotlin.text.StringsKt__IndentKt$prependIndent$1
 kotlin.text.StringsKt__IndentKt:
     public void <init>()
-    private static final kotlin.jvm.functions.Function1 getIndentFunction$StringsKt__IndentKt(java.lang.String)
-    private static final int indentWidth$StringsKt__IndentKt(java.lang.String)
     public static final java.lang.String prependIndent(java.lang.String,java.lang.String)
     public static synthetic java.lang.String prependIndent$default(java.lang.String,java.lang.String,int,java.lang.Object)
     private static final java.lang.String reindent$StringsKt__IndentKt(java.util.List,int,kotlin.jvm.functions.Function1,kotlin.jvm.functions.Function1)
-    public static final java.lang.String replaceIndent(java.lang.String,java.lang.String)
     public static synthetic java.lang.String replaceIndent$default(java.lang.String,java.lang.String,int,java.lang.Object)
     public static final java.lang.String replaceIndentByMargin(java.lang.String,java.lang.String,java.lang.String)
     public static synthetic java.lang.String replaceIndentByMargin$default(java.lang.String,java.lang.String,java.lang.String,int,java.lang.Object)
-    public static final java.lang.String trimIndent(java.lang.String)
     public static final java.lang.String trimMargin(java.lang.String,java.lang.String)
     public static synthetic java.lang.String trimMargin$default(java.lang.String,java.lang.String,int,java.lang.Object)
 kotlin.text.StringsKt__RegexExtensionsJVMKt:
@@ -15445,6 +15421,7 @@ kotlin.text.StringsKt__StringsJVMKt:
     public static final java.lang.String decodeToString(byte[])
     public static final java.lang.String decodeToString(byte[],int,int,boolean)
     public static synthetic java.lang.String decodeToString$default(byte[],int,int,boolean,int,java.lang.Object)
+    public static final byte[] encodeToByteArray(java.lang.String)
     public static final byte[] encodeToByteArray(java.lang.String,int,int,boolean)
     public static synthetic byte[] encodeToByteArray$default(java.lang.String,int,int,boolean,int,java.lang.Object)
     public static final boolean endsWith(java.lang.String,java.lang.String,boolean)
@@ -15457,7 +15434,6 @@ kotlin.text.StringsKt__StringsJVMKt:
     private static final varargs java.lang.String format(kotlin.jvm.internal.StringCompanionObject,java.util.Locale,java.lang.String,java.lang.Object[])
     public static final java.util.Comparator getCASE_INSENSITIVE_ORDER(kotlin.jvm.internal.StringCompanionObject)
     private static final java.lang.String intern(java.lang.String)
-    public static final boolean isBlank(java.lang.CharSequence)
     private static final java.lang.String lowercase(java.lang.String)
     private static final java.lang.String lowercase(java.lang.String,java.util.Locale)
     private static final int nativeIndexOf(java.lang.String,char,int)
@@ -15498,12 +15474,9 @@ kotlin.text.StringsKt__StringsJVMKt:
     private static final java.lang.String uppercase(java.lang.String,java.util.Locale)
 kotlin.text.StringsKt__StringsKt$iterator$1
 kotlin.text.StringsKt__StringsKt$rangesDelimitedBy$1
-kotlin.text.StringsKt__StringsKt$rangesDelimitedBy$2
-kotlin.text.StringsKt__StringsKt$splitToSequence$1
 kotlin.text.StringsKt__StringsKt$splitToSequence$2
 kotlin.text.StringsKt__StringsKt:
     public void <init>()
-    public static final synthetic kotlin.Pair access$findAnyOf(java.lang.CharSequence,java.util.Collection,int,boolean,boolean)
     public static final java.lang.String commonPrefixWith(java.lang.CharSequence,java.lang.CharSequence,boolean)
     public static synthetic java.lang.String commonPrefixWith$default(java.lang.CharSequence,java.lang.CharSequence,boolean,int,java.lang.Object)
     public static final java.lang.String commonSuffixWith(java.lang.CharSequence,java.lang.CharSequence,boolean)
@@ -15518,11 +15491,9 @@ kotlin.text.StringsKt__StringsKt:
     public static synthetic boolean endsWith$default(java.lang.CharSequence,char,boolean,int,java.lang.Object)
     public static synthetic boolean endsWith$default(java.lang.CharSequence,java.lang.CharSequence,boolean,int,java.lang.Object)
     public static final kotlin.Pair findAnyOf(java.lang.CharSequence,java.util.Collection,int,boolean)
-    private static final kotlin.Pair findAnyOf$StringsKt__StringsKt(java.lang.CharSequence,java.util.Collection,int,boolean,boolean)
     public static synthetic kotlin.Pair findAnyOf$default(java.lang.CharSequence,java.util.Collection,int,boolean,int,java.lang.Object)
     public static final kotlin.Pair findLastAnyOf(java.lang.CharSequence,java.util.Collection,int,boolean)
     public static synthetic kotlin.Pair findLastAnyOf$default(java.lang.CharSequence,java.util.Collection,int,boolean,int,java.lang.Object)
-    public static final kotlin.ranges.IntRange getIndices(java.lang.CharSequence)
     public static final boolean hasSurrogatePairAt(java.lang.CharSequence,int)
     private static final java.lang.Object ifBlank(java.lang.CharSequence,kotlin.jvm.functions.Function0)
     private static final java.lang.Object ifEmpty(java.lang.CharSequence,kotlin.jvm.functions.Function0)
@@ -15538,8 +15509,6 @@ kotlin.text.StringsKt__StringsKt:
     public static final int lastIndexOfAny(java.lang.CharSequence,java.util.Collection,int,boolean)
     public static synthetic int lastIndexOfAny$default(java.lang.CharSequence,java.util.Collection,int,boolean,int,java.lang.Object)
     public static synthetic int lastIndexOfAny$default(java.lang.CharSequence,char[],int,boolean,int,java.lang.Object)
-    public static final kotlin.sequences.Sequence lineSequence(java.lang.CharSequence)
-    public static final java.util.List lines(java.lang.CharSequence)
     private static final boolean matches(java.lang.CharSequence,kotlin.text.Regex)
     private static final java.lang.String orEmpty(java.lang.String)
     public static final java.lang.CharSequence padEnd(java.lang.CharSequence,int,char)
@@ -15551,9 +15520,7 @@ kotlin.text.StringsKt__StringsKt:
     public static synthetic java.lang.CharSequence padStart$default(java.lang.CharSequence,int,char,int,java.lang.Object)
     public static synthetic java.lang.String padStart$default(java.lang.String,int,char,int,java.lang.Object)
     private static final kotlin.sequences.Sequence rangesDelimitedBy$StringsKt__StringsKt(java.lang.CharSequence,char[],int,boolean,int)
-    private static final kotlin.sequences.Sequence rangesDelimitedBy$StringsKt__StringsKt(java.lang.CharSequence,java.lang.String[],int,boolean,int)
     static synthetic kotlin.sequences.Sequence rangesDelimitedBy$StringsKt__StringsKt$default(java.lang.CharSequence,char[],int,boolean,int,int,java.lang.Object)
-    static synthetic kotlin.sequences.Sequence rangesDelimitedBy$StringsKt__StringsKt$default(java.lang.CharSequence,java.lang.String[],int,boolean,int,int,java.lang.Object)
     public static final java.lang.CharSequence removePrefix(java.lang.CharSequence,java.lang.CharSequence)
     public static final java.lang.String removePrefix(java.lang.String,java.lang.CharSequence)
     public static final java.lang.CharSequence removeRange(java.lang.CharSequence,int,int)
@@ -15591,7 +15558,6 @@ kotlin.text.StringsKt__StringsKt:
     public static final java.lang.CharSequence replaceRange(java.lang.CharSequence,kotlin.ranges.IntRange,java.lang.CharSequence)
     private static final java.lang.String replaceRange(java.lang.String,int,int,java.lang.CharSequence)
     private static final java.lang.String replaceRange(java.lang.String,kotlin.ranges.IntRange,java.lang.CharSequence)
-    public static final void requireNonNegativeLimit(int)
     private static final java.util.List split(java.lang.CharSequence,kotlin.text.Regex,int)
     public static final java.util.List split(java.lang.CharSequence,char[],boolean,int)
     public static final java.util.List split(java.lang.CharSequence,java.lang.String[],boolean,int)
@@ -15601,10 +15567,8 @@ kotlin.text.StringsKt__StringsKt:
     public static synthetic java.util.List split$default(java.lang.CharSequence,java.lang.String[],boolean,int,int,java.lang.Object)
     private static final kotlin.sequences.Sequence splitToSequence(java.lang.CharSequence,kotlin.text.Regex,int)
     public static final kotlin.sequences.Sequence splitToSequence(java.lang.CharSequence,char[],boolean,int)
-    public static final kotlin.sequences.Sequence splitToSequence(java.lang.CharSequence,java.lang.String[],boolean,int)
     static synthetic kotlin.sequences.Sequence splitToSequence$default(java.lang.CharSequence,kotlin.text.Regex,int,int,java.lang.Object)
     public static synthetic kotlin.sequences.Sequence splitToSequence$default(java.lang.CharSequence,char[],boolean,int,int,java.lang.Object)
-    public static synthetic kotlin.sequences.Sequence splitToSequence$default(java.lang.CharSequence,java.lang.String[],boolean,int,int,java.lang.Object)
     public static final boolean startsWith(java.lang.CharSequence,char,boolean)
     public static final boolean startsWith(java.lang.CharSequence,java.lang.CharSequence,int,boolean)
     public static final boolean startsWith(java.lang.CharSequence,java.lang.CharSequence,boolean)
@@ -15614,7 +15578,6 @@ kotlin.text.StringsKt__StringsKt:
     public static final java.lang.CharSequence subSequence(java.lang.CharSequence,kotlin.ranges.IntRange)
     private static final java.lang.CharSequence subSequence(java.lang.String,int,int)
     private static final java.lang.String substring(java.lang.CharSequence,int,int)
-    public static final java.lang.String substring(java.lang.CharSequence,kotlin.ranges.IntRange)
     public static final java.lang.String substring(java.lang.String,kotlin.ranges.IntRange)
     static synthetic java.lang.String substring$default(java.lang.CharSequence,int,int,int,java.lang.Object)
     public static final java.lang.String substringAfter(java.lang.String,char,java.lang.String)
@@ -15686,7 +15649,6 @@ kotlin.text.StringsKt___StringsKt:
     private static final int count(java.lang.CharSequence)
     public static final int count(java.lang.CharSequence,kotlin.jvm.functions.Function1)
     public static final java.lang.CharSequence drop(java.lang.CharSequence,int)
-    public static final java.lang.String drop(java.lang.String,int)
     public static final java.lang.CharSequence dropLast(java.lang.CharSequence,int)
     public static final java.lang.String dropLast(java.lang.String,int)
     public static final java.lang.CharSequence dropLastWhile(java.lang.CharSequence,kotlin.jvm.functions.Function1)
@@ -15853,243 +15815,16 @@ kotlin.time.AbstractLongTimeSource
 kotlin.time.AdjustedTimeMark
 kotlin.time.ComparableTimeMark$DefaultImpls
 kotlin.time.ComparableTimeMark
-kotlin.time.Duration$Companion:
-    public final double convert(double,kotlin.time.DurationUnit,kotlin.time.DurationUnit)
-    public final synthetic long days-UwyO8pc(double)
-    public final synthetic long days-UwyO8pc(int)
-    public final synthetic long days-UwyO8pc(long)
-    private final long getDays-UwyO8pc(double)
-    private final long getDays-UwyO8pc(int)
-    private final long getDays-UwyO8pc(long)
-    public static synthetic void getDays-UwyO8pc$annotations(double)
-    public static synthetic void getDays-UwyO8pc$annotations(int)
-    public static synthetic void getDays-UwyO8pc$annotations(long)
-    private final long getHours-UwyO8pc(double)
-    private final long getHours-UwyO8pc(int)
-    private final long getHours-UwyO8pc(long)
-    public static synthetic void getHours-UwyO8pc$annotations(double)
-    public static synthetic void getHours-UwyO8pc$annotations(int)
-    public static synthetic void getHours-UwyO8pc$annotations(long)
-    public final long getINFINITE-UwyO8pc()
-    private final long getMicroseconds-UwyO8pc(double)
-    private final long getMicroseconds-UwyO8pc(int)
-    private final long getMicroseconds-UwyO8pc(long)
-    public static synthetic void getMicroseconds-UwyO8pc$annotations(double)
-    public static synthetic void getMicroseconds-UwyO8pc$annotations(int)
-    public static synthetic void getMicroseconds-UwyO8pc$annotations(long)
-    private final long getMilliseconds-UwyO8pc(double)
-    private final long getMilliseconds-UwyO8pc(int)
-    private final long getMilliseconds-UwyO8pc(long)
-    public static synthetic void getMilliseconds-UwyO8pc$annotations(double)
-    public static synthetic void getMilliseconds-UwyO8pc$annotations(int)
-    public static synthetic void getMilliseconds-UwyO8pc$annotations(long)
-    private final long getMinutes-UwyO8pc(double)
-    private final long getMinutes-UwyO8pc(int)
-    private final long getMinutes-UwyO8pc(long)
-    public static synthetic void getMinutes-UwyO8pc$annotations(double)
-    public static synthetic void getMinutes-UwyO8pc$annotations(int)
-    public static synthetic void getMinutes-UwyO8pc$annotations(long)
-    public final long getNEG_INFINITE-UwyO8pc$kotlin_stdlib()
-    private final long getNanoseconds-UwyO8pc(double)
-    private final long getNanoseconds-UwyO8pc(int)
-    private final long getNanoseconds-UwyO8pc(long)
-    public static synthetic void getNanoseconds-UwyO8pc$annotations(double)
-    public static synthetic void getNanoseconds-UwyO8pc$annotations(int)
-    public static synthetic void getNanoseconds-UwyO8pc$annotations(long)
-    private final long getSeconds-UwyO8pc(double)
-    private final long getSeconds-UwyO8pc(int)
-    private final long getSeconds-UwyO8pc(long)
-    public static synthetic void getSeconds-UwyO8pc$annotations(double)
-    public static synthetic void getSeconds-UwyO8pc$annotations(int)
-    public static synthetic void getSeconds-UwyO8pc$annotations(long)
-    public final long getZERO-UwyO8pc()
-    public final synthetic long hours-UwyO8pc(double)
-    public final synthetic long hours-UwyO8pc(int)
-    public final synthetic long hours-UwyO8pc(long)
-    public final synthetic long microseconds-UwyO8pc(double)
-    public final synthetic long microseconds-UwyO8pc(int)
-    public final synthetic long microseconds-UwyO8pc(long)
-    public final synthetic long milliseconds-UwyO8pc(double)
-    public final synthetic long milliseconds-UwyO8pc(int)
-    public final synthetic long milliseconds-UwyO8pc(long)
-    public final synthetic long minutes-UwyO8pc(double)
-    public final synthetic long minutes-UwyO8pc(int)
-    public final synthetic long minutes-UwyO8pc(long)
-    public final synthetic long nanoseconds-UwyO8pc(double)
-    public final synthetic long nanoseconds-UwyO8pc(int)
-    public final synthetic long nanoseconds-UwyO8pc(long)
-    public final long parse-UwyO8pc(java.lang.String)
-    public final long parseIsoString-UwyO8pc(java.lang.String)
-    public final kotlin.time.Duration parseIsoStringOrNull-FghU774(java.lang.String)
-    public final kotlin.time.Duration parseOrNull-FghU774(java.lang.String)
-    public final synthetic long seconds-UwyO8pc(double)
-    public final synthetic long seconds-UwyO8pc(int)
-    public final synthetic long seconds-UwyO8pc(long)
-kotlin.time.Duration:
-    private final long rawValue
-    private synthetic void <init>(long)
-    public static final synthetic long access$getINFINITE$cp()
-    public static final synthetic long access$getNEG_INFINITE$cp()
-    public static final synthetic long access$getZERO$cp()
-    private static final long addValuesMixedRanges-UwyO8pc(long,long,long)
-    private static final void appendFractional-impl(long,java.lang.StringBuilder,int,int,int,java.lang.String,boolean)
-    public static final synthetic kotlin.time.Duration box-impl(long)
-    public synthetic bridge int compareTo(java.lang.Object)
-    public int compareTo-LRDsOJo(long)
-    public static int compareTo-LRDsOJo(long,long)
-    public static final double div-LRDsOJo(long,long)
-    public static final long div-UwyO8pc(long,double)
-    public static final long div-UwyO8pc(long,int)
-    public boolean equals(java.lang.Object)
-    public static boolean equals-impl(long,java.lang.Object)
-    public static final boolean equals-impl0(long,long)
-    public static final long getAbsoluteValue-UwyO8pc(long)
-    public static synthetic void getHoursComponent$annotations()
-    public static final int getHoursComponent-impl(long)
-    public static synthetic void getInDays$annotations()
-    public static final synthetic double getInDays-impl(long)
-    public static synthetic void getInHours$annotations()
-    public static final synthetic double getInHours-impl(long)
-    public static synthetic void getInMicroseconds$annotations()
-    public static final synthetic double getInMicroseconds-impl(long)
-    public static synthetic void getInMilliseconds$annotations()
-    public static final synthetic double getInMilliseconds-impl(long)
-    public static synthetic void getInMinutes$annotations()
-    public static final synthetic double getInMinutes-impl(long)
-    public static synthetic void getInNanoseconds$annotations()
-    public static final synthetic double getInNanoseconds-impl(long)
-    public static synthetic void getInSeconds$annotations()
-    public static final synthetic double getInSeconds-impl(long)
-    public static final long getInWholeDays-impl(long)
-    public static final long getInWholeHours-impl(long)
-    public static final long getInWholeMicroseconds-impl(long)
-    public static final long getInWholeMilliseconds-impl(long)
-    public static final long getInWholeMinutes-impl(long)
-    public static final long getInWholeNanoseconds-impl(long)
-    public static final long getInWholeSeconds-impl(long)
-    public static synthetic void getMinutesComponent$annotations()
-    public static final int getMinutesComponent-impl(long)
-    public static synthetic void getNanosecondsComponent$annotations()
-    public static final int getNanosecondsComponent-impl(long)
-    public static synthetic void getSecondsComponent$annotations()
-    public static final int getSecondsComponent-impl(long)
-    private static final kotlin.time.DurationUnit getStorageUnit-impl(long)
-    private static final int getUnitDiscriminator-impl(long)
-    public int hashCode()
-    public static int hashCode-impl(long)
-    public static final boolean isFinite-impl(long)
-    private static final boolean isInMillis-impl(long)
-    public static final boolean isInfinite-impl(long)
-    public static final boolean isNegative-impl(long)
-    public static final boolean isPositive-impl(long)
-    public static final long minus-LRDsOJo(long,long)
-    public static final long plus-LRDsOJo(long,long)
-    public static final long times-UwyO8pc(long,double)
-    public static final long times-UwyO8pc(long,int)
-    public static final java.lang.Object toComponents-impl(long,kotlin.jvm.functions.Function2)
-    public static final java.lang.Object toComponents-impl(long,kotlin.jvm.functions.Function3)
-    public static final java.lang.Object toComponents-impl(long,kotlin.jvm.functions.Function4)
-    public static final java.lang.Object toComponents-impl(long,kotlin.jvm.functions.Function5)
-    public static final double toDouble-impl(long,kotlin.time.DurationUnit)
-    public static final int toInt-impl(long,kotlin.time.DurationUnit)
-    public static final java.lang.String toIsoString-impl(long)
-    public static final long toLong-impl(long,kotlin.time.DurationUnit)
-    public static final synthetic long toLongMilliseconds-impl(long)
-    public static final synthetic long toLongNanoseconds-impl(long)
-    public java.lang.String toString()
-    public static java.lang.String toString-impl(long)
-    public static final java.lang.String toString-impl(long,kotlin.time.DurationUnit,int)
-    public static synthetic java.lang.String toString-impl$default(long,kotlin.time.DurationUnit,int,int,java.lang.Object)
-    public static final long truncateTo-UwyO8pc$kotlin_stdlib(long,kotlin.time.DurationUnit)
-    public static final long unaryMinus-UwyO8pc(long)
-    public final synthetic long unbox-impl()
-kotlin.time.DurationJvmKt:
-    private static final java.text.DecimalFormat createFormatForDecimals(int)
-    public static final java.lang.String formatToExactDecimals(double,int)
-    public static final java.lang.String formatUpToDecimals(double,int)
-kotlin.time.DurationKt:
-    public static final long MAX_MILLIS
-    public static final long MAX_NANOS
-    private static final long MAX_NANOS_IN_MILLIS
-    public static final int NANOS_IN_MILLIS
-    public static final synthetic long access$durationOf(long,int)
-    public static final synthetic long access$durationOfMillisNormalized(long)
-    public static final synthetic long access$durationOfNanos(long)
-    public static final synthetic long access$durationOfNanosNormalized(long)
-    public static final synthetic long access$millisToNanos(long)
-    public static final synthetic long access$nanosToMillis(long)
-    public static final synthetic long access$parseDuration(java.lang.String,boolean)
-    private static final long durationOf(long,int)
-    private static final long durationOfMillisNormalized(long)
-    private static final long durationOfNanosNormalized(long)
-    public static final synthetic long getDays(double)
-    public static final synthetic long getDays(int)
-    public static final synthetic long getDays(long)
-    public static synthetic void getDays$annotations(double)
-    public static synthetic void getDays$annotations(int)
-    public static synthetic void getDays$annotations(long)
-    public static final synthetic long getHours(double)
-    public static final synthetic long getHours(int)
-    public static final synthetic long getHours(long)
-    public static synthetic void getHours$annotations(double)
-    public static synthetic void getHours$annotations(int)
-    public static synthetic void getHours$annotations(long)
-    public static final synthetic long getMicroseconds(double)
-    public static final synthetic long getMicroseconds(int)
-    public static final synthetic long getMicroseconds(long)
-    public static synthetic void getMicroseconds$annotations(double)
-    public static synthetic void getMicroseconds$annotations(int)
-    public static synthetic void getMicroseconds$annotations(long)
-    public static final synthetic long getMilliseconds(double)
-    public static final synthetic long getMilliseconds(int)
-    public static final synthetic long getMilliseconds(long)
-    public static synthetic void getMilliseconds$annotations(double)
-    public static synthetic void getMilliseconds$annotations(int)
-    public static synthetic void getMilliseconds$annotations(long)
-    public static final synthetic long getMinutes(double)
-    public static final synthetic long getMinutes(int)
-    public static final synthetic long getMinutes(long)
-    public static synthetic void getMinutes$annotations(double)
-    public static synthetic void getMinutes$annotations(int)
-    public static synthetic void getMinutes$annotations(long)
-    public static final synthetic long getNanoseconds(double)
-    public static final synthetic long getNanoseconds(int)
-    public static final synthetic long getNanoseconds(long)
-    public static synthetic void getNanoseconds$annotations(double)
-    public static synthetic void getNanoseconds$annotations(int)
-    public static synthetic void getNanoseconds$annotations(long)
-    public static final synthetic long getSeconds(double)
-    public static final synthetic long getSeconds(int)
-    public static final synthetic long getSeconds(long)
-    public static synthetic void getSeconds$annotations(double)
-    public static synthetic void getSeconds$annotations(int)
-    public static synthetic void getSeconds$annotations(long)
-    private static final long millisToNanos(long)
-    private static final long nanosToMillis(long)
-    private static final long parseDuration(java.lang.String,boolean)
-    private static final long parseOverLongIsoComponent(java.lang.String)
-    private static final int skipWhile(java.lang.String,int,kotlin.jvm.functions.Function1)
-    private static final java.lang.String substringWhile(java.lang.String,int,kotlin.jvm.functions.Function1)
-    private static final long times-kIfJnKk(double,long)
-    private static final long times-mvk6XK0(int,long)
-    public static final long toDuration(double,kotlin.time.DurationUnit)
-    public static final long toDuration(int,kotlin.time.DurationUnit)
-kotlin.time.DurationUnit:
-    public static kotlin.enums.EnumEntries getEntries()
-kotlin.time.DurationUnitKt:
-    private void <init>()
+kotlin.time.Duration$Companion
+kotlin.time.Duration
+kotlin.time.DurationJvmKt
+kotlin.time.DurationKt
+kotlin.time.DurationUnit
+kotlin.time.DurationUnitKt
 kotlin.time.DurationUnitKt__DurationUnitJvmKt$WhenMappings
-kotlin.time.DurationUnitKt__DurationUnitJvmKt:
-    public void <init>()
-    public static final double convertDurationUnit(double,kotlin.time.DurationUnit,kotlin.time.DurationUnit)
-    public static final kotlin.time.DurationUnit toDurationUnit(java.util.concurrent.TimeUnit)
-    public static final java.util.concurrent.TimeUnit toTimeUnit(kotlin.time.DurationUnit)
+kotlin.time.DurationUnitKt__DurationUnitJvmKt
 kotlin.time.DurationUnitKt__DurationUnitKt$WhenMappings
-kotlin.time.DurationUnitKt__DurationUnitKt:
-    public void <init>()
-    public static final kotlin.time.DurationUnit durationUnitByIsoChar(char,boolean)
-    public static final kotlin.time.DurationUnit durationUnitByShortName(java.lang.String)
-    public static final java.lang.String shortName(kotlin.time.DurationUnit)
+kotlin.time.DurationUnitKt__DurationUnitKt
 kotlin.time.ExperimentalTime
 kotlin.time.LongSaturatedMathKt
 kotlin.time.MeasureTimeKt
@@ -16122,6 +15857,7 @@ kotlinx.coroutines.AbstractTimeSourceKt:
     private static final void unpark(java.lang.Thread)
     private static final void unregisterTimeLoopThread()
     private static final java.lang.Runnable wrapTask(java.lang.Runnable)
+kotlinx.coroutines.Active
 kotlinx.coroutines.AwaitAll$AwaitAllNode
 kotlinx.coroutines.AwaitAll$DisposeHandlersOnCancel
 kotlinx.coroutines.AwaitAll
@@ -16146,43 +15882,94 @@ kotlinx.coroutines.BuildersKt__Builders_commonKt:
     private static final java.lang.Object invoke$$forInline(kotlinx.coroutines.CoroutineDispatcher,kotlin.jvm.functions.Function2,kotlin.coroutines.Continuation)
 kotlinx.coroutines.CancelFutureOnCancel
 kotlinx.coroutines.CancelFutureOnCompletion
+kotlinx.coroutines.CancelHandler
+kotlinx.coroutines.CancelHandlerBase
 kotlinx.coroutines.CancellableContinuation$DefaultImpls
 kotlinx.coroutines.CancellableContinuation:
     public abstract boolean cancel(java.lang.Throwable)
     public abstract void completeResume(java.lang.Object)
     public abstract void initCancellability()
+    public abstract void invokeOnCancellation(kotlin.jvm.functions.Function1)
     public abstract boolean isActive()
     public abstract boolean isCancelled()
     public abstract boolean isCompleted()
     public abstract void resume(java.lang.Object,kotlin.jvm.functions.Function1)
+    public abstract void resumeUndispatched(kotlinx.coroutines.CoroutineDispatcher,java.lang.Object)
     public abstract void resumeUndispatchedWithException(kotlinx.coroutines.CoroutineDispatcher,java.lang.Throwable)
     public abstract java.lang.Object tryResume(java.lang.Object,java.lang.Object)
     public abstract java.lang.Object tryResume(java.lang.Object,java.lang.Object,kotlin.jvm.functions.Function1)
     public abstract java.lang.Object tryResumeWithException(java.lang.Throwable)
 kotlinx.coroutines.CancellableContinuationImpl:
+    private volatile int _decisionAndIndex
+    private static final java.util.concurrent.atomic.AtomicIntegerFieldUpdater _decisionAndIndex$FU
+    private volatile java.lang.Object _parentHandle
+    private static final java.util.concurrent.atomic.AtomicReferenceFieldUpdater _parentHandle$FU
+    private volatile java.lang.Object _state
+    private static final java.util.concurrent.atomic.AtomicReferenceFieldUpdater _state$FU
+    private final kotlin.coroutines.CoroutineContext context
+    private final kotlin.coroutines.Continuation delegate
+    static void <clinit>()
+    public void <init>(kotlin.coroutines.Continuation,int)
+    private final java.lang.Void alreadyResumedError(java.lang.Object)
     private final void callCancelHandler(kotlin.jvm.functions.Function1,java.lang.Throwable)
+    public final void callCancelHandler(kotlinx.coroutines.CancelHandler,java.lang.Throwable)
     private final void callCancelHandlerSafely(kotlin.jvm.functions.Function0)
+    public final void callOnCancellation(kotlin.jvm.functions.Function1,java.lang.Throwable)
+    private final void callSegmentOnCancellation(kotlinx.coroutines.internal.Segment,java.lang.Throwable)
+    public boolean cancel(java.lang.Throwable)
+    public void cancelCompletedResult$kotlinx_coroutines_core(java.lang.Object,java.lang.Throwable)
+    private final boolean cancelLater(java.lang.Throwable)
     public void completeResume(java.lang.Object)
+    private final void detachChildIfNonResuable()
+    private final void dispatchResume(int)
+    public kotlin.coroutines.jvm.internal.CoroutineStackFrame getCallerFrame()
+    public kotlin.coroutines.CoroutineContext getContext()
+    public java.lang.Throwable getContinuationCancellationCause(kotlinx.coroutines.Job)
+    public final kotlin.coroutines.Continuation getDelegate$kotlinx_coroutines_core()
+    public java.lang.Throwable getExceptionalResult$kotlinx_coroutines_core(java.lang.Object)
+    private final kotlinx.coroutines.DisposableHandle getParentHandle()
+    public final java.lang.Object getResult()
+    public java.lang.StackTraceElement getStackTraceElement()
+    public final java.lang.Object getState$kotlinx_coroutines_core()
+    private final java.lang.String getStateDebugRepresentation()
+    public java.lang.Object getSuccessfulResult$kotlinx_coroutines_core(java.lang.Object)
+    public void initCancellability()
+    private final kotlinx.coroutines.DisposableHandle installParentHandle()
+    public void invokeOnCancellation(kotlin.jvm.functions.Function1)
     public void invokeOnCancellation(kotlinx.coroutines.internal.Segment,int)
+    private final void invokeOnCancellationImpl(java.lang.Object)
     public boolean isActive()
     public boolean isCancelled()
+    public boolean isCompleted()
+    private final boolean isReusable()
     private final void loop$atomicfu(java.util.concurrent.atomic.AtomicIntegerFieldUpdater,kotlin.jvm.functions.Function1,java.lang.Object)
     private final void loop$atomicfu(java.util.concurrent.atomic.AtomicReferenceFieldUpdater,kotlin.jvm.functions.Function1,java.lang.Object)
+    private final kotlinx.coroutines.CancelHandler makeCancelHandler(kotlin.jvm.functions.Function1)
+    private final void multipleHandlersError(java.lang.Object,java.lang.Object)
+    protected java.lang.String nameString()
+    public final void parentCancelled$kotlinx_coroutines_core(java.lang.Throwable)
+    public final void releaseClaimedReusableContinuation$kotlinx_coroutines_core()
     public final boolean resetStateReusable()
     public void resume(java.lang.Object,kotlin.jvm.functions.Function1)
+    private final void resumeImpl(java.lang.Object,int,kotlin.jvm.functions.Function1)
+    static synthetic void resumeImpl$default(kotlinx.coroutines.CancellableContinuationImpl,java.lang.Object,int,kotlin.jvm.functions.Function1,int,java.lang.Object)
+    public void resumeUndispatched(kotlinx.coroutines.CoroutineDispatcher,java.lang.Object)
     public void resumeUndispatchedWithException(kotlinx.coroutines.CoroutineDispatcher,java.lang.Throwable)
+    public void resumeWith(java.lang.Object)
+    private final java.lang.Object resumedState(kotlinx.coroutines.NotCompleted,java.lang.Object,int,kotlin.jvm.functions.Function1,java.lang.Object)
+    public java.lang.Object takeState$kotlinx_coroutines_core()
+    public java.lang.String toString()
     public java.lang.Object tryResume(java.lang.Object,java.lang.Object)
     public java.lang.Object tryResume(java.lang.Object,java.lang.Object,kotlin.jvm.functions.Function1)
+    private final boolean tryResume()
     private final kotlinx.coroutines.internal.Symbol tryResumeImpl(java.lang.Object,java.lang.Object,kotlin.jvm.functions.Function1)
     public java.lang.Object tryResumeWithException(java.lang.Throwable)
+    private final boolean trySuspend()
     private final void update$atomicfu(java.util.concurrent.atomic.AtomicIntegerFieldUpdater,kotlin.jvm.functions.Function1,java.lang.Object)
 kotlinx.coroutines.CancellableContinuationImplKt
-kotlinx.coroutines.CancellableContinuationKt:
-    public static final kotlinx.coroutines.CancellableContinuationImpl getOrCreateCancellableContinuation(kotlin.coroutines.Continuation)
-    public static final java.lang.Object suspendCancellableCoroutine(kotlin.jvm.functions.Function1,kotlin.coroutines.Continuation)
-    private static final java.lang.Object suspendCancellableCoroutine$$forInline(kotlin.jvm.functions.Function1,kotlin.coroutines.Continuation)
-    public static final java.lang.Object suspendCancellableCoroutineReusable(kotlin.jvm.functions.Function1,kotlin.coroutines.Continuation)
-    private static final java.lang.Object suspendCancellableCoroutineReusable$$forInline(kotlin.jvm.functions.Function1,kotlin.coroutines.Continuation)
+kotlinx.coroutines.CancellableContinuationKt
+kotlinx.coroutines.CancelledContinuation
+kotlinx.coroutines.ChildContinuation
 kotlinx.coroutines.ChildHandle$DefaultImpls
 kotlinx.coroutines.ChildHandle:
     public abstract kotlinx.coroutines.Job getParent()
@@ -16197,12 +15984,7 @@ kotlinx.coroutines.CompletableJob$DefaultImpls
 kotlinx.coroutines.CompletableJob:
     public abstract boolean complete()
     public abstract boolean completeExceptionally(java.lang.Throwable)
-kotlinx.coroutines.CompletedContinuation:
-    public final java.lang.Object component1()
-    public final kotlinx.coroutines.CancelHandler component2()
-    public final kotlin.jvm.functions.Function1 component3()
-    public final java.lang.Object component4()
-    public final java.lang.Throwable component5()
+kotlinx.coroutines.CompletedContinuation
 kotlinx.coroutines.CompletedWithCancellation:
     public final java.lang.Object component1()
     public final kotlin.jvm.functions.Function1 component2()
@@ -16210,6 +15992,8 @@ kotlinx.coroutines.CompletedWithCancellation:
     public static synthetic kotlinx.coroutines.CompletedWithCancellation copy$default(kotlinx.coroutines.CompletedWithCancellation,java.lang.Object,kotlin.jvm.functions.Function1,int,java.lang.Object)
 kotlinx.coroutines.CompletionHandlerKt
 kotlinx.coroutines.CompletionHandler_commonKt
+kotlinx.coroutines.CompletionStateKt:
+    public static final java.lang.Object toState(java.lang.Object,kotlinx.coroutines.CancellableContinuation)
 kotlinx.coroutines.CopyableThreadContextElement$DefaultImpls
 kotlinx.coroutines.CoroutineContextKt:
     private static final java.lang.String DEBUG_THREAD_NAME_SEPARATOR
@@ -16269,6 +16053,7 @@ kotlinx.coroutines.DefaultExecutor:
     public static final java.lang.String THREAD_NAME
     public final synchronized void ensureStarted$kotlinx_coroutines_core()
     private static synthetic void get_thread$annotations()
+    public kotlinx.coroutines.DisposableHandle invokeOnTimeout(long,java.lang.Runnable,kotlin.coroutines.CoroutineContext)
     public final boolean isThreadPresent$kotlinx_coroutines_core()
     public final synchronized void shutdownForTests(long)
 kotlinx.coroutines.DefaultExecutorKt:
@@ -16276,16 +16061,15 @@ kotlinx.coroutines.DefaultExecutorKt:
 kotlinx.coroutines.Deferred$DefaultImpls
 kotlinx.coroutines.Deferred
 kotlinx.coroutines.DeferredCoroutine
-kotlinx.coroutines.Delay$DefaultImpls:
-    public static java.lang.Object delay(kotlinx.coroutines.Delay,long,kotlin.coroutines.Continuation)
+kotlinx.coroutines.Delay$DefaultImpls
 kotlinx.coroutines.Delay:
     public abstract java.lang.Object delay(long,kotlin.coroutines.Continuation)
+    public abstract kotlinx.coroutines.DisposableHandle invokeOnTimeout(long,java.lang.Runnable,kotlin.coroutines.CoroutineContext)
+    public abstract void scheduleResumeAfterDelay(long,kotlinx.coroutines.CancellableContinuation)
 kotlinx.coroutines.DelayKt$awaitCancellation$1
-kotlinx.coroutines.DelayKt:
-    public static final java.lang.Object awaitCancellation(kotlin.coroutines.Continuation)
-    public static final java.lang.Object delay-VtjQ1oo(long,kotlin.coroutines.Continuation)
-    public static final long toDelayMillis-LRDsOJo(long)
+kotlinx.coroutines.DelayKt
 kotlinx.coroutines.DelayWithTimeoutDiagnostics$DefaultImpls
+kotlinx.coroutines.DelayWithTimeoutDiagnostics
 kotlinx.coroutines.DelicateCoroutinesApi
 kotlinx.coroutines.DispatchedCoroutine:
     public static final java.util.concurrent.atomic.AtomicIntegerFieldUpdater get_decision$FU()
@@ -16296,7 +16080,11 @@ kotlinx.coroutines.DispatchedTaskKt:
     public static final int MODE_CANCELLABLE_REUSABLE
     public static final int MODE_UNDISPATCHED
     public static final int MODE_UNINITIALIZED
+    public static final void dispatch(kotlinx.coroutines.DispatchedTask,int)
     public static synthetic void getMODE_CANCELLABLE$annotations()
+    public static final boolean isReusableMode(int)
+    public static final void resume(kotlinx.coroutines.DispatchedTask,kotlin.coroutines.Continuation,boolean)
+    private static final void resumeUnconfined(kotlinx.coroutines.DispatchedTask)
     public static final void resumeWithStackTrace(kotlin.coroutines.Continuation,java.lang.Throwable)
     public static final void runUnconfinedEventLoop(kotlinx.coroutines.DispatchedTask,kotlinx.coroutines.EventLoop,kotlin.jvm.functions.Function0)
 kotlinx.coroutines.DispatcherExecutor
@@ -16309,6 +16097,8 @@ kotlinx.coroutines.Dispatchers:
     public final void shutdown()
 kotlinx.coroutines.DispatchersKt
 kotlinx.coroutines.DisposableFutureHandle
+kotlinx.coroutines.DisposeOnCancel
+kotlinx.coroutines.DisposeOnCompletion
 kotlinx.coroutines.EventLoop:
     public static synthetic void decrementUseCount$default(kotlinx.coroutines.EventLoop,boolean,int,java.lang.Object)
     public final boolean isActive()
@@ -16316,9 +16106,27 @@ kotlinx.coroutines.EventLoop:
     public final kotlinx.coroutines.CoroutineDispatcher limitedParallelism(int)
     public long processNextEvent()
     public boolean shouldBeProcessedFromContext()
+kotlinx.coroutines.EventLoopImplBase$DelayedResumeTask
+kotlinx.coroutines.EventLoopImplBase$DelayedRunnableTask
+kotlinx.coroutines.EventLoopImplBase$DelayedTask:
+    private volatile java.lang.Object _heap
+    private int index
+    public void <init>(long)
+    public synthetic bridge int compareTo(java.lang.Object)
+    public int compareTo(kotlinx.coroutines.EventLoopImplBase$DelayedTask)
+    public final void dispose()
+    public kotlinx.coroutines.internal.ThreadSafeHeap getHeap()
+    public int getIndex()
+    public void setHeap(kotlinx.coroutines.internal.ThreadSafeHeap)
+    public void setIndex(int)
+    public java.lang.String toString()
 kotlinx.coroutines.EventLoopImplBase:
+    public static final synthetic boolean access$isCompleted(kotlinx.coroutines.EventLoopImplBase)
     public java.lang.Object delay(long,kotlin.coroutines.Continuation)
+    public kotlinx.coroutines.DisposableHandle invokeOnTimeout(long,java.lang.Runnable,kotlin.coroutines.CoroutineContext)
     private final void loop$atomicfu(java.util.concurrent.atomic.AtomicReferenceFieldUpdater,kotlin.jvm.functions.Function1,java.lang.Object)
+    protected final kotlinx.coroutines.DisposableHandle scheduleInvokeOnTimeout(long,java.lang.Runnable)
+    public void scheduleResumeAfterDelay(long,kotlinx.coroutines.CancellableContinuation)
 kotlinx.coroutines.EventLoopKt:
     public static final boolean isIoDispatcherThread(java.lang.Thread)
     public static final void platformAutoreleasePool(kotlin.jvm.functions.Function0)
@@ -16331,7 +16139,9 @@ kotlinx.coroutines.EventLoop_commonKt:
     private static final int SCHEDULE_COMPLETED
     private static final int SCHEDULE_DISPOSED
     private static final int SCHEDULE_OK
+    public static final synthetic kotlinx.coroutines.internal.Symbol access$getDISPOSED_TASK$p()
     public static final long delayNanosToMillis(long)
+    public static final long delayToNanos(long)
 kotlinx.coroutines.ExceptionsKt
 kotlinx.coroutines.ExecutorCoroutineDispatcher:
     public abstract void close()
@@ -16344,6 +16154,7 @@ kotlinx.coroutines.GlobalScope
 kotlinx.coroutines.InternalCoroutinesApi
 kotlinx.coroutines.InterruptibleKt$runInterruptible$2
 kotlinx.coroutines.InterruptibleKt
+kotlinx.coroutines.InvokeOnCancel
 kotlinx.coroutines.Job$DefaultImpls:
     public static synthetic void cancel(kotlinx.coroutines.Job)
     public static synthetic boolean cancel$default(kotlinx.coroutines.Job,java.lang.Throwable,int,java.lang.Object)
@@ -16355,6 +16166,7 @@ kotlinx.coroutines.Job:
     public abstract kotlin.sequences.Sequence getChildren()
     public abstract kotlinx.coroutines.selects.SelectClause0 getOnJoin()
     public abstract kotlinx.coroutines.Job getParent()
+    public abstract kotlinx.coroutines.DisposableHandle invokeOnCompletion(kotlin.jvm.functions.Function1)
     public abstract boolean isCancelled()
     public abstract boolean isCompleted()
     public abstract java.lang.Object join(kotlin.coroutines.Continuation)
@@ -16383,6 +16195,7 @@ kotlinx.coroutines.JobKt:
     public static synthetic void cancelChildren$default(kotlinx.coroutines.Job,java.util.concurrent.CancellationException,int,java.lang.Object)
     public static final void cancelFutureOnCancellation(kotlinx.coroutines.CancellableContinuation,java.util.concurrent.Future)
     public static final kotlinx.coroutines.DisposableHandle cancelFutureOnCompletion(kotlinx.coroutines.Job,java.util.concurrent.Future)
+    public static final kotlinx.coroutines.DisposableHandle disposeOnCompletion(kotlinx.coroutines.Job,kotlinx.coroutines.DisposableHandle)
     public static final kotlinx.coroutines.Job getJob(kotlin.coroutines.CoroutineContext)
     public static final boolean isActive(kotlin.coroutines.CoroutineContext)
 kotlinx.coroutines.JobKt__FutureKt
@@ -16405,6 +16218,7 @@ kotlinx.coroutines.JobKt__JobKt:
     public static synthetic void cancelChildren$default(kotlin.coroutines.CoroutineContext,java.util.concurrent.CancellationException,int,java.lang.Object)
     public static synthetic void cancelChildren$default(kotlinx.coroutines.Job,java.lang.Throwable,int,java.lang.Object)
     public static synthetic void cancelChildren$default(kotlinx.coroutines.Job,java.util.concurrent.CancellationException,int,java.lang.Object)
+    public static final kotlinx.coroutines.DisposableHandle disposeOnCompletion(kotlinx.coroutines.Job,kotlinx.coroutines.DisposableHandle)
     public static final kotlinx.coroutines.Job getJob(kotlin.coroutines.CoroutineContext)
     public static final boolean isActive(kotlin.coroutines.CoroutineContext)
     private static final java.lang.Throwable orCancellation$JobKt__JobKt(java.lang.Throwable,kotlinx.coroutines.Job)
@@ -16425,6 +16239,7 @@ kotlinx.coroutines.JobSupport:
     private final java.lang.Object awaitSuspend(kotlin.coroutines.Continuation)
     public synthetic void cancel()
     public synthetic boolean cancel(java.lang.Throwable)
+    public final boolean cancelCoroutine(java.lang.Throwable)
     public final kotlinx.coroutines.JobCancellationException defaultCancellationException$kotlinx_coroutines_core(java.lang.String,java.lang.Throwable)
     public static synthetic kotlinx.coroutines.JobCancellationException defaultCancellationException$kotlinx_coroutines_core$default(kotlinx.coroutines.JobSupport,java.lang.String,java.lang.Throwable,int,java.lang.Object)
     public final kotlin.sequences.Sequence getChildren()
@@ -16437,6 +16252,7 @@ kotlinx.coroutines.JobSupport:
     public final kotlinx.coroutines.selects.SelectClause0 getOnJoin()
     public static synthetic void getOnJoin$annotations()
     public kotlinx.coroutines.Job getParent()
+    public final kotlinx.coroutines.DisposableHandle invokeOnCompletion(kotlin.jvm.functions.Function1)
     public final boolean isCancelled()
     private final boolean isCancelling(kotlinx.coroutines.Incomplete)
     public final boolean isCompletedExceptionally()
@@ -16462,6 +16278,7 @@ kotlinx.coroutines.MainCoroutineDispatcher:
 kotlinx.coroutines.NonCancellable
 kotlinx.coroutines.NonDisposableHandle:
     public kotlinx.coroutines.Job getParent()
+kotlinx.coroutines.NotCompleted
 kotlinx.coroutines.ObsoleteCoroutinesApi
 kotlinx.coroutines.ParentJob$DefaultImpls
 kotlinx.coroutines.ResumeAwaitOnCompletion
@@ -16471,8 +16288,10 @@ kotlinx.coroutines.RunnableKt$Runnable$1
 kotlinx.coroutines.RunnableKt
 kotlinx.coroutines.SchedulerTaskKt
 kotlinx.coroutines.SupervisorCoroutine
-kotlinx.coroutines.SupervisorJobImpl
-kotlinx.coroutines.SupervisorKt
+kotlinx.coroutines.SupervisorKt:
+    public static final synthetic kotlinx.coroutines.Job SupervisorJob(kotlinx.coroutines.Job)
+    public static synthetic kotlinx.coroutines.Job SupervisorJob$default(kotlinx.coroutines.Job,int,java.lang.Object)
+    public static final java.lang.Object supervisorScope(kotlin.jvm.functions.Function2,kotlin.coroutines.Continuation)
 kotlinx.coroutines.ThreadContextElement$DefaultImpls
 kotlinx.coroutines.ThreadContextElementKt
 kotlinx.coroutines.ThreadLocalEventLoop:
@@ -16481,19 +16300,29 @@ kotlinx.coroutines.ThreadPoolDispatcherKt
 kotlinx.coroutines.ThreadPoolDispatcherKt__MultithreadedDispatchers_commonKt
 kotlinx.coroutines.ThreadPoolDispatcherKt__ThreadPoolDispatcherKt
 kotlinx.coroutines.ThreadState
+kotlinx.coroutines.TimeoutCancellationException:
+    public final transient kotlinx.coroutines.Job coroutine
+    public void <init>(java.lang.String)
+    public void <init>(java.lang.String,kotlinx.coroutines.Job)
+    public synthetic bridge java.lang.Throwable createCopy()
+    public kotlinx.coroutines.TimeoutCancellationException createCopy()
+kotlinx.coroutines.TimeoutCoroutine
 kotlinx.coroutines.TimeoutKt$withTimeoutOrNull$1
-kotlinx.coroutines.TimeoutKt:
-    public static final java.lang.Object withTimeout-KLykuaI(long,kotlin.jvm.functions.Function2,kotlin.coroutines.Continuation)
-    public static final java.lang.Object withTimeoutOrNull(long,kotlin.jvm.functions.Function2,kotlin.coroutines.Continuation)
-    public static final java.lang.Object withTimeoutOrNull-KLykuaI(long,kotlin.jvm.functions.Function2,kotlin.coroutines.Continuation)
+kotlinx.coroutines.TimeoutKt
 kotlinx.coroutines.Unconfined:
     public kotlinx.coroutines.CoroutineDispatcher limitedParallelism(int)
 kotlinx.coroutines.Waiter
 kotlinx.coroutines.YieldContext:
     public void <init>()
 kotlinx.coroutines.YieldKt
+kotlinx.coroutines.android.HandlerContext$scheduleResumeAfterDelay$$inlined$Runnable$1
+kotlinx.coroutines.android.HandlerContext$scheduleResumeAfterDelay$1
 kotlinx.coroutines.android.HandlerContext:
+    public static final synthetic android.os.Handler access$getHandler$p(kotlinx.coroutines.android.HandlerContext)
     public synthetic bridge kotlinx.coroutines.android.HandlerDispatcher getImmediate()
+    public kotlinx.coroutines.DisposableHandle invokeOnTimeout(long,java.lang.Runnable,kotlin.coroutines.CoroutineContext)
+    private static final void invokeOnTimeout$lambda$3(kotlinx.coroutines.android.HandlerContext,java.lang.Runnable)
+    public void scheduleResumeAfterDelay(long,kotlinx.coroutines.CancellableContinuation)
 kotlinx.coroutines.android.HandlerDispatcher:
     public java.lang.Object delay(long,kotlin.coroutines.Continuation)
     public abstract kotlinx.coroutines.android.HandlerDispatcher getImmediate()
@@ -17042,37 +16871,20 @@ kotlinx.coroutines.internal.AtomicOp:
     public kotlinx.coroutines.internal.AtomicOp getAtomicOp()
 kotlinx.coroutines.internal.ConcurrentKt
 kotlinx.coroutines.internal.ConcurrentLinkedListKt
-kotlinx.coroutines.internal.ConcurrentLinkedListNode:
-    private volatile java.lang.Object _next
-    private static final java.util.concurrent.atomic.AtomicReferenceFieldUpdater _next$FU
-    private volatile java.lang.Object _prev
-    private static final java.util.concurrent.atomic.AtomicReferenceFieldUpdater _prev$FU
-    static void <clinit>()
-    public void <init>(kotlinx.coroutines.internal.ConcurrentLinkedListNode)
-    public static final synthetic java.lang.Object access$getNextOrClosed(kotlinx.coroutines.internal.ConcurrentLinkedListNode)
-    public final void cleanPrev()
-    private final kotlinx.coroutines.internal.ConcurrentLinkedListNode getAliveSegmentLeft()
-    private final kotlinx.coroutines.internal.ConcurrentLinkedListNode getAliveSegmentRight()
-    public final kotlinx.coroutines.internal.ConcurrentLinkedListNode getNext()
-    private final java.lang.Object getNextOrClosed()
-    public final kotlinx.coroutines.internal.ConcurrentLinkedListNode getPrev()
-    public abstract boolean isRemoved()
-    public final boolean isTail()
-    public final boolean markAsClosed()
-    public final kotlinx.coroutines.internal.ConcurrentLinkedListNode nextOrIfClosed(kotlin.jvm.functions.Function0)
-    public final void remove()
-    public final boolean trySetNext(kotlinx.coroutines.internal.ConcurrentLinkedListNode)
-    private final void update$atomicfu(java.util.concurrent.atomic.AtomicReferenceFieldUpdater,kotlin.jvm.functions.Function1,java.lang.Object)
+kotlinx.coroutines.internal.ConcurrentLinkedListNode
 kotlinx.coroutines.internal.CoroutineExceptionHandlerImplKt:
     public static final void ensurePlatformExceptionHandlerLoaded(kotlinx.coroutines.CoroutineExceptionHandler)
 kotlinx.coroutines.internal.DispatchedContinuation:
     public final kotlinx.coroutines.CancellableContinuationImpl claimReusableCancellableContinuation$kotlinx_coroutines_core()
     public final void dispatchYield$kotlinx_coroutines_core(kotlin.coroutines.CoroutineContext,java.lang.Object)
     public static synthetic void get_state$kotlinx_coroutines_core$annotations()
+    public final boolean isReusable$kotlinx_coroutines_core()
     private final void loop$atomicfu(java.util.concurrent.atomic.AtomicReferenceFieldUpdater,kotlin.jvm.functions.Function1,java.lang.Object)
+    public final boolean postponeCancellation$kotlinx_coroutines_core(java.lang.Throwable)
     public final void resumeCancellableWith$kotlinx_coroutines_core(java.lang.Object,kotlin.jvm.functions.Function1)
     public final boolean resumeCancelled$kotlinx_coroutines_core(java.lang.Object)
     public final void resumeUndispatchedWith$kotlinx_coroutines_core(java.lang.Object)
+    public final java.lang.Throwable tryReleaseClaimedContinuation$kotlinx_coroutines_core(kotlinx.coroutines.CancellableContinuation)
 kotlinx.coroutines.internal.DispatchedContinuationKt:
     private static final boolean executeUnconfined(kotlinx.coroutines.internal.DispatchedContinuation,java.lang.Object,int,boolean,kotlin.jvm.functions.Function0)
     static synthetic boolean executeUnconfined$default(kotlinx.coroutines.internal.DispatchedContinuation,java.lang.Object,int,boolean,kotlin.jvm.functions.Function0,int,java.lang.Object)
@@ -17091,7 +16903,9 @@ kotlinx.coroutines.internal.LimitedDispatcher:
     public java.lang.Object delay(long,kotlin.coroutines.Continuation)
     private final void dispatchInternal(java.lang.Runnable,kotlin.jvm.functions.Function1)
     public void dispatchYield(kotlin.coroutines.CoroutineContext,java.lang.Runnable)
+    public kotlinx.coroutines.DisposableHandle invokeOnTimeout(long,java.lang.Runnable,kotlin.coroutines.CoroutineContext)
     public kotlinx.coroutines.CoroutineDispatcher limitedParallelism(int)
+    public void scheduleResumeAfterDelay(long,kotlinx.coroutines.CancellableContinuation)
 kotlinx.coroutines.internal.LocalAtomicsKt
 kotlinx.coroutines.internal.LocalAtomics_commonKt
 kotlinx.coroutines.internal.LockFreeLinkedListHead:
@@ -17155,7 +16969,10 @@ kotlinx.coroutines.internal.MainDispatchersKt:
 kotlinx.coroutines.internal.MissingMainCoroutineDispatcher:
     public synthetic void <init>(java.lang.Throwable,java.lang.String,int,kotlin.jvm.internal.DefaultConstructorMarker)
     public java.lang.Object delay(long,kotlin.coroutines.Continuation)
+    public kotlinx.coroutines.DisposableHandle invokeOnTimeout(long,java.lang.Runnable,kotlin.coroutines.CoroutineContext)
     public kotlinx.coroutines.CoroutineDispatcher limitedParallelism(int)
+    public java.lang.Void scheduleResumeAfterDelay(long,kotlinx.coroutines.CancellableContinuation)
+    public synthetic bridge void scheduleResumeAfterDelay(long,kotlinx.coroutines.CancellableContinuation)
 kotlinx.coroutines.internal.MissingMainCoroutineDispatcherFactory
 kotlinx.coroutines.internal.OnDemandAllocatingPool
 kotlinx.coroutines.internal.OnDemandAllocatingPoolKt
@@ -17164,17 +16981,7 @@ kotlinx.coroutines.internal.OnUndeliveredElementKt
 kotlinx.coroutines.internal.OpDescriptor:
     public abstract kotlinx.coroutines.internal.AtomicOp getAtomicOp()
 kotlinx.coroutines.internal.ProbesSupportKt
-kotlinx.coroutines.internal.Segment:
-    private volatile int cleanedAndPointers
-    private static final java.util.concurrent.atomic.AtomicIntegerFieldUpdater cleanedAndPointers$FU
-    public final long id
-    static void <clinit>()
-    public void <init>(long,kotlinx.coroutines.internal.Segment,int)
-    public final boolean decPointers$kotlinx_coroutines_core()
-    public abstract int getNumberOfSlots()
-    public boolean isRemoved()
-    public final void onSlotCleaned()
-    public final boolean tryIncPointers$kotlinx_coroutines_core()
+kotlinx.coroutines.internal.Segment
 kotlinx.coroutines.internal.SegmentOrClosed
 kotlinx.coroutines.internal.StackTraceRecoveryKt:
     private static final java.lang.String baseContinuationImplClass
@@ -17197,11 +17004,16 @@ kotlinx.coroutines.internal.ThreadLocalKey
 kotlinx.coroutines.internal.ThreadLocalKt:
     public static synthetic void CommonThreadLocal$annotations()
 kotlinx.coroutines.internal.ThreadSafeHeap:
+    public final void addImpl(kotlinx.coroutines.internal.ThreadSafeHeapNode)
     public final void addLast(kotlinx.coroutines.internal.ThreadSafeHeapNode)
     public final boolean addLastIf(kotlinx.coroutines.internal.ThreadSafeHeapNode,kotlin.jvm.functions.Function1)
     public final void clear()
     public final kotlinx.coroutines.internal.ThreadSafeHeapNode find(kotlin.jvm.functions.Function1)
+    private final kotlinx.coroutines.internal.ThreadSafeHeapNode[] realloc()
+    public final boolean remove(kotlinx.coroutines.internal.ThreadSafeHeapNode)
     public final kotlinx.coroutines.internal.ThreadSafeHeapNode removeFirstIf(kotlin.jvm.functions.Function1)
+kotlinx.coroutines.internal.ThreadSafeHeapNode:
+    public abstract int getIndex()
 kotlinx.coroutines.internal.UndeliveredElementException
 kotlinx.coroutines.intrinsics.CancellableKt:
     private static final void runSafely(kotlin.coroutines.Continuation,kotlin.jvm.functions.Function0)
@@ -17210,6 +17022,7 @@ kotlinx.coroutines.intrinsics.UndispatchedKt:
     public static final void startCoroutineUndispatched(kotlin.jvm.functions.Function1,kotlin.coroutines.Continuation)
     public static final void startCoroutineUnintercepted(kotlin.jvm.functions.Function1,kotlin.coroutines.Continuation)
     private static final void startDirect(kotlin.coroutines.Continuation,kotlin.jvm.functions.Function1)
+    public static final java.lang.Object startUndispatchedOrReturnIgnoreTimeout(kotlinx.coroutines.internal.ScopeCoroutine,java.lang.Object,kotlin.jvm.functions.Function2)
     private static final java.lang.Object undispatchedResult(kotlinx.coroutines.internal.ScopeCoroutine,kotlin.jvm.functions.Function1,kotlin.jvm.functions.Function0)
 kotlinx.coroutines.scheduling.CoroutineScheduler$Worker:
     private final kotlinx.coroutines.scheduling.Task findCpuTask()
@@ -21344,10 +21157,6 @@ org.objenesis.strategy.StdInstantiatorStrategy
 _COROUTINE.ArtificialStackFrames
 _COROUTINE.CoroutineDebuggingKt
 _COROUTINE._BOUNDARY
-androidx.activity.ComponentActivity$activityResultRegistry$1$$InternalSyntheticLambda$6$0313431f184ded0190468893867673a495b8389884b233802485a072b0b052c0$0
-androidx.activity.ComponentActivity$activityResultRegistry$1:
-    public static synthetic void $r8$lambda$Gga0ztmPNYcZ2Poj0VEtDPu4ouA(androidx.activity.ComponentActivity$activityResultRegistry$1,int,androidx.activity.result.contract.ActivityResultContract$SynchronousResult)
-    private static final void onLaunch$lambda$0(androidx.activity.ComponentActivity$activityResultRegistry$1,int,androidx.activity.result.contract.ActivityResultContract$SynchronousResult)
 androidx.activity.ImmLeaksCleaner:
     public void <init>(android.app.Activity)
 androidx.activity.OnBackPressedCallback:
@@ -21371,10 +21180,6 @@ androidx.activity.OnBackPressedDispatcher:
     public static final synthetic void access$setInProgressCallback$p(androidx.activity.OnBackPressedDispatcher,androidx.activity.OnBackPressedCallback)
     public static final synthetic void access$updateEnabledCallbacks(androidx.activity.OnBackPressedDispatcher)
     private final void updateEnabledCallbacks()
-androidx.activity.result.ActivityResultRegistry:
-    public final boolean dispatchResult(int,java.lang.Object)
-androidx.activity.result.contract.ActivityResultContract$SynchronousResult:
-    public abstract java.lang.Object getValue()
 androidx.appcompat.R$styleable:
     public static int TextAppearance_android_textColor
     public static int TextAppearance_android_textColorHint
@@ -21519,8 +21324,6 @@ androidx.core.app.ActivityCompat$PermissionCompatDelegate
 androidx.core.app.ActivityCompat$RequestPermissionsRequestCodeValidator
 androidx.core.app.ActivityCompat:
     private static androidx.core.app.ActivityCompat$PermissionCompatDelegate sDelegate
-androidx.core.app.ActivityOptionsCompat:
-    public abstract android.os.Bundle toBundle()
 androidx.core.app.CoreComponentFactory$$InternalSyntheticThrowCCEIfNotNull$9$28d6d52be828bd520f37653069cdb0fd59ddc413967dd43deec606fddf5e864e$0
 androidx.core.app.CoreComponentFactory$CompatWrapped
 androidx.core.content.ContextCompat:
@@ -21663,11 +21466,14 @@ androidx.lifecycle.Observer
 androidx.lifecycle.RepeatOnLifecycleKt$repeatOnLifecycle$3$1$1$1$1:
     final synthetic kotlinx.coroutines.sync.Mutex $mutex
 androidx.lifecycle.RepeatOnLifecycleKt$repeatOnLifecycle$3$1$1$1:
+    final synthetic kotlinx.coroutines.CancellableContinuation $cont
     final synthetic kotlinx.coroutines.sync.Mutex $mutex
 androidx.lifecycle.ReportFragment$Companion$$InternalSyntheticThrowCCEIfNotNull$9$6606f6a9d6c00feabd13f693204c7c685bcfd577a1c056fdbb01af5d22a24ba7$0
 androidx.lifecycle.SavedStateHandle$$InternalSyntheticThrowCCEIfNotNull$9$ba21a8e220df1d9e83937e71e2efe8470d16b8e2c75b3f79b3625ca0a163a78d$0
 androidx.lifecycle.SingleGeneratedAdapterObserver:
     private final androidx.lifecycle.GeneratedAdapter generatedAdapter
+androidx.lifecycle.WithLifecycleStateKt$suspendWithStateAtLeastUnchecked$2$observer$1:
+    final synthetic kotlinx.coroutines.CancellableContinuation $co
 androidx.profileinstaller.BenchmarkOperation$Api21ContextHelper
 androidx.startup.StartupLogger
 androidx.vectordrawable.graphics.drawable.AndroidResources
@@ -21780,35 +21586,8 @@ com.google.common.collect.ImmutableMap$Builder:
 com.google.common.util.concurrent.ListenableFuture
 com.neovisionaries.ws.client.SocketConnector:
     static final synthetic boolean $assertionsDisabled
-com.solana.mobilewalletadapter.clientlib.AdapterOperations:
-    public abstract java.lang.Object signMessagesDetached(byte[][],byte[][],kotlin.coroutines.Continuation)
-com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations$authorize$4:
-    final synthetic com.solana.mobilewalletadapter.common.signin.SignInWithSolana$Payload $signInPayload
-com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations$signMessagesDetached$2
-com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations:
-    public java.lang.Object signMessagesDetached(byte[][],byte[][],kotlin.coroutines.Continuation)
-com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter$transact$2:
-    final synthetic com.solana.mobilewalletadapter.common.signin.SignInWithSolana$Payload $signInPayload
-com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$InvalidPayloadsException:
-    public final boolean[] validPayloads
-    private void <init>(java.lang.String,java.lang.String,int)
-    synthetic void <init>(java.lang.String,java.lang.String,int,com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient-IA)
-    public java.lang.String getMessage()
-com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$NotSubmittedException
-com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignMessagesFuture
-com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignMessagesResult$SignedMessage:
-    public void <init>(byte[],byte[][],byte[][])
-    public java.lang.String toString()
-com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignMessagesResult:
-    public void <init>(com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignMessagesResult$SignedMessage[])
-    public java.lang.String toString()
 com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient:
     static final synthetic boolean $assertionsDisabled
-    static synthetic bridge boolean[] -$$Nest$smunpackResponseBooleanArray(org.json.JSONObject,java.lang.String,int)
-    static synthetic bridge byte[][] -$$Nest$smunpackResponsePayloadArray(org.json.JSONObject,java.lang.String,int,boolean)
-    public com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignMessagesFuture signMessagesDetached(byte[][],byte[][])
-    private static boolean[] unpackResponseBooleanArray(org.json.JSONObject,java.lang.String,int)
-    private static byte[][] unpackResponsePayloadArray(org.json.JSONObject,java.lang.String,int,boolean)
 com.solana.mobilewalletadapter.clientlib.scenario.LocalAssociationScenario:
     static final synthetic boolean $assertionsDisabled
 com.solana.mobilewalletadapter.clientlib.transport.websockets.MobileWalletAdapterWebSocket$1:
@@ -21818,13 +21597,7 @@ com.solana.mobilewalletadapter.common.crypto.ECDSASignatures:
 com.solana.mobilewalletadapter.common.protocol.MobileWalletAdapterSessionCommon:
     static final synthetic boolean $assertionsDisabled
 com.solana.mobilewalletadapter.common.signin.SignInWithSolana$Payload:
-    public java.lang.String address
-    public java.lang.String domain
-    public abstract java.lang.String prepareMessage(java.lang.String)
     public abstract org.json.JSONObject toJson()
-com.solana.mobilewalletadapter.common.util.JsonPack:
-    public static byte[][] unpackBase64PayloadsArrayToByteArrays(org.json.JSONArray,boolean)
-    public static boolean[] unpackBooleans(org.json.JSONArray)
 com.solana.mobilewalletadapter.common.util.NotifyOnCompleteFuture$OnCompleteCallback
 com.solana.mobilewalletadapter.common.util.NotifyingCompletableFuture:
     private com.solana.mobilewalletadapter.common.util.NotifyOnCompleteFuture$OnCompleteCallback mOnCompleteCallback
@@ -21844,17 +21617,12 @@ kotlin.collections.CollectionsKt___CollectionsKt:
     public static final java.util.List toMutableList(java.lang.Iterable)
     public static final java.util.List toMutableList(java.util.Collection)
     public static java.util.Set toSet(java.lang.Iterable)
-kotlin.collections.LongIterator
 kotlin.collections.SetsKt
 kotlin.collections.SetsKt__SetsJVMKt
 kotlin.collections.SetsKt__SetsKt
 kotlin.collections.SetsKt___SetsKt
 kotlin.coroutines.jvm.internal.CoroutineStackFrame:
     public abstract java.lang.StackTraceElement getStackTraceElement()
-kotlin.internal.ProgressionUtilKt:
-    private static final long differenceModulo(long,long,long)
-    public static final long getProgressionLastElement(long,long,long)
-    private static final long mod(long,long)
 kotlin.io.CloseableKt
 kotlin.jvm.JvmClassMappingKt:
     public static final kotlin.reflect.KClass getKotlinClass(java.lang.Class)
@@ -21865,35 +21633,22 @@ kotlin.jvm.internal.Reflection:
 kotlin.jvm.internal.ReflectionFactory:
     public kotlin.reflect.KFunction function(kotlin.jvm.internal.FunctionReference)
 kotlin.jvm.internal.markers.KMutableMap
-kotlin.ranges.LongProgression$Companion
-kotlin.ranges.LongProgression
-kotlin.ranges.LongProgressionIterator
-kotlin.ranges.LongRange$Companion
-kotlin.ranges.LongRange
 kotlin.ranges.RangesKt:
-    public static synthetic bridge long coerceIn(long,long,long)
+    public static synthetic bridge long coerceAtLeast(long,long)
 kotlin.ranges.RangesKt___RangesKt:
-    public static long coerceIn(long,long,long)
+    public static long coerceAtLeast(long,long)
 kotlin.reflect.KFunction
 kotlin.text.CharsKt
-kotlin.text.CharsKt__CharJVMKt:
-    public static final boolean isWhitespace(char)
-kotlin.text.Charsets
 kotlin.text.StringsKt:
-    public static synthetic bridge byte[] encodeToByteArray(java.lang.String)
     public static synthetic bridge int lastIndexOf$default(java.lang.CharSequence,java.lang.String,int,boolean,int,java.lang.Object)
     public static synthetic bridge java.lang.String substringAfter$default(java.lang.String,java.lang.String,java.lang.String,int,java.lang.Object)
     public static synthetic bridge java.lang.String substringBefore$default(java.lang.String,char,java.lang.String,int,java.lang.Object)
     public static synthetic bridge java.lang.String substringBefore$default(java.lang.String,java.lang.String,java.lang.String,int,java.lang.Object)
     public static synthetic bridge java.lang.CharSequence trim(java.lang.CharSequence)
-kotlin.text.StringsKt__StringsJVMKt:
-    public static byte[] encodeToByteArray(java.lang.String)
 kotlin.text.StringsKt__StringsKt:
     public static final int indexOf(java.lang.CharSequence,char,int,boolean)
     public static synthetic int indexOf$default(java.lang.CharSequence,char,int,boolean,int,java.lang.Object)
     public static final int indexOfAny(java.lang.CharSequence,char[],int,boolean)
-    public static final int lastIndexOf(java.lang.CharSequence,java.lang.String,int,boolean)
-    public static synthetic int lastIndexOf$default(java.lang.CharSequence,java.lang.String,int,boolean,int,java.lang.Object)
     public static final java.lang.String substringAfter(java.lang.String,java.lang.String,java.lang.String)
     public static synthetic java.lang.String substringAfter$default(java.lang.String,java.lang.String,java.lang.String,int,java.lang.Object)
     public static final java.lang.String substringBefore(java.lang.String,char,java.lang.String)
@@ -21901,14 +21656,6 @@ kotlin.text.StringsKt__StringsKt:
     public static synthetic java.lang.String substringBefore$default(java.lang.String,char,java.lang.String,int,java.lang.Object)
     public static synthetic java.lang.String substringBefore$default(java.lang.String,java.lang.String,java.lang.String,int,java.lang.Object)
     public static java.lang.CharSequence trim(java.lang.CharSequence)
-kotlin.time.Duration$Companion
-kotlin.time.Duration
-kotlin.time.DurationJvmKt
-kotlin.time.DurationKt
-kotlin.time.DurationUnit
-kotlin.time.DurationUnitKt
-kotlin.time.DurationUnitKt__DurationUnitJvmKt
-kotlin.time.DurationUnitKt__DurationUnitKt
 kotlinx.coroutines.AbstractTimeSource:
     public abstract long nanoTime()
     public abstract void parkNanos(java.lang.Object,long)
@@ -21919,9 +21666,9 @@ kotlinx.coroutines.AbstractTimeSource:
     public abstract void unregisterTimeLoopThread()
 kotlinx.coroutines.AbstractTimeSourceKt:
     private static kotlinx.coroutines.AbstractTimeSource timeSource
-kotlinx.coroutines.CancellableContinuationImpl$$InternalSyntheticThrowCCEIfNotNull$9$ee0fbc2fe117a8d045f6acdbf92c35bf922fe5d4aa876bf6e949e83c47274c13$0
+kotlinx.coroutines.CancellableContinuation
 kotlinx.coroutines.CancellableContinuationImpl:
-    public java.lang.StackTraceElement getStackTraceElement()
+    public abstract void detachChild$kotlinx_coroutines_core()
 kotlinx.coroutines.CopyableThreadContextElement
 kotlinx.coroutines.CopyableThrowable
 kotlinx.coroutines.CoroutineContextKt$$InternalSyntheticThrowCCEIfNotNull$9$5569582777507d4d7fe62d23d961118334e1e9c4c63eadc907f5f42be70b4b0a$0
@@ -21935,16 +21682,25 @@ kotlinx.coroutines.CoroutineId
 kotlinx.coroutines.CoroutineName$Key
 kotlinx.coroutines.CoroutineName
 kotlinx.coroutines.DebugKt
-kotlinx.coroutines.DelayWithTimeoutDiagnostics
+kotlinx.coroutines.DefaultExecutor:
+    protected void reschedule(long,kotlinx.coroutines.EventLoopImplBase$DelayedTask)
+kotlinx.coroutines.EventLoopImplBase$$InternalSyntheticBackportWithForwarding$2$41584d111b6398d0c54d1cbc869fe425dcf15ba508b6b2b7ac814020f3e97094$0
+kotlinx.coroutines.EventLoopImplBase$DelayedTask
+kotlinx.coroutines.EventLoopImplBase$DelayedTaskQueue:
+    public long timeNow
+    public void <init>(long)
+kotlinx.coroutines.EventLoopImplBase:
+    public final void schedule(long,kotlinx.coroutines.EventLoopImplBase$DelayedTask)
+    private final int scheduleImpl(long,kotlinx.coroutines.EventLoopImplBase$DelayedTask)
+    private final boolean shouldUnpark(kotlinx.coroutines.EventLoopImplBase$DelayedTask)
+kotlinx.coroutines.EventLoopImplPlatform:
+    protected void reschedule(long,kotlinx.coroutines.EventLoopImplBase$DelayedTask)
 kotlinx.coroutines.JobCancellationException:
     public synthetic bridge java.lang.Throwable createCopy()
     public kotlinx.coroutines.JobCancellationException createCopy()
 kotlinx.coroutines.NodeList:
     public final java.lang.String getString(java.lang.String)
-kotlinx.coroutines.TimeoutCancellationException:
-    public synthetic bridge java.lang.Throwable createCopy()
-    public kotlinx.coroutines.TimeoutCancellationException createCopy()
-kotlinx.coroutines.TimeoutKt$$InternalSyntheticThrowCCEIfNotNull$9$f0399a9ca7cd85118e7b66127d6edbba6a9f1f11cc54851b6ec006b66d45b729$0
+kotlinx.coroutines.TimeoutCancellationException
 kotlinx.coroutines.YieldContext:
     public boolean dispatcherWasUnconfined
 kotlinx.coroutines.flow.MutableStateFlow
@@ -21952,6 +21708,7 @@ kotlinx.coroutines.internal.ClassValueCtorCache$$InternalSyntheticApiModelOutlin
 kotlinx.coroutines.internal.ClassValueCtorCache$cache$1
 kotlinx.coroutines.internal.ClassValueCtorCache
 kotlinx.coroutines.internal.CtorCache
+kotlinx.coroutines.internal.DispatchedContinuation$$InternalSyntheticThrowCCEIfNotNull$9$e7d2ac2f063869c7a000e771b807dae0643114aa0e33e627b4d79a1e929f24b0$0
 kotlinx.coroutines.internal.DispatchedContinuation:
     public java.lang.StackTraceElement getStackTraceElement()
 kotlinx.coroutines.internal.ExceptionSuccessfullyProcessed
@@ -21975,17 +21732,28 @@ kotlinx.coroutines.internal.MissingMainCoroutineDispatcher:
     public java.lang.Void dispatch(kotlin.coroutines.CoroutineContext,java.lang.Runnable)
     public synthetic bridge void dispatch(kotlin.coroutines.CoroutineContext,java.lang.Runnable)
     public kotlinx.coroutines.MainCoroutineDispatcher getImmediate()
-    public kotlinx.coroutines.DisposableHandle invokeOnTimeout(long,java.lang.Runnable,kotlin.coroutines.CoroutineContext)
     public boolean isDispatchNeeded(kotlin.coroutines.CoroutineContext)
     private final java.lang.Void missing()
-    public java.lang.Void scheduleResumeAfterDelay(long,kotlinx.coroutines.CancellableContinuation)
-    public synthetic bridge void scheduleResumeAfterDelay(long,kotlinx.coroutines.CancellableContinuation)
     public java.lang.String toString()
 kotlinx.coroutines.internal.ScopeCoroutine:
     public final java.lang.StackTraceElement getStackTraceElement()
-kotlinx.coroutines.internal.Segment:
-    public abstract void onCancellation(int,java.lang.Throwable,kotlin.coroutines.CoroutineContext)
 kotlinx.coroutines.internal.StackTraceRecoveryKt
+kotlinx.coroutines.internal.ThreadSafeHeap:
+    private volatile int _size
+    private static final java.util.concurrent.atomic.AtomicIntegerFieldUpdater _size$FU
+    private kotlinx.coroutines.internal.ThreadSafeHeapNode[] a
+    static void <clinit>()
+    public void <init>()
+    public final int getSize()
+    public final kotlinx.coroutines.internal.ThreadSafeHeapNode removeAtImpl(int)
+    private final void setSize(int)
+    private final void siftDownFrom(int)
+    private final void siftUpFrom(int)
+    private final void swap(int,int)
+kotlinx.coroutines.internal.ThreadSafeHeapNode:
+    public abstract kotlinx.coroutines.internal.ThreadSafeHeap getHeap()
+    public abstract void setHeap(kotlinx.coroutines.internal.ThreadSafeHeap)
+    public abstract void setIndex(int)
 kotlinx.coroutines.internal.WeakMapCtorCache
 kotlinx.coroutines.sync.Mutex:
     public abstract java.lang.Object lock(java.lang.Object,kotlin.coroutines.Continuation)

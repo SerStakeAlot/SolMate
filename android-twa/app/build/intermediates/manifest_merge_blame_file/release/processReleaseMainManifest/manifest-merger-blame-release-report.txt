@@ -63,8 +63,8 @@
 48-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:28:21-62
 49
 50            <category android:name="android.intent.category.BROWSABLE" />
-50-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:172:17-77
-50-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:172:27-75
+50-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:173:17-77
+50-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:173:27-75
 51
 52            <data android:scheme="https" />
 52-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:29:13-52
@@ -77,8 +77,8 @@
 55-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:28:21-62
 56
 57            <category android:name="android.intent.category.BROWSABLE" />
-57-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:172:17-77
-57-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:172:27-75
+57-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:173:17-77
+57-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:173:27-75
 58
 59            <data android:scheme="solana-wallet" />
 59-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:29:13-52
@@ -111,7 +111,7 @@
 72-->[com.solanamobile:mobile-wallet-adapter-clientlib:2.0.3] /home/codespace/.gradle/caches/8.11.1/transforms/9c2978b80c55f5f267b1984183b17e1f/transformed/mobile-wallet-adapter-clientlib-2.0.3/AndroidManifest.xml:9:22-76
 73
 74    <application
-74-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:48:5-239:19
+74-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:48:5-240:19
 75        android:name="fun.playsolmate.app.Application"
 75-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:49:9-35
 76        android:allowBackup="true"
@@ -177,361 +177,364 @@
 107            </intent-filter>
 108        </activity>
 109
-110        <!-- WebView Activity with Native MWA Bridge - Main Launcher -->
+110        <!-- WebView Activity - DISABLED, using TWA instead for MWA compatibility -->
 111        <activity
-111-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:93:9-103:20
+111-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:93:9-100:20
 112            android:name="fun.playsolmate.app.WebViewActivity"
 112-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:93:19-50
 113            android:alwaysRetainTaskState="true"
 113-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:94:13-49
 114            android:configChanges="orientation|screenSize|keyboardHidden"
 114-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:97:13-74
-115            android:exported="true"
-115-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:98:13-36
+115            android:exported="false"
+115-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:98:13-37
 116            android:label="@string/launcherName"
 116-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:95:13-49
 117            android:theme="@android:style/Theme.NoTitleBar" >
 117-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:96:13-60
-118            <intent-filter>
-118-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:99:13-102:29
-119                <action android:name="android.intent.action.MAIN" />
-119-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:100:17-69
-119-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:100:25-66
-120
-121                <category android:name="android.intent.category.LAUNCHER" />
-121-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:101:17-77
-121-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:101:27-74
-122            </intent-filter>
-123        </activity>
-124
-125        <!-- Original TWA Launcher (backup) -->
-126        <activity
-126-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:106:9-182:20
-127            android:name="fun.playsolmate.app.LauncherActivity"
-127-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:106:19-50
-128            android:alwaysRetainTaskState="true"
-128-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:107:13-49
-129            android:exported="false"
-129-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:109:13-37
-130            android:label="@string/launcherName" >
-130-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:108:13-49
-131            <meta-data
-131-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:110:13-111:53
-132                android:name="android.support.customtabs.trusted.DEFAULT_URL"
-132-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:110:24-85
-133                android:value="@string/launchUrl" />
-133-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:111:17-50
+118
+119            <!-- Not a launcher anymore -->
+120        </activity>
+121
+122        <!-- TWA Launcher (Chrome Custom Tab) - Main Launcher for MWA support -->
+123        <activity
+123-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:103:9-183:20
+124            android:name="fun.playsolmate.app.LauncherActivity"
+124-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:103:19-50
+125            android:alwaysRetainTaskState="true"
+125-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:104:13-49
+126            android:exported="true"
+126-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:106:13-36
+127            android:label="@string/launcherName" >
+127-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:105:13-49
+128            <intent-filter>
+128-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:107:13-110:29
+129                <action android:name="android.intent.action.MAIN" />
+129-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:108:17-69
+129-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:108:25-66
+130
+131                <category android:name="android.intent.category.LAUNCHER" />
+131-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:109:17-77
+131-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:109:27-74
+132            </intent-filter>
+133
 134            <meta-data
-134-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:113:13-115:58
-135                android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR"
-135-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:114:17-83
-136                android:resource="@color/colorPrimary" />
-136-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:115:17-55
+134-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:111:13-112:53
+135                android:name="android.support.customtabs.trusted.DEFAULT_URL"
+135-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:111:24-85
+136                android:value="@string/launchUrl" />
+136-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:112:17-50
 137            <meta-data
-137-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:119:13-121:62
-138                android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR_DARK"
-138-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:120:17-88
-139                android:resource="@color/colorPrimaryDark" />
-139-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:121:17-59
+137-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:114:13-116:58
+138                android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR"
+138-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:115:17-83
+139                android:resource="@color/colorPrimary" />
+139-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:116:17-55
 140            <meta-data
-140-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:123:13-125:61
-141                android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR"
-141-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:124:17-87
-142                android:resource="@color/navigationColor" />
-142-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:125:17-58
+140-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:120:13-122:62
+141                android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR_DARK"
+141-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:121:17-88
+142                android:resource="@color/colorPrimaryDark" />
+142-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:122:17-59
 143            <meta-data
-143-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:127:13-129:65
-144                android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR_DARK"
-144-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:128:17-92
-145                android:resource="@color/navigationColorDark" />
-145-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:129:17-62
+143-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:124:13-126:61
+144                android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR"
+144-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:125:17-87
+145                android:resource="@color/navigationColor" />
+145-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:126:17-58
 146            <meta-data
-146-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:131:13-133:68
-147                android:name="androix.browser.trusted.NAVIGATION_BAR_DIVIDER_COLOR"
-147-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:132:17-84
-148                android:resource="@color/navigationDividerColor" />
-148-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:133:17-65
+146-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:128:13-130:65
+147                android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR_DARK"
+147-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:129:17-92
+148                android:resource="@color/navigationColorDark" />
+148-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:130:17-62
 149            <meta-data
-149-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:135:13-137:72
-150                android:name="androix.browser.trusted.NAVIGATION_BAR_DIVIDER_COLOR_DARK"
-150-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:136:17-89
-151                android:resource="@color/navigationDividerColorDark" />
-151-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:137:17-69
+149-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:132:13-134:68
+150                android:name="androix.browser.trusted.NAVIGATION_BAR_DIVIDER_COLOR"
+150-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:133:17-84
+151                android:resource="@color/navigationDividerColor" />
+151-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:134:17-65
 152            <meta-data
-152-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:139:13-140:54
-153                android:name="android.support.customtabs.trusted.SPLASH_IMAGE_DRAWABLE"
-153-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:139:24-95
-154                android:resource="@drawable/splash" />
-154-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:140:17-52
+152-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:136:13-138:72
+153                android:name="androix.browser.trusted.NAVIGATION_BAR_DIVIDER_COLOR_DARK"
+153-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:137:17-89
+154                android:resource="@color/navigationDividerColorDark" />
+154-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:138:17-69
 155            <meta-data
-155-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:142:13-143:60
-156                android:name="android.support.customtabs.trusted.SPLASH_SCREEN_BACKGROUND_COLOR"
-156-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:142:24-104
-157                android:resource="@color/backgroundColor" />
-157-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:143:17-58
+155-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:140:13-141:54
+156                android:name="android.support.customtabs.trusted.SPLASH_IMAGE_DRAWABLE"
+156-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:140:24-95
+157                android:resource="@drawable/splash" />
+157-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:141:17-52
 158            <meta-data
-158-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:145:13-146:71
-159                android:name="android.support.customtabs.trusted.SPLASH_SCREEN_FADE_OUT_DURATION"
-159-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:145:24-105
-160                android:value="@integer/splashScreenFadeOutDuration" />
-160-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:146:17-69
+158-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:143:13-144:60
+159                android:name="android.support.customtabs.trusted.SPLASH_SCREEN_BACKGROUND_COLOR"
+159-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:143:24-104
+160                android:resource="@color/backgroundColor" />
+160-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:144:17-58
 161            <meta-data
-161-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:148:13-149:60
-162                android:name="android.support.customtabs.trusted.FILE_PROVIDER_AUTHORITY"
-162-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:148:24-97
-163                android:value="@string/providerAuthority" />
-163-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:149:17-58
+161-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:146:13-147:71
+162                android:name="android.support.customtabs.trusted.SPLASH_SCREEN_FADE_OUT_DURATION"
+162-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:146:24-105
+163                android:value="@integer/splashScreenFadeOutDuration" />
+163-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:147:17-69
 164            <meta-data
-164-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:151:13-97
-165                android:name="android.app.shortcuts"
-165-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:151:24-60
-166                android:resource="@xml/shortcuts" />
-166-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:151:61-94
+164-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:149:13-150:60
+165                android:name="android.support.customtabs.trusted.FILE_PROVIDER_AUTHORITY"
+165-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:149:24-97
+166                android:value="@string/providerAuthority" />
+166-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:150:17-58
 167            <meta-data
-167-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:153:13-154:56
-168                android:name="android.support.customtabs.trusted.FALLBACK_STRATEGY"
-168-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:153:24-91
-169                android:value="@string/fallbackType" />
-169-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:154:17-53
+167-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:152:13-97
+168                android:name="android.app.shortcuts"
+168-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:152:24-60
+169                android:resource="@xml/shortcuts" />
+169-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:152:61-94
 170            <meta-data
-170-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:160:13-161:54
-171                android:name="android.support.customtabs.trusted.SCREEN_ORIENTATION"
-171-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:160:24-92
-172                android:value="@string/orientation" />
-172-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:161:17-52
-173
-174            <intent-filter android:autoVerify="true" >
-174-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:169:13-177:29
-174-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:169:28-53
-175                <action android:name="android.intent.action.VIEW" />
-175-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:28:13-65
-175-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:28:21-62
+170-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:154:13-155:56
+171                android:name="android.support.customtabs.trusted.FALLBACK_STRATEGY"
+171-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:154:24-91
+172                android:value="@string/fallbackType" />
+172-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:155:17-53
+173            <meta-data
+173-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:161:13-162:54
+174                android:name="android.support.customtabs.trusted.SCREEN_ORIENTATION"
+174-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:161:24-92
+175                android:value="@string/orientation" />
+175-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:162:17-52
 176
-177                <category android:name="android.intent.category.DEFAULT" />
-177-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:87:21-80
-177-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:87:31-77
-178                <category android:name="android.intent.category.BROWSABLE" />
-178-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:172:17-77
-178-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:172:27-75
+177            <intent-filter android:autoVerify="true" >
+177-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:170:13-178:29
+177-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:170:28-53
+178                <action android:name="android.intent.action.VIEW" />
+178-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:28:13-65
+178-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:28:21-62
 179
-180                <data
-180-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:29:13-52
-181                    android:host="@string/hostName"
-181-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:174:21-52
-182                    android:scheme="https" />
-182-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:29:19-49
-183            </intent-filter>
-184        </activity>
-185        <activity android:name="com.google.androidbrowserhelper.trusted.FocusActivity" />
-185-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:184:9-90
-185-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:184:19-87
-186        <activity
-186-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:186:9-187:62
-187            android:name="com.google.androidbrowserhelper.trusted.WebViewFallbackActivity"
-187-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:186:19-97
-188            android:configChanges="orientation|screenSize" />
-188-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:187:13-59
-189
-190        <provider
-190-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:189:9-197:20
-191            android:name="androidx.core.content.FileProvider"
-191-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:190:13-62
-192            android:authorities="@string/providerAuthority"
-192-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:191:13-60
-193            android:exported="false"
-193-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:193:13-37
-194            android:grantUriPermissions="true" >
-194-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:192:13-47
-195            <meta-data
-195-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:194:13-196:53
-196                android:name="android.support.FILE_PROVIDER_PATHS"
-196-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:195:17-67
-197                android:resource="@xml/filepaths" />
-197-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:196:17-50
-198        </provider>
-199
-200        <service
-200-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:199:9-214:19
-201            android:name="fun.playsolmate.app.DelegationService"
-201-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:200:13-46
-202            android:enabled="@bool/enableNotification"
-202-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:201:13-55
-203            android:exported="@bool/enableNotification" >
-203-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:202:13-56
-204            <meta-data
-204-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:205:17-207:73
-205                android:name="android.support.customtabs.trusted.SMALL_ICON"
-205-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:206:21-81
-206                android:resource="@drawable/ic_notification_icon" />
-206-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:207:21-70
-207
-208            <intent-filter>
-208-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:210:13-213:29
-209                <action android:name="android.support.customtabs.trusted.TRUSTED_WEB_ACTIVITY_SERVICE" />
-209-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:211:17-105
-209-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:211:25-103
+180                <category android:name="android.intent.category.DEFAULT" />
+180-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:87:21-80
+180-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:87:31-77
+181                <category android:name="android.intent.category.BROWSABLE" />
+181-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:173:17-77
+181-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:173:27-75
+182
+183                <data
+183-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:29:13-52
+184                    android:host="@string/hostName"
+184-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:175:21-52
+185                    android:scheme="https" />
+185-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:29:19-49
+186            </intent-filter>
+187        </activity>
+188        <activity android:name="com.google.androidbrowserhelper.trusted.FocusActivity" />
+188-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:185:9-90
+188-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:185:19-87
+189        <activity
+189-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:187:9-188:62
+190            android:name="com.google.androidbrowserhelper.trusted.WebViewFallbackActivity"
+190-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:187:19-97
+191            android:configChanges="orientation|screenSize" />
+191-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:188:13-59
+192
+193        <provider
+193-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:190:9-198:20
+194            android:name="androidx.core.content.FileProvider"
+194-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:191:13-62
+195            android:authorities="@string/providerAuthority"
+195-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:192:13-60
+196            android:exported="false"
+196-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:194:13-37
+197            android:grantUriPermissions="true" >
+197-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:193:13-47
+198            <meta-data
+198-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:195:13-197:53
+199                android:name="android.support.FILE_PROVIDER_PATHS"
+199-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:196:17-67
+200                android:resource="@xml/filepaths" />
+200-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:197:17-50
+201        </provider>
+202
+203        <service
+203-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:200:9-215:19
+204            android:name="fun.playsolmate.app.DelegationService"
+204-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:201:13-46
+205            android:enabled="@bool/enableNotification"
+205-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:202:13-55
+206            android:exported="@bool/enableNotification" >
+206-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:203:13-56
+207            <meta-data
+207-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:206:17-208:73
+208                android:name="android.support.customtabs.trusted.SMALL_ICON"
+208-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:207:21-81
+209                android:resource="@drawable/ic_notification_icon" />
+209-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:208:21-70
 210
-211                <category android:name="android.intent.category.DEFAULT" />
-211-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:87:21-80
-211-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:87:31-77
-212            </intent-filter>
-213        </service>
-214
-215        <activity android:name="com.google.androidbrowserhelper.trusted.NotificationPermissionRequestActivity" />
-215-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:217:13-118
-215-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:217:23-115
-216
-217        <!-- Location delegation removed - was causing Google Play Services AR requirement -->
-218
+211            <intent-filter>
+211-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:211:13-214:29
+212                <action android:name="android.support.customtabs.trusted.TRUSTED_WEB_ACTIVITY_SERVICE" />
+212-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:212:17-105
+212-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:212:25-103
+213
+214                <category android:name="android.intent.category.DEFAULT" />
+214-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:87:21-80
+214-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:87:31-77
+215            </intent-filter>
+216        </service>
+217
+218        <activity android:name="com.google.androidbrowserhelper.trusted.NotificationPermissionRequestActivity" />
+218-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:218:13-118
+218-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:218:23-115
 219
-220        <!-- MWA Handler: Intercepts solmate-mwa:// deep links for native MWA -->
-221        <activity
-221-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:223:9-235:20
-222            android:name="fun.playsolmate.app.MwaHandlerActivity"
-222-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:224:13-47
-223            android:excludeFromRecents="true"
-223-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:227:13-46
-224            android:exported="true"
-224-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:225:13-36
-225            android:noHistory="true"
-225-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:228:13-37
-226            android:theme="@android:style/Theme.Translucent.NoTitleBar" >
-226-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:226:13-72
-227            <intent-filter>
-227-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:229:13-234:29
-228                <action android:name="android.intent.action.VIEW" />
-228-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:28:13-65
-228-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:28:21-62
-229
-230                <category android:name="android.intent.category.DEFAULT" />
-230-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:87:21-80
-230-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:87:31-77
-231                <category android:name="android.intent.category.BROWSABLE" />
-231-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:172:17-77
-231-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:172:27-75
+220        <!-- Location delegation removed - was causing Google Play Services AR requirement -->
+221
+222
+223        <!-- MWA Handler: Intercepts solmate-mwa:// deep links for native MWA -->
+224        <activity
+224-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:224:9-236:20
+225            android:name="fun.playsolmate.app.MwaHandlerActivity"
+225-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:225:13-47
+226            android:excludeFromRecents="true"
+226-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:228:13-46
+227            android:exported="true"
+227-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:226:13-36
+228            android:noHistory="true"
+228-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:229:13-37
+229            android:theme="@android:style/Theme.Translucent.NoTitleBar" >
+229-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:227:13-72
+230            <intent-filter>
+230-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:230:13-235:29
+231                <action android:name="android.intent.action.VIEW" />
+231-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:28:13-65
+231-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:28:21-62
 232
-233                <data android:scheme="solmate-mwa" />
-233-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:29:13-52
-233-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:29:19-49
-234            </intent-filter>
-235        </activity>
-236
-237        <!-- MWA: Removed custom redirect activity - let Chrome handle solana-wallet:// natively -->
-238        <!-- The <queries> section above ensures wallet apps are visible to the system -->
-239        <activity
-239-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:27:9-34:20
-240            android:name="androidx.test.core.app.InstrumentationActivityInvoker$BootstrapActivity"
-240-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:28:13-99
-241            android:exported="true"
-241-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:29:13-36
-242            android:theme="@style/WhiteBackgroundTheme" >
-242-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:30:13-56
-243            <intent-filter android:priority="-100" >
-243-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:31:13-33:29
-243-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:31:28-51
-244                <category android:name="android.intent.category.LAUNCHER" />
-244-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:101:17-77
-244-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:101:27-74
-245            </intent-filter>
-246        </activity>
-247        <activity
-247-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:35:9-42:20
-248            android:name="androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity"
-248-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:36:13-95
-249            android:exported="true"
-249-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:37:13-36
-250            android:theme="@style/WhiteBackgroundTheme" >
-250-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:38:13-56
-251            <intent-filter android:priority="-100" >
-251-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:31:13-33:29
-251-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:31:28-51
-252                <category android:name="android.intent.category.LAUNCHER" />
-252-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:101:17-77
-252-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:101:27-74
-253            </intent-filter>
-254        </activity>
-255        <activity
-255-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:43:9-50:20
-256            android:name="androidx.test.core.app.InstrumentationActivityInvoker$EmptyFloatingActivity"
-256-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:44:13-103
-257            android:exported="true"
-257-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:45:13-36
-258            android:theme="@style/WhiteBackgroundDialogTheme" >
-258-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:46:13-62
-259            <intent-filter android:priority="-100" >
-259-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:31:13-33:29
-259-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:31:28-51
-260                <category android:name="android.intent.category.LAUNCHER" />
-260-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:101:17-77
-260-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:101:27-74
-261            </intent-filter>
-262        </activity>
-263
-264        <provider
-264-->[androidx.emoji2:emoji2:1.3.0] /home/codespace/.gradle/caches/8.11.1/transforms/800929a224886522ff6939bfa0a23251/transformed/emoji2-1.3.0/AndroidManifest.xml:24:9-32:20
-265            android:name="androidx.startup.InitializationProvider"
-265-->[androidx.emoji2:emoji2:1.3.0] /home/codespace/.gradle/caches/8.11.1/transforms/800929a224886522ff6939bfa0a23251/transformed/emoji2-1.3.0/AndroidManifest.xml:25:13-67
-266            android:authorities="fun.playsolmate.app.androidx-startup"
-266-->[androidx.emoji2:emoji2:1.3.0] /home/codespace/.gradle/caches/8.11.1/transforms/800929a224886522ff6939bfa0a23251/transformed/emoji2-1.3.0/AndroidManifest.xml:26:13-68
-267            android:exported="false" >
-267-->[androidx.emoji2:emoji2:1.3.0] /home/codespace/.gradle/caches/8.11.1/transforms/800929a224886522ff6939bfa0a23251/transformed/emoji2-1.3.0/AndroidManifest.xml:27:13-37
-268            <meta-data
-268-->[androidx.emoji2:emoji2:1.3.0] /home/codespace/.gradle/caches/8.11.1/transforms/800929a224886522ff6939bfa0a23251/transformed/emoji2-1.3.0/AndroidManifest.xml:29:13-31:52
-269                android:name="androidx.emoji2.text.EmojiCompatInitializer"
-269-->[androidx.emoji2:emoji2:1.3.0] /home/codespace/.gradle/caches/8.11.1/transforms/800929a224886522ff6939bfa0a23251/transformed/emoji2-1.3.0/AndroidManifest.xml:30:17-75
-270                android:value="androidx.startup" />
-270-->[androidx.emoji2:emoji2:1.3.0] /home/codespace/.gradle/caches/8.11.1/transforms/800929a224886522ff6939bfa0a23251/transformed/emoji2-1.3.0/AndroidManifest.xml:31:17-49
+233                <category android:name="android.intent.category.DEFAULT" />
+233-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:87:21-80
+233-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:87:31-77
+234                <category android:name="android.intent.category.BROWSABLE" />
+234-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:173:17-77
+234-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:173:27-75
+235
+236                <data android:scheme="solmate-mwa" />
+236-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:29:13-52
+236-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:29:19-49
+237            </intent-filter>
+238        </activity>
+239
+240        <!-- MWA: Removed custom redirect activity - let Chrome handle solana-wallet:// natively -->
+241        <!-- The <queries> section above ensures wallet apps are visible to the system -->
+242        <activity
+242-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:27:9-34:20
+243            android:name="androidx.test.core.app.InstrumentationActivityInvoker$BootstrapActivity"
+243-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:28:13-99
+244            android:exported="true"
+244-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:29:13-36
+245            android:theme="@style/WhiteBackgroundTheme" >
+245-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:30:13-56
+246            <intent-filter android:priority="-100" >
+246-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:31:13-33:29
+246-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:31:28-51
+247                <category android:name="android.intent.category.LAUNCHER" />
+247-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:109:17-77
+247-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:109:27-74
+248            </intent-filter>
+249        </activity>
+250        <activity
+250-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:35:9-42:20
+251            android:name="androidx.test.core.app.InstrumentationActivityInvoker$EmptyActivity"
+251-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:36:13-95
+252            android:exported="true"
+252-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:37:13-36
+253            android:theme="@style/WhiteBackgroundTheme" >
+253-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:38:13-56
+254            <intent-filter android:priority="-100" >
+254-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:31:13-33:29
+254-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:31:28-51
+255                <category android:name="android.intent.category.LAUNCHER" />
+255-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:109:17-77
+255-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:109:27-74
+256            </intent-filter>
+257        </activity>
+258        <activity
+258-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:43:9-50:20
+259            android:name="androidx.test.core.app.InstrumentationActivityInvoker$EmptyFloatingActivity"
+259-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:44:13-103
+260            android:exported="true"
+260-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:45:13-36
+261            android:theme="@style/WhiteBackgroundDialogTheme" >
+261-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:46:13-62
+262            <intent-filter android:priority="-100" >
+262-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:31:13-33:29
+262-->[androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:31:28-51
+263                <category android:name="android.intent.category.LAUNCHER" />
+263-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:109:17-77
+263-->/workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:109:27-74
+264            </intent-filter>
+265        </activity>
+266
+267        <provider
+267-->[androidx.emoji2:emoji2:1.3.0] /home/codespace/.gradle/caches/8.11.1/transforms/800929a224886522ff6939bfa0a23251/transformed/emoji2-1.3.0/AndroidManifest.xml:24:9-32:20
+268            android:name="androidx.startup.InitializationProvider"
+268-->[androidx.emoji2:emoji2:1.3.0] /home/codespace/.gradle/caches/8.11.1/transforms/800929a224886522ff6939bfa0a23251/transformed/emoji2-1.3.0/AndroidManifest.xml:25:13-67
+269            android:authorities="fun.playsolmate.app.androidx-startup"
+269-->[androidx.emoji2:emoji2:1.3.0] /home/codespace/.gradle/caches/8.11.1/transforms/800929a224886522ff6939bfa0a23251/transformed/emoji2-1.3.0/AndroidManifest.xml:26:13-68
+270            android:exported="false" >
+270-->[androidx.emoji2:emoji2:1.3.0] /home/codespace/.gradle/caches/8.11.1/transforms/800929a224886522ff6939bfa0a23251/transformed/emoji2-1.3.0/AndroidManifest.xml:27:13-37
 271            <meta-data
-271-->[androidx.lifecycle:lifecycle-process:2.6.2] /home/codespace/.gradle/caches/8.11.1/transforms/0418fb2c0e0eb172c945a2c31b6f19d8/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:29:13-31:52
-272                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
-272-->[androidx.lifecycle:lifecycle-process:2.6.2] /home/codespace/.gradle/caches/8.11.1/transforms/0418fb2c0e0eb172c945a2c31b6f19d8/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:30:17-78
+271-->[androidx.emoji2:emoji2:1.3.0] /home/codespace/.gradle/caches/8.11.1/transforms/800929a224886522ff6939bfa0a23251/transformed/emoji2-1.3.0/AndroidManifest.xml:29:13-31:52
+272                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+272-->[androidx.emoji2:emoji2:1.3.0] /home/codespace/.gradle/caches/8.11.1/transforms/800929a224886522ff6939bfa0a23251/transformed/emoji2-1.3.0/AndroidManifest.xml:30:17-75
 273                android:value="androidx.startup" />
-273-->[androidx.lifecycle:lifecycle-process:2.6.2] /home/codespace/.gradle/caches/8.11.1/transforms/0418fb2c0e0eb172c945a2c31b6f19d8/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:31:17-49
+273-->[androidx.emoji2:emoji2:1.3.0] /home/codespace/.gradle/caches/8.11.1/transforms/800929a224886522ff6939bfa0a23251/transformed/emoji2-1.3.0/AndroidManifest.xml:31:17-49
 274            <meta-data
-274-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:29:13-31:52
-275                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
-275-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:30:17-85
+274-->[androidx.lifecycle:lifecycle-process:2.6.2] /home/codespace/.gradle/caches/8.11.1/transforms/0418fb2c0e0eb172c945a2c31b6f19d8/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:29:13-31:52
+275                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+275-->[androidx.lifecycle:lifecycle-process:2.6.2] /home/codespace/.gradle/caches/8.11.1/transforms/0418fb2c0e0eb172c945a2c31b6f19d8/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:30:17-78
 276                android:value="androidx.startup" />
-276-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:31:17-49
-277        </provider>
-278
-279        <receiver
-279-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:34:9-52:20
-280            android:name="androidx.profileinstaller.ProfileInstallReceiver"
-280-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:35:13-76
-281            android:directBootAware="false"
-281-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:36:13-44
-282            android:enabled="true"
-282-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:37:13-35
-283            android:exported="true"
-283-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:38:13-36
-284            android:permission="android.permission.DUMP" >
-284-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:39:13-57
-285            <intent-filter>
-285-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:40:13-42:29
-286                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
-286-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:17-91
-286-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:25-88
-287            </intent-filter>
+276-->[androidx.lifecycle:lifecycle-process:2.6.2] /home/codespace/.gradle/caches/8.11.1/transforms/0418fb2c0e0eb172c945a2c31b6f19d8/transformed/lifecycle-process-2.6.2/AndroidManifest.xml:31:17-49
+277            <meta-data
+277-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:29:13-31:52
+278                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+278-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:30:17-85
+279                android:value="androidx.startup" />
+279-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:31:17-49
+280        </provider>
+281
+282        <receiver
+282-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:34:9-52:20
+283            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+283-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:35:13-76
+284            android:directBootAware="false"
+284-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:36:13-44
+285            android:enabled="true"
+285-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:37:13-35
+286            android:exported="true"
+286-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:38:13-36
+287            android:permission="android.permission.DUMP" >
+287-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:39:13-57
 288            <intent-filter>
-288-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:43:13-45:29
-289                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
-289-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:17-85
-289-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:25-82
+288-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:40:13-42:29
+289                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+289-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:17-91
+289-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:41:25-88
 290            </intent-filter>
 291            <intent-filter>
-291-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:46:13-48:29
-292                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
-292-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:17-88
-292-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:25-85
+291-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:43:13-45:29
+292                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+292-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:17-85
+292-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:44:25-82
 293            </intent-filter>
 294            <intent-filter>
-294-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:49:13-51:29
-295                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
-295-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:17-95
-295-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:25-92
+294-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:46:13-48:29
+295                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+295-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:17-88
+295-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:47:25-85
 296            </intent-filter>
-297        </receiver>
-298    </application>
-299
-300</manifest>
+297            <intent-filter>
+297-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:49:13-51:29
+298                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+298-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:17-95
+298-->[androidx.profileinstaller:profileinstaller:1.3.1] /home/codespace/.gradle/caches/8.11.1/transforms/68e2141dc70977e27136c2a5d0bc31a9/transformed/profileinstaller-1.3.1/AndroidManifest.xml:50:25-92
+299            </intent-filter>
+300        </receiver>
+301    </application>
+302
+303</manifest>

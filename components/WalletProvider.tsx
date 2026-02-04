@@ -29,11 +29,11 @@ export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
         addressSelector: createDefaultAddressSelector(),
         appIdentity: {
           name: 'SolMate',
-          uri: typeof window !== 'undefined' ? window.location.origin : 'https://playsolmate.fun',
-          icon: 'https://playsolmate.fun/images/chess-hero.png',
+          uri: 'https://playsolmate.fun',
+          icon: 'https://playsolmate.fun/images/solmate-logo.png',
         },
         authorizationResultCache: createDefaultAuthorizationResultCache(),
-        chain: 'mainnet-beta', // Use chain parameter (MWA 2.0)
+        chain: 'mainnet-beta',
         onWalletNotFound: createDefaultWalletNotFoundHandler(),
       }),
       new PhantomWalletAdapter(),

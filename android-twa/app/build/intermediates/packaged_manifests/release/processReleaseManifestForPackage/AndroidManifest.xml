@@ -107,27 +107,30 @@
             </intent-filter>
         </activity>
 
-        <!-- WebView Activity with Native MWA Bridge - Main Launcher -->
+        <!-- WebView Activity - DISABLED, using TWA instead for MWA compatibility -->
         <activity
             android:name="fun.playsolmate.app.WebViewActivity"
             android:alwaysRetainTaskState="true"
             android:configChanges="orientation|screenSize|keyboardHidden"
-            android:exported="true"
+            android:exported="false"
             android:label="@string/launcherName"
             android:theme="@android:style/Theme.NoTitleBar" >
+
+            <!-- Not a launcher anymore -->
+        </activity>
+
+        <!-- TWA Launcher (Chrome Custom Tab) - Main Launcher for MWA support -->
+        <activity
+            android:name="fun.playsolmate.app.LauncherActivity"
+            android:alwaysRetainTaskState="true"
+            android:exported="true"
+            android:label="@string/launcherName" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
 
-        <!-- Original TWA Launcher (backup) -->
-        <activity
-            android:name="fun.playsolmate.app.LauncherActivity"
-            android:alwaysRetainTaskState="true"
-            android:exported="false"
-            android:label="@string/launcherName" >
             <meta-data
                 android:name="android.support.customtabs.trusted.DEFAULT_URL"
                 android:value="@string/launchUrl" />

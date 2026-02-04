@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:22:1-240:12
-INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:22:1-240:12
-INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:22:1-240:12
-INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:22:1-240:12
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:22:1-241:12
+INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:22:1-241:12
+INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:22:1-241:12
+INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:22:1-241:12
 MERGED from [com.solanamobile:mobile-wallet-adapter-clientlib-ktx:2.0.3] /home/codespace/.gradle/caches/8.11.1/transforms/ca78a292d44fda104d414a56fc8aae78/transformed/mobile-wallet-adapter-clientlib-ktx-2.0.3/AndroidManifest.xml:2:1-7:12
 MERGED from [com.google.androidbrowserhelper:androidbrowserhelper:2.6.2] /home/codespace/.gradle/caches/8.11.1/transforms/ff528276f23979f712c03933d0a7d555/transformed/androidbrowserhelper-2.6.2/AndroidManifest.xml:17:1-32:12
 MERGED from [androidx.appcompat:appcompat-resources:1.7.0] /home/codespace/.gradle/caches/8.11.1/transforms/37d3c5cd45c1e7623b62c36f9d88a2e8/transformed/appcompat-resources-1.7.0/AndroidManifest.xml:2:1-7:12
@@ -72,7 +72,7 @@ ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:28:1
 data
 ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:29:13-52
 	android:host
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:174:21-52
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:175:21-52
 	android:scheme
 		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:29:19-49
 package#app.phantom
@@ -98,8 +98,8 @@ MERGED from [com.solanamobile:mobile-wallet-adapter-clientlib:2.0.3] /home/codes
 	android:name
 		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:39:26-68
 application
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:48:5-239:19
-INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:48:5-239:19
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:48:5-240:19
+INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:48:5-240:19
 MERGED from [androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:26:5-51:19
 MERGED from [androidx.test:core:1.5.0] /home/codespace/.gradle/caches/8.11.1/transforms/4086958146d49cd82964b3b28cd6d3b7/transformed/core-1.5.0/AndroidManifest.xml:26:5-51:19
 MERGED from [androidx.emoji2:emoji2:1.3.0] /home/codespace/.gradle/caches/8.11.1/transforms/800929a224886522ff6939bfa0a23251/transformed/emoji2-1.3.0/AndroidManifest.xml:23:5-33:19
@@ -177,11 +177,11 @@ ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:87:2
 	android:name
 		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:87:31-77
 activity#fun.playsolmate.app.WebViewActivity
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:93:9-103:20
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:93:9-100:20
 	android:label
 		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:95:13-49
 	android:exported
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:98:13-36
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:98:13-37
 	android:configChanges
 		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:97:13-74
 	android:alwaysRetainTaskState
@@ -190,182 +190,182 @@ ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:93:9
 		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:96:13-60
 	android:name
 		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:93:19-50
-intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:99:13-102:29
-action#android.intent.action.MAIN
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:100:17-69
-	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:100:25-66
-category#android.intent.category.LAUNCHER
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:101:17-77
-	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:101:27-74
 activity#fun.playsolmate.app.LauncherActivity
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:106:9-182:20
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:103:9-183:20
 	android:label
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:108:13-49
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:105:13-49
 	android:exported
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:109:13-37
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:106:13-36
 	android:alwaysRetainTaskState
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:107:13-49
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:104:13-49
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:106:19-50
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:103:19-50
+intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:107:13-110:29
+action#android.intent.action.MAIN
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:108:17-69
+	android:name
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:108:25-66
+category#android.intent.category.LAUNCHER
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:109:17-77
+	android:name
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:109:27-74
 meta-data#android.support.customtabs.trusted.DEFAULT_URL
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:110:13-111:53
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:111:13-112:53
 	android:value
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:111:17-50
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:112:17-50
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:110:24-85
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:111:24-85
 meta-data#android.support.customtabs.trusted.STATUS_BAR_COLOR
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:113:13-115:58
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:114:13-116:58
 	android:resource
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:115:17-55
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:116:17-55
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:114:17-83
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:115:17-83
 meta-data#android.support.customtabs.trusted.STATUS_BAR_COLOR_DARK
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:119:13-121:62
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:120:13-122:62
 	android:resource
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:121:17-59
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:122:17-59
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:120:17-88
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:121:17-88
 meta-data#android.support.customtabs.trusted.NAVIGATION_BAR_COLOR
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:123:13-125:61
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:124:13-126:61
 	android:resource
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:125:17-58
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:126:17-58
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:124:17-87
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:125:17-87
 meta-data#android.support.customtabs.trusted.NAVIGATION_BAR_COLOR_DARK
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:127:13-129:65
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:128:13-130:65
 	android:resource
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:129:17-62
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:130:17-62
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:128:17-92
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:129:17-92
 meta-data#androix.browser.trusted.NAVIGATION_BAR_DIVIDER_COLOR
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:131:13-133:68
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:132:13-134:68
 	android:resource
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:133:17-65
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:134:17-65
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:132:17-84
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:133:17-84
 meta-data#androix.browser.trusted.NAVIGATION_BAR_DIVIDER_COLOR_DARK
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:135:13-137:72
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:136:13-138:72
 	android:resource
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:137:17-69
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:138:17-69
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:136:17-89
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:137:17-89
 meta-data#android.support.customtabs.trusted.SPLASH_IMAGE_DRAWABLE
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:139:13-140:54
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:140:13-141:54
 	android:resource
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:140:17-52
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:141:17-52
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:139:24-95
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:140:24-95
 meta-data#android.support.customtabs.trusted.SPLASH_SCREEN_BACKGROUND_COLOR
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:142:13-143:60
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:143:13-144:60
 	android:resource
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:143:17-58
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:144:17-58
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:142:24-104
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:143:24-104
 meta-data#android.support.customtabs.trusted.SPLASH_SCREEN_FADE_OUT_DURATION
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:145:13-146:71
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:146:13-147:71
 	android:value
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:146:17-69
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:147:17-69
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:145:24-105
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:146:24-105
 meta-data#android.support.customtabs.trusted.FILE_PROVIDER_AUTHORITY
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:148:13-149:60
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:149:13-150:60
 	android:value
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:149:17-58
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:150:17-58
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:148:24-97
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:149:24-97
 meta-data#android.app.shortcuts
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:151:13-97
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:152:13-97
 	android:resource
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:151:61-94
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:152:61-94
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:151:24-60
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:152:24-60
 meta-data#android.support.customtabs.trusted.FALLBACK_STRATEGY
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:153:13-154:56
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:154:13-155:56
 	android:value
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:154:17-53
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:155:17-53
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:153:24-91
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:154:24-91
 meta-data#android.support.customtabs.trusted.SCREEN_ORIENTATION
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:160:13-161:54
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:161:13-162:54
 	android:value
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:161:17-52
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:162:17-52
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:160:24-92
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:161:24-92
 intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:host:@string/hostName+data:scheme:https
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:169:13-177:29
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:170:13-178:29
 	android:autoVerify
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:169:28-53
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:170:28-53
 category#android.intent.category.BROWSABLE
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:172:17-77
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:173:17-77
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:172:27-75
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:173:27-75
 activity#com.google.androidbrowserhelper.trusted.FocusActivity
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:184:9-90
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:185:9-90
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:184:19-87
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:185:19-87
 activity#com.google.androidbrowserhelper.trusted.WebViewFallbackActivity
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:186:9-187:62
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:187:9-188:62
 	android:configChanges
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:187:13-59
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:188:13-59
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:186:19-97
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:187:19-97
 provider#androidx.core.content.FileProvider
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:189:9-197:20
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:190:9-198:20
 	android:grantUriPermissions
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:192:13-47
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:193:13-47
 	android:authorities
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:191:13-60
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:192:13-60
 	android:exported
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:193:13-37
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:194:13-37
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:190:13-62
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:191:13-62
 meta-data#android.support.FILE_PROVIDER_PATHS
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:194:13-196:53
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:195:13-197:53
 	android:resource
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:196:17-50
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:197:17-50
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:195:17-67
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:196:17-67
 service#fun.playsolmate.app.DelegationService
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:199:9-214:19
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:200:9-215:19
 	android:enabled
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:201:13-55
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:202:13-55
 	android:exported
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:202:13-56
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:203:13-56
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:200:13-46
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:201:13-46
 meta-data#android.support.customtabs.trusted.SMALL_ICON
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:205:17-207:73
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:206:17-208:73
 	android:resource
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:207:21-70
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:208:21-70
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:206:21-81
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:207:21-81
 intent-filter#action:name:android.support.customtabs.trusted.TRUSTED_WEB_ACTIVITY_SERVICE+category:name:android.intent.category.DEFAULT
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:210:13-213:29
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:211:13-214:29
 action#android.support.customtabs.trusted.TRUSTED_WEB_ACTIVITY_SERVICE
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:211:17-105
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:212:17-105
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:211:25-103
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:212:25-103
 activity#com.google.androidbrowserhelper.trusted.NotificationPermissionRequestActivity
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:217:13-118
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:218:13-118
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:217:23-115
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:218:23-115
 activity#fun.playsolmate.app.MwaHandlerActivity
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:223:9-235:20
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:224:9-236:20
 	android:excludeFromRecents
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:227:13-46
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:228:13-46
 	android:noHistory
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:228:13-37
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:229:13-37
 	android:exported
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:225:13-36
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:226:13-36
 	android:theme
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:226:13-72
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:227:13-72
 	android:name
-		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:224:13-47
+		ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:225:13-47
 intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:scheme:solmate-mwa
-ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:229:13-234:29
+ADDED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml:230:13-235:29
 uses-sdk
 INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /workspaces/SolMate/android-twa/app/src/main/AndroidManifest.xml
