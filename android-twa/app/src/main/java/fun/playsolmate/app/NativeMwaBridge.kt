@@ -193,10 +193,15 @@ class NativeMwaBridge(
                     throw Exception("No wallet found that can handle MWA. Is Seed Vault enabled in Settings?")
                 }
                 
+                // Add flags for launching from WebView context
+                associationIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                associationIntent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                
                 // Launch the intent on main thread
                 withContext(Dispatchers.Main) {
                     try {
                         Log.d(TAG, "Step 5: Launching wallet intent from main thread...")
+                        Log.d(TAG, "  - Intent flags: ${associationIntent.flags}")
                         activity.startActivity(associationIntent)
                         Log.d(TAG, "Step 5b: startActivity() completed without exception")
                     } catch (e: ActivityNotFoundException) {
@@ -208,9 +213,9 @@ class NativeMwaBridge(
                     }
                 }
                 
-                // Small delay to let the wallet app start
-                Log.d(TAG, "Step 6: Waiting 500ms for wallet to initialize...")
-                Thread.sleep(500)
+                // Give more time for wallet to initialize its WebSocket server
+                Log.d(TAG, "Step 6: Waiting 1000ms for wallet to initialize...")
+                Thread.sleep(1000)
                 
                 // Start the local association and wait for connection
                 Log.d(TAG, "Step 7: Starting local association (WebSocket client)...")
@@ -223,18 +228,30 @@ class NativeMwaBridge(
                     Log.d(TAG, "Step 8: MWA client connected successfully!")
                 } catch (e: TimeoutException) {
                     Log.e(TAG, "TIMEOUT waiting for wallet connection after ${LOCAL_ASSOCIATION_START_TIMEOUT_MS}ms", e)
-                    throw Exception("Timeout: Wallet did not connect. The wallet may have closed or Seed Vault may not be responding.")
+                    throw Exception("Timeout: Wallet did not respond. Please try again and keep Seed Vault open until connected.")
                 } catch (e: ExecutionException) {
                     Log.e(TAG, "ExecutionException during connection", e)
-                    Log.e(TAG, "  - Cause: ${e.cause?.javaClass?.simpleName}: ${e.cause?.message}")
-                    throw Exception("Connection failed: ${e.cause?.message ?: e.message}")
+                    val causeMsg = e.cause?.message ?: e.message ?: "Unknown"
+                    Log.e(TAG, "  - Cause: ${e.cause?.javaClass?.simpleName}: $causeMsg")
+                    
+                    // Check for specific failure reasons
+                    val userMsg = when {
+                        causeMsg.contains("dismiss", ignoreCase = true) || 
+                        causeMsg.contains("cancel", ignoreCase = true) ||
+                        causeMsg.contains("declined", ignoreCase = true) ->
+                            "Wallet was dismissed. Please tap Connect again and approve the connection in Seed Vault."
+                        causeMsg.contains("timeout", ignoreCase = true) ->
+                            "Connection timed out. Please try again."
+                        else -> "Connection failed: $causeMsg"
+                    }
+                    throw Exception(userMsg)
                 } catch (e: InterruptedException) {
                     Log.e(TAG, "InterruptedException", e)
                     throw Exception("Connection interrupted")
                 }
                 
                 // Now authorize
-                Log.d(TAG, "Authorizing with wallet...")
+                Log.d(TAG, "Step 9: Authorizing with wallet...")
                 val identityUri = Uri.parse(appUri)
                 val iconUri = Uri.parse(appIconUri)
                 
@@ -243,6 +260,11 @@ class NativeMwaBridge(
                     "testnet" -> "solana:testnet"
                     else -> "solana:mainnet"
                 }
+                
+                Log.d(TAG, "  - Identity URI: $identityUri")
+                Log.d(TAG, "  - Icon URI: $iconUri")  
+                Log.d(TAG, "  - App Name: $appName")
+                Log.d(TAG, "  - Chain: $chainId")
                 
                 // authorize() returns AuthorizationFuture, need to call .get()
                 val authFuture = mwaClient.authorize(
