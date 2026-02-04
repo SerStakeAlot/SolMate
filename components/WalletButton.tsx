@@ -811,67 +811,103 @@ const StandardWalletButton: React.FC = () => {
               
               {/* Direct Seed Vault button using low-level MWA API for debugging */}
               {/android/i.test(navigator?.userAgent || '') && (
-                <button
-                  style={{
-                    ...walletButtonStyle,
-                    marginBottom: '16px',
-                    background: 'linear-gradient(135deg, rgba(20, 241, 149, 0.2), rgba(20, 241, 149, 0.1))',
-                    borderColor: 'rgba(20, 241, 149, 0.4)',
-                  }}
-                  onClick={async () => {
-                    setDebugInfo('🔧 Direct MWA: Starting transact()...');
-                    try {
-                      // Dynamic import to get the low-level MWA API
-                      const { transact } = await import('@solana-mobile/mobile-wallet-adapter-protocol-web3js');
-                      
-                      setDebugInfo('🔧 Direct MWA: Calling transact()...');
-                      
-                      const result = await transact(async (wallet) => {
-                        setDebugInfo('🔧 Direct MWA: Inside transact callback!');
+                <>
+                  {/* Try deeplink approach first */}
+                  <button
+                    style={{
+                      ...walletButtonStyle,
+                      marginBottom: '8px',
+                      background: 'linear-gradient(135deg, rgba(20, 241, 149, 0.2), rgba(20, 241, 149, 0.1))',
+                      borderColor: 'rgba(20, 241, 149, 0.4)',
+                    }}
+                    onClick={() => {
+                      setDebugInfo('🔗 Opening Seed Vault deeplink...');
+                      // Try the solana-wallet deeplink scheme
+                      const returnUrl = encodeURIComponent(window.location.href);
+                      window.location.href = `solana-wallet:/v1/associate/local?app_url=${returnUrl}`;
+                    }}
+                  >
+                    <div style={{ 
+                      width: '32px', 
+                      height: '32px', 
+                      borderRadius: '8px',
+                      background: 'linear-gradient(135deg, #14F195, #9945FF)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px'
+                    }}>
+                      🔗
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                      <span>Seed Vault Deeplink</span>
+                      <span style={{ fontSize: '11px', color: '#14F195' }}>Opens wallet directly</span>
+                    </div>
+                  </button>
+
+                  {/* Direct transact() test */}
+                  <button
+                    style={{
+                      ...walletButtonStyle,
+                      marginBottom: '16px',
+                      background: 'rgba(255, 165, 0, 0.15)',
+                      borderColor: 'rgba(255, 165, 0, 0.4)',
+                    }}
+                    onClick={async () => {
+                      setDebugInfo('🔧 Direct MWA: Starting transact()...');
+                      try {
+                        // Dynamic import to get the low-level MWA API
+                        const { transact } = await import('@solana-mobile/mobile-wallet-adapter-protocol-web3js');
                         
-                        // Authorize with the wallet
-                        const authResult = await wallet.authorize({
-                          cluster: 'mainnet-beta',
-                          identity: {
-                            name: 'SolMate',
-                            uri: 'https://solmate.gg',
-                            icon: 'https://solmate.gg/images/logo.png',
-                          },
+                        setDebugInfo('🔧 Direct MWA: Calling transact()...');
+                        
+                        const result = await transact(async (wallet) => {
+                          setDebugInfo('🔧 Direct MWA: Inside transact callback!');
+                          
+                          // Authorize with the wallet
+                          const authResult = await wallet.authorize({
+                            cluster: 'mainnet-beta',
+                            identity: {
+                              name: 'SolMate',
+                              uri: 'https://solmate.gg',
+                              icon: 'https://solmate.gg/images/logo.png',
+                            },
+                          });
+                          
+                          setDebugInfo(`🔧 Direct MWA: Authorized! Address: ${authResult.accounts[0]?.address?.slice(0,8)}...`);
+                          return authResult;
                         });
                         
-                        setDebugInfo(`🔧 Direct MWA: Authorized! Address: ${authResult.accounts[0]?.address?.slice(0,8)}...`);
-                        return authResult;
-                      });
-                      
-                      setDebugInfo(`✅ Direct MWA SUCCESS! Got ${result.accounts?.length || 0} accounts`);
-                      console.log('Direct MWA result:', result);
-                      
-                    } catch (error: any) {
-                      const errMsg = error?.message || String(error);
-                      const errName = error?.name || 'Unknown';
-                      const errCode = error?.code || 'N/A';
-                      setDebugInfo(`❌ Direct MWA ERROR: [${errName}] ${errMsg} (code: ${errCode})`);
-                      console.error('Direct MWA error:', error);
-                    }
-                  }}
-                >
-                  <div style={{ 
-                    width: '32px', 
-                    height: '32px', 
-                    borderRadius: '8px',
-                    background: 'linear-gradient(135deg, #14F195, #9945FF)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '16px'
-                  }}>
-                    🌱
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                    <span>Connect Seed Vault (Direct)</span>
-                    <span style={{ fontSize: '11px', color: '#14F195' }}>Low-level MWA test</span>
-                  </div>
-                </button>
+                        setDebugInfo(`✅ Direct MWA SUCCESS! Got ${result.accounts?.length || 0} accounts`);
+                        console.log('Direct MWA result:', result);
+                        
+                      } catch (error: any) {
+                        const errMsg = error?.message || String(error);
+                        const errName = error?.name || 'Unknown';
+                        const errCode = error?.code || 'N/A';
+                        setDebugInfo(`❌ Direct MWA ERROR: [${errName}] ${errMsg} (code: ${errCode})`);
+                        console.error('Direct MWA error:', error);
+                      }
+                    }}
+                  >
+                    <div style={{ 
+                      width: '32px', 
+                      height: '32px', 
+                      borderRadius: '8px',
+                      background: '#FFA500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px'
+                    }}>
+                      🔧
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                      <span>MWA WebSocket Test</span>
+                      <span style={{ fontSize: '11px', color: '#FFA500' }}>Debug transact()</span>
+                    </div>
+                  </button>
+                </>
               )}
               
               {wallets
@@ -951,4 +987,4 @@ const StandardWalletButton: React.FC = () => {
     </>
   );
 };
-// Build 1770122148 - Added direct MWA transact() test
+// Build 1770122149 - Added deeplink test button
