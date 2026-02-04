@@ -356,12 +356,25 @@ const StandardWalletButton: React.FC = () => {
     // This ensures the wallet bottom sheet can appear without being blocked
     setTimeout(() => {
       console.log('[WalletModal] Triggering connect...');
+      setDebugInfo(`${walletName}: Waiting for wallet...`);
+      
+      // Add a timeout to detect if wallet never responds
+      const connectionTimeout = setTimeout(() => {
+        console.log('[WalletModal] Connection timeout - wallet not responding');
+        setDebugInfo(`${walletName}: Timed out. Is Battery Saver ON? Try disabling it.`);
+        setShowModal(true);
+      }, 35000); // 35 second timeout
+      
       connect().then(() => {
+        clearTimeout(connectionTimeout);
         console.log('[WalletModal] Connected successfully!');
         setDebugInfo('Connected!');
       }).catch((error: any) => {
+        clearTimeout(connectionTimeout);
         console.error('[WalletModal] Connection error:', error);
-        setDebugInfo(`Error: ${error?.message?.slice(0, 60) || 'Connection failed'}`);
+        const errorCode = error?.code || error?.name || '';
+        const errorMsg = error?.message?.slice(0, 80) || 'Connection failed';
+        setDebugInfo(`Error [${errorCode}]: ${errorMsg}`);
         // Re-show modal on error so user can try again
         setShowModal(true);
       });
