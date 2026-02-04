@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MWA Direct Test</title>
+    <style>
+        body {
+            font-family: system-ui, sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        button {
+            background: #9945FF;
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin: 10px 0;
+        }
+        button:hover {
+            background: #7e3ad5;
+        }
+        #log {
+            background: #2a2a2a;
+            padding: 16px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        h1 {
+            color: #14F195;
+        }
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .success { background: #14F19522; border: 1px solid #14F195; }
+        .error { background: #FF494922; border: 1px solid #FF4949; }
+        .info { background: #9945FF22; border: 1px solid #9945FF; }
+    </style>
+</head>
+<body>
+    <h1>🔗 MWA Direct Test</h1>
+    <p>This page tests Mobile Wallet Adapter directly without wallet-adapter-react.</p>
+    
+    <div id="status" class="status info">Ready to test</div>
+    
+    <button id="connectBtn" onclick="testMWA()">Connect via MWA</button>
+    <button onclick="clearLog()">Clear Log</button>
+    
+    <div id="log">Click "Connect via MWA" to start test...</div>
+    
+    <script type="module">
+        // Import MWA SDK from CDN
+        const log = (msg) => {
+            const logEl = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logEl.textContent += `[${time}] ${msg}\n`;
+            logEl.scrollTop = logEl.scrollHeight;
+            console.log(msg);
+        };
+        
+        const setStatus = (msg, type) => {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = msg;
+            statusEl.className = `status ${type}`;
+        };
+        
+        window.clearLog = () => {
+            document.getElementById('log').textContent = '';
+        };
+        
+        window.testMWA = async () => {
+            log('Starting MWA test...');
+            log('User agent: ' + navigator.userAgent);
+            log('Is Android: ' + /android/i.test(navigator.userAgent));
+            log('Location origin: ' + window.location.origin);
+            
+            setStatus('Loading MWA SDK...', 'info');
+            
+            try {
+                // Dynamically import the MWA SDK
+                log('Importing @solana-mobile/mobile-wallet-adapter-protocol-web3js...');
+                
+                // We'll use a direct fetch to test if the SDK methods are working
+                // Since we can't use npm modules directly, let's test the intent URL approach
+                
+                log('Generating association keypair...');
+                
+                // Generate ECDH P-256 keypair
+                const keyPair = await window.crypto.subtle.generateKey(
+                    { name: 'ECDH', namedCurve: 'P-256' },
+                    true,
+                    ['deriveKey', 'deriveBits']
+                );
+                log('Keypair generated');
+                
+                // Export public key
+                const publicKeyBytes = await window.crypto.subtle.exportKey('raw', keyPair.publicKey);
+                const publicKeyBase64 = btoa(String.fromCharCode(...new Uint8Array(publicKeyBytes)));
+                log('Public key (base64): ' + publicKeyBase64.slice(0, 20) + '...');
+                
+                // Choose a random port
+                const port = 50000 + Math.floor(Math.random() * 10000);
+                log('Session port: ' + port);
+                
+                // Build association URL (MWA v1 spec)
+                const encodedKey = publicKeyBase64
+                    .replace(/\+/g, '-')
+                    .replace(/\//g, '_')
+                    .replace(/=/g, '');
+                    
+                const associationUrl = `solana-wallet://v1/associate/local?association=${encodeURIComponent(encodedKey)}&port=${port}`;
+                log('Association URL: ' + associationUrl);
+                
+                setStatus('Opening wallet...', 'info');
+                log('Launching intent...');
+                
+                // Start WebSocket server listener BEFORE launching intent
+                log('Starting WebSocket connection attempt to ws://localhost:' + port + '/solana-wallet');
+                
+                // Launch the wallet intent
+                // Try iframe method first (hidden)
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                
+                // Also try window.location
+                log('Launching via hidden iframe...');
+                iframe.src = associationUrl;
+                
+                // Give iframe a moment, then also try location
+                setTimeout(() => {
+                    log('Launching via window.location...');
+                    window.location.href = associationUrl;
+                }, 500);
+                
+                // Try connecting to WebSocket
+                let attempts = 0;
+                const maxAttempts = 30;
+                const attemptDelay = 1000;
+                
+                const tryConnect = () => {
+                    attempts++;
+                    log(`WebSocket connection attempt ${attempts}/${maxAttempts}...`);
+                    
+                    const ws = new WebSocket(`ws://localhost:${port}/solana-wallet`, ['com.solana.mobilewalletadapter.v1']);
+                    
+                    ws.onopen = () => {
+                        log('✅ WebSocket CONNECTED!');
+                        setStatus('WebSocket connected! Wallet should show approval.', 'success');
+                        
+                        // Send initial message (HELLO_REQ would go here in full implementation)
+                        log('Connection established - waiting for wallet response...');
+                    };
+                    
+                    ws.onerror = (e) => {
+                        log('❌ WebSocket error: ' + JSON.stringify(e));
+                        if (attempts < maxAttempts) {
+                            setTimeout(tryConnect, attemptDelay);
+                        } else {
+                            setStatus('WebSocket failed after ' + maxAttempts + ' attempts', 'error');
+                            log('Giving up after ' + maxAttempts + ' attempts');
+                            log('This usually means the wallet did not start its WebSocket server');
+                        }
+                    };
+                    
+                    ws.onclose = (e) => {
+                        log('WebSocket closed: code=' + e.code + ' reason=' + e.reason + ' wasClean=' + e.wasClean);
+                        if (!e.wasClean && attempts < maxAttempts) {
+                            setTimeout(tryConnect, attemptDelay);
+                        }
+                    };
+                    
+                    ws.onmessage = (e) => {
+                        log('📨 Received message from wallet!');
+                        log('Message type: ' + typeof e.data);
+                        if (e.data instanceof Blob) {
+                            e.data.arrayBuffer().then(buf => {
+                                log('Message size: ' + buf.byteLength + ' bytes');
+                                log('This is the APP_PING or handshake message!');
+                                setStatus('Received response from wallet!', 'success');
+                            });
+                        } else {
+                            log('Message: ' + e.data);
+                        }
+                    };
+                };
+                
+                // Start connection attempts after a delay to let wallet launch
+                setTimeout(tryConnect, 1500);
+                
+            } catch (error) {
+                log('❌ Error: ' + error.message);
+                log('Stack: ' + error.stack);
+                setStatus('Error: ' + error.message, 'error');
+            }
+        };
+        
+        log('Page loaded. Ready to test MWA.');
+        log('This test will:');
+        log('1. Generate an ECDH keypair');
+        log('2. Launch solana-wallet:// intent');
+        log('3. Try to connect via WebSocket');
+        log('---');
+    </script>
+</body>
+</html>
