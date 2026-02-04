@@ -89,24 +89,25 @@
             </activity>
         
 
-        <!-- WebView Activity with Native MWA Bridge - Main Launcher -->
+        <!-- WebView Activity - DISABLED, using TWA instead for MWA compatibility -->
         <activity android:name=".WebViewActivity"
             android:alwaysRetainTaskState="true"
             android:label="@string/launcherName"
             android:theme="@android:style/Theme.NoTitleBar"
             android:configChanges="orientation|screenSize|keyboardHidden"
+            android:exported="false">
+            <!-- Not a launcher anymore -->
+        </activity>
+
+        <!-- TWA Launcher (Chrome Custom Tab) - Main Launcher for MWA support -->
+        <activity android:name="LauncherActivity"
+            android:alwaysRetainTaskState="true"
+            android:label="@string/launcherName"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-
-        <!-- Original TWA Launcher (backup) -->
-        <activity android:name="LauncherActivity"
-            android:alwaysRetainTaskState="true"
-            android:label="@string/launcherName"
-            android:exported="false">
             <meta-data android:name="android.support.customtabs.trusted.DEFAULT_URL"
                 android:value="@string/launchUrl" />
 
