@@ -55,6 +55,7 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.23",
+    "netlify-cli": "^23.15.0",
     "postcss": "^8.5.6",
     "remotion": "^4.0.409",
     "tailwindcss": "^4.1.18",
