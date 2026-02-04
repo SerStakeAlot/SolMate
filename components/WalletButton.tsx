@@ -188,22 +188,33 @@ const StandardWalletButton: React.FC = () => {
   // Handle MWA connect
   const handleMWAConnect = useCallback(async () => {
     setMwaConnecting(true);
-    setDebugInfo('MWA: Starting connection...');
+    setDebugInfo('MWA: Starting connection (with attestation support)...');
     console.log('[WalletButton] Starting MWA connection');
     try {
       const result = await connectMWA();
       console.log('[WalletButton] MWA result:', result);
       if (result) {
-        setDebugInfo(`MWA Connected: ${result.publicKey.toBase58().slice(0, 8)}...`);
+        setDebugInfo(`✅ MWA Connected: ${result.publicKey.toBase58().slice(0, 8)}...`);
         setShowModal(false);
       } else {
-        setDebugInfo('MWA: No wallet responded. Is Phantom/Solflare installed?');
+        setDebugInfo('MWA: No wallet responded. Is Phantom/Solflare/Seed Vault installed?');
         // Keep modal open so user can see the message
       }
     } catch (error: any) {
       console.error('[WalletButton] MWA Connect error:', error);
-      const errorMsg = error.message?.slice(0, 80) || 'Unknown error';
-      setDebugInfo(`MWA Error: ${errorMsg}`);
+      const errorMsg = error.message?.slice(0, 100) || 'Unknown error';
+      const errorCode = error?.code || '';
+      
+      // Check for specific error types
+      if (errorMsg.includes('Attestation')) {
+        setDebugInfo(`🔐 Attestation Error: ${errorMsg}`);
+      } else if (errorMsg.includes('timed out') || errorMsg.includes('SESSION_TIMEOUT')) {
+        setDebugInfo(`⏱️ Timeout: Wallet didn't respond. Try: 1) Open Seed Vault first 2) Ensure MWA is enabled`);
+      } else if (errorCode === -100) {
+        setDebugInfo(`🔐 Wallet requires attestation (code -100)`);
+      } else {
+        setDebugInfo(`❌ MWA Error: ${errorMsg}`);
+      }
       // Keep modal open so user can see the error
     } finally {
       setMwaConnecting(false);
@@ -962,38 +973,28 @@ const StandardWalletButton: React.FC = () => {
                       borderColor: 'rgba(255, 165, 0, 0.4)',
                     }}
                     onClick={async () => {
-                      setDebugInfo('🔧 Direct MWA: Starting transact()...');
+                      setDebugInfo('🔧 Direct MWA: Starting with attestation support...');
                       try {
-                        // Dynamic import to get the low-level MWA API
-                        const { transact } = await import('@solana-mobile/mobile-wallet-adapter-protocol-web3js');
+                        // Use our MWA module which handles attestation
+                        const result = await connectMWA();
                         
-                        setDebugInfo('🔧 Direct MWA: Calling transact()...');
-                        
-                        const result = await transact(async (wallet) => {
-                          setDebugInfo('🔧 Direct MWA: Inside transact callback!');
-                          
-                          // Authorize with the wallet
-                          const authResult = await wallet.authorize({
-                            cluster: 'mainnet-beta',
-                            identity: {
-                              name: 'SolMate',
-                              uri: 'https://solmate.gg',
-                              icon: 'https://solmate.gg/images/logo.png',
-                            },
-                          });
-                          
-                          setDebugInfo(`🔧 Direct MWA: Authorized! Address: ${authResult.accounts[0]?.address?.slice(0,8)}...`);
-                          return authResult;
-                        });
-                        
-                        setDebugInfo(`✅ Direct MWA SUCCESS! Got ${result.accounts?.length || 0} accounts`);
-                        console.log('Direct MWA result:', result);
-                        
+                        if (result) {
+                          setDebugInfo(`✅ MWA SUCCESS! Connected: ${result.publicKey.toBase58().slice(0,8)}...`);
+                          setShowModal(false);
+                        } else {
+                          setDebugInfo('⚠️ MWA: No accounts returned');
+                        }
                       } catch (error: any) {
                         const errMsg = error?.message || String(error);
-                        const errName = error?.name || 'Unknown';
                         const errCode = error?.code || 'N/A';
-                        setDebugInfo(`❌ Direct MWA ERROR: [${errName}] ${errMsg} (code: ${errCode})`);
+                        
+                        if (errMsg.includes('Attestation') || errCode === -100) {
+                          setDebugInfo(`🔐 Attestation required: ${errMsg.slice(0, 60)}`);
+                        } else if (errMsg.includes('timed out')) {
+                          setDebugInfo(`⏱️ Timeout - wallet didn't start WebSocket server`);
+                        } else {
+                          setDebugInfo(`❌ MWA ERROR: ${errMsg.slice(0, 80)}`);
+                        }
                         console.error('Direct MWA error:', error);
                       }
                     }}
@@ -1095,4 +1096,4 @@ const StandardWalletButton: React.FC = () => {
     </>
   );
 };
-// Build 1770122150 - Added native TWA MWA support
+// Build 1770200000 - Added MWA origin attestation support for web dApps

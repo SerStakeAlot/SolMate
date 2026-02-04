@@ -3,3 +3,6 @@
 /terms.html /terms.html 200
 /privacy /privacy.html 200
 /terms /terms.html 200
+
+# MWA Attestation script - must be served as HTML with correct MIME type
+/mwa-attestation.html /mwa-attestation.html 200

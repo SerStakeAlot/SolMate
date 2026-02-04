@@ -4,11 +4,18 @@
  * This module provides MWA support for Seeker and other mobile wallets.
  * It works alongside the existing wallet-adapter, not replacing it.
  * 
+ * Includes origin attestation support for web dApps per MWA spec.
+ * 
  * To remove MWA support, simply delete this file and remove the MWA button from WalletButton.tsx
  */
 
 import { transact } from '@solana-mobile/mobile-wallet-adapter-protocol-web3js';
 import { PublicKey, Transaction, VersionedTransaction, Connection } from '@solana/web3.js';
+import { 
+  handleAttestationChallenge, 
+  isAttestationChallenge, 
+  extractAttestationChallenge 
+} from './mwaAttestation';
 
 // APP Identity for MWA authorization
 const APP_IDENTITY = {
@@ -16,6 +23,9 @@ const APP_IDENTITY = {
   uri: 'https://playsolmate.fun',
   icon: 'https://playsolmate.fun/images/solmate-logo.png',
 };
+
+// Store attestation token for retries
+let cachedAttestationToken: string | null = null;
 
 // MWA connection state stored in memory
 let mwaPublicKey: PublicKey | null = null;
@@ -63,9 +73,13 @@ export function getMWAState() {
 
 /**
  * Connect via MWA - opens the wallet app for authorization
+ * Supports attestation flow for web dApps per MWA spec
  */
-export async function connectMWA(): Promise<{ publicKey: PublicKey; authToken: string } | null> {
-  console.log('[MWA] Starting connection...');
+export async function connectMWA(
+  attestToken?: string,
+  maxRetries: number = 2
+): Promise<{ publicKey: PublicKey; authToken: string } | null> {
+  console.log('[MWA] Starting connection...', attestToken ? '(with attestation)' : '');
   console.log('[MWA] User agent:', navigator.userAgent);
   console.log('[MWA] App identity:', APP_IDENTITY);
   
@@ -79,11 +93,20 @@ export async function connectMWA(): Promise<{ publicKey: PublicKey; authToken: s
       console.log('[MWA] Wallet session opened, authorizing...');
       console.log('[MWA] Wallet object:', wallet);
       
-      // Request authorization
-      const authResult = await wallet.authorize({
+      // Build authorize params
+      const authorizeParams: any = {
         cluster: 'mainnet-beta',
         identity: APP_IDENTITY,
-      });
+      };
+      
+      // Include attestation token if we have one
+      if (attestToken || cachedAttestationToken) {
+        authorizeParams.attest_origin = attestToken || cachedAttestationToken;
+        console.log('[MWA] Including attestation token in authorize request');
+      }
+      
+      // Request authorization
+      const authResult = await wallet.authorize(authorizeParams);
       
       console.log('[MWA] Authorization result:', authResult);
       
@@ -115,7 +138,28 @@ export async function connectMWA(): Promise<{ publicKey: PublicKey; authToken: s
     console.error('[MWA] Connection error:', error);
     console.error('[MWA] Error name:', error?.name);
     console.error('[MWA] Error message:', error?.message);
-    console.error('[MWA] Error stack:', error?.stack);
+    console.error('[MWA] Error code:', error?.code);
+    console.error('[MWA] Error data:', error?.data);
+    
+    // Check if this is an attestation challenge (ERROR_ATTEST_ORIGIN_ANDROID)
+    if (isAttestationChallenge(error) && maxRetries > 0) {
+      console.log('[MWA] Received attestation challenge, handling...');
+      const challenge = extractAttestationChallenge(error);
+      
+      if (challenge) {
+        try {
+          const attestationToken = await handleAttestationChallenge(challenge);
+          cachedAttestationToken = attestationToken;
+          console.log('[MWA] Got attestation token, retrying authorization...');
+          
+          // Retry with attestation token
+          return connectMWA(attestationToken, maxRetries - 1);
+        } catch (attestError: any) {
+          console.error('[MWA] Attestation handling failed:', attestError);
+          throw new Error(`Attestation failed: ${attestError.message}`);
+        }
+      }
+    }
     
     // Rethrow with more context
     const errorMessage = error?.message || 'Unknown error';

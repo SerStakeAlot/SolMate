@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SolMate MWA Attestation</title>
+  <style>
+    body { display: none; }
+  </style>
+</head>
+<body>
+<!--
+  MWA Origin Attestation Script for SolMate
+  
+  This script runs in an iframe and is responsible for:
+  1. Generating an attestation keypair for the wallet endpoint
+  2. Attesting to the origin of dapp endpoints by signing attestation payloads
+  
+  Per the MWA spec, this establishes trust from the browser security sandbox
+  to the wallet endpoint via Trusted Web Activities.
+-->
+<script>
+(function() {
+  'use strict';
+  
+  const STORAGE_KEY = 'solmate_mwa_attestation_keypair';
+  const ALLOWED_ORIGINS = [
+    'https://playsolmate.fun',
+    'https://shiny-chebakia-11939c.netlify.app',
+    'http://localhost:3000',
+    'http://localhost:3001'
+  ];
+  
+  // Convert ArrayBuffer to Base64
+  function arrayBufferToBase64(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  }
+  
+  // Convert Base64 to ArrayBuffer
+  function base64ToArrayBuffer(base64) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
+  }
+  
+  // Generate or retrieve attestation keypair
+  async function getOrCreateKeypair(context) {
+    const storageKey = STORAGE_KEY + '_' + (context || 'default');
+    
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const data = JSON.parse(stored);
+        // Import the stored key
+        const privateKey = await crypto.subtle.importKey(
+          'jwk',
+          data.privateKey,
+          { name: 'ECDSA', namedCurve: 'P-256' },
+          true,
+          ['sign']
+        );
+        const publicKey = await crypto.subtle.importKey(
+          'jwk',
+          data.publicKey,
+          { name: 'ECDSA', namedCurve: 'P-256' },
+          true,
+          ['verify']
+        );
+        return { privateKey, publicKey, publicKeyBase64: data.publicKeyBase64 };
+      }
+    } catch (e) {
+      console.warn('Failed to load stored keypair:', e);
+    }
+    
+    // Generate new keypair
+    const keypair = await crypto.subtle.generateKey(
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      true,
+      ['sign', 'verify']
+    );
+    
+    // Export keys for storage
+    const privateKeyJwk = await crypto.subtle.exportKey('jwk', keypair.privateKey);
+    const publicKeyJwk = await crypto.subtle.exportKey('jwk', keypair.publicKey);
+    
+    // Export public key in raw format for the wallet
+    const publicKeyRaw = await crypto.subtle.exportKey('raw', keypair.publicKey);
+    const publicKeyBase64 = arrayBufferToBase64(publicKeyRaw);
+    
+    // Store keypair
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({
+        privateKey: privateKeyJwk,
+        publicKey: publicKeyJwk,
+        publicKeyBase64: publicKeyBase64
+      }));
+    } catch (e) {
+      console.warn('Failed to store keypair:', e);
+    }
+    
+    return { 
+      privateKey: keypair.privateKey, 
+      publicKey: keypair.publicKey,
+      publicKeyBase64 
+    };
+  }
+  
+  // Sign an attestation payload
+  async function signAttestation(privateKey, payload) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(JSON.stringify(payload));
+    
+    const signature = await crypto.subtle.sign(
+      { name: 'ECDSA', hash: 'SHA-256' },
+      privateKey,
+      data
+    );
+    
+    return arrayBufferToBase64(signature);
+  }
+  
+  // SHA-256 hash
+  async function sha256(message) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return arrayBufferToBase64(hashBuffer);
+  }
+  
+  // Handle incoming messages
+  async function handleMessage(event) {
+    // Validate origin
+    if (!ALLOWED_ORIGINS.includes(event.origin)) {
+      console.warn('MWA Attestation: Rejected message from unknown origin:', event.origin);
+      return;
+    }
+    
+    const message = event.data;
+    if (!message || typeof message !== 'object') {
+      return;
+    }
+    
+    try {
+      switch (message.m) {
+        case 'get-public-key': {
+          // Wallet is requesting the public key for this context
+          const { context } = message;
+          const keypair = await getOrCreateKeypair(context);
+          
+          event.source.postMessage({
+            m: 'public-key-response',
+            context: context,
+            publicKey: keypair.publicKeyBase64
+          }, event.origin);
+          break;
+        }
+        
+        case 'origin-attest': {
+          // dApp is requesting origin attestation
+          // Per MWA spec: construct attestation payload with origin and challenge
+          const { h, context } = message;
+          const keypair = await getOrCreateKeypair(context);
+          
+          // Create attestation payload
+          const attestationPayload = {
+            origin: event.origin,
+            h: h, // Hash binding from dApp
+            timestamp: Date.now(),
+            context: context
+          };
+          
+          // Sign the payload
+          const signature = await signAttestation(keypair.privateKey, attestationPayload);
+          
+          // Return the attestation token
+          event.source.postMessage({
+            m: 'origin-attest-response',
+            attestation: {
+              payload: attestationPayload,
+              signature: signature,
+              publicKey: keypair.publicKeyBase64
+            }
+          }, event.origin);
+          break;
+        }
+        
+        case 'ping': {
+          // Simple ping to verify iframe is loaded
+          event.source.postMessage({ m: 'pong' }, event.origin);
+          break;
+        }
+        
+        default:
+          console.warn('MWA Attestation: Unknown message type:', message.m);
+      }
+    } catch (error) {
+      console.error('MWA Attestation error:', error);
+      event.source.postMessage({
+        m: 'error',
+        error: error.message
+      }, event.origin);
+    }
+  }
+  
+  // Initialize
+  window.addEventListener('message', handleMessage);
+  
+  // Signal that we're ready
+  if (window.parent !== window) {
+    window.parent.postMessage({ m: 'attestation-ready' }, '*');
+  }
+  
+  console.log('SolMate MWA Attestation script loaded');
+})();
+</script>
+</body>
+</html>
