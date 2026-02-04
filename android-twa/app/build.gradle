@@ -18,6 +18,7 @@ import groovy.xml.MarkupBuilder
 
 plugins {
     id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
 }
 
 def twaManifest = [
@@ -57,8 +58,8 @@ android {
         applicationId "fun.playsolmate.app"
         minSdkVersion 21
         targetSdkVersion 35
-        versionCode 12
-        versionName "Version 11 - Native MWA"
+        versionCode 13
+        versionName "Version 12 - Native MWA Bridge"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
@@ -212,4 +213,12 @@ dependencies {
     
         implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.6.2'
     
+    // Solana Mobile Wallet Adapter for native MWA support
+    implementation 'com.solanamobile:mobile-wallet-adapter-clientlib-ktx:2.0.3'
+    
+    // Kotlin coroutines for async operations
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    
+    // Web3j for transaction handling (if needed)
+    // implementation 'org.web3j:core:4.10.3-android'
 }

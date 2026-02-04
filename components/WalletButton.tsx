@@ -25,11 +25,34 @@ const isInWalletBrowser = () => {
   return ua.includes('phantom') || ua.includes('solflare') || ua.includes('backpack');
 };
 
+// Detect if we're running inside the SolMate TWA (native Android app)
+const isInSolMateTWA = () => {
+  if (typeof window === 'undefined') return false;
+  // Check for TWA-specific document referrer or user agent hints
+  const referrer = document.referrer;
+  const isAndroidApp = referrer.includes('android-app://fun.playsolmate.app');
+  // Also check if we were launched from our custom scheme
+  const urlParams = new URLSearchParams(window.location.search);
+  const fromTWA = urlParams.get('twa') === 'true';
+  // Check standalone display mode (PWA/TWA indicator)
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                       (window.navigator as any).standalone === true;
+  
+  return isAndroidApp || fromTWA || (isStandalone && /android/i.test(navigator.userAgent));
+};
+
+// Native MWA connect via TWA deep link
+const connectViaTWA = (callback: string) => {
+  const callbackUrl = encodeURIComponent(callback);
+  window.location.href = `solmate-mwa://connect?cluster=mainnet-beta&callback=${callbackUrl}`;
+};
+
 // MWA Detection - checks for solana mobile wallet support
 const detectMWA = () => {
-  if (typeof window === 'undefined') return { supported: false, detection: null };
+  if (typeof window === 'undefined') return { supported: false, detection: null, inTWA: false };
   
   const win = window as any;
+  const inTWA = isInSolMateTWA();
   const detection = {
     hasNavigator: typeof navigator !== 'undefined',
     userAgent: navigator?.userAgent || 'unknown',
@@ -44,13 +67,15 @@ const detectMWA = () => {
     hasSeedVault: !!win.seedVault,
     // Check wallet-standard
     hasWalletStandard: typeof win.navigator?.wallets !== 'undefined',
+    // TWA detection
+    inSolMateTWA: inTWA,
   };
   
   const supported = detection.isAndroid;
   
-  console.log('[MWA] Detection:', detection);
+  console.log('[MWA] Detection:', detection, 'InTWA:', inTWA);
   
-  return { supported, detection };
+  return { supported, detection, inTWA };
 };
 
 const connectButtonStyle: React.CSSProperties = {
@@ -94,6 +119,53 @@ const StandardWalletButton: React.FC = () => {
   const [mwaPublicKey, setMwaPublicKey] = useState<string | null>(null);
   const [mwaConnecting, setMwaConnecting] = useState(false);
   const [showMWAOption, setShowMWAOption] = useState(false);
+  
+  // State for native TWA MWA connection
+  const [twaPublicKey, setTwaPublicKey] = useState<string | null>(null);
+  const [twaAuthToken, setTwaAuthToken] = useState<string | null>(null);
+
+  // Handle callback from native TWA MWA
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const isCallback = urlParams.get('mwa_callback') === 'true' || 
+                       urlParams.get('success') !== null;
+    
+    if (isCallback) {
+      const success = urlParams.get('success') === 'true';
+      const publicKey = urlParams.get('publicKey');
+      const authToken = urlParams.get('authToken');
+      const error = urlParams.get('error');
+      
+      console.log('[TWA MWA] Callback received:', { success, publicKey, error });
+      
+      if (success && publicKey) {
+        setTwaPublicKey(publicKey);
+        setTwaAuthToken(authToken);
+        setDebugInfo(`✅ Seed Vault Connected: ${publicKey.slice(0, 8)}...`);
+        
+        // Store in localStorage for persistence
+        localStorage.setItem('twa_mwa_publicKey', publicKey);
+        if (authToken) localStorage.setItem('twa_mwa_authToken', authToken);
+        
+        // Clean up URL
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, '', cleanUrl);
+      } else if (error) {
+        setDebugInfo(`❌ Seed Vault Error: ${error}`);
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, '', cleanUrl);
+      }
+    }
+    
+    // Check for stored TWA connection
+    const storedPubKey = localStorage.getItem('twa_mwa_publicKey');
+    if (storedPubKey) {
+      setTwaPublicKey(storedPubKey);
+      setTwaAuthToken(localStorage.getItem('twa_mwa_authToken'));
+    }
+  }, []);
 
   // Listen for MWA state changes
   useEffect(() => {
@@ -809,6 +881,42 @@ const StandardWalletButton: React.FC = () => {
                 </>
               )}
               
+              {/* Native TWA MWA button - only show if running in SolMate Android app */}
+              {isInSolMateTWA() && (
+                <button
+                  style={{
+                    ...walletButtonStyle,
+                    marginBottom: '16px',
+                    background: 'linear-gradient(135deg, rgba(20, 241, 149, 0.3), rgba(153, 69, 255, 0.3))',
+                    borderColor: 'rgba(20, 241, 149, 0.5)',
+                    boxShadow: '0 0 20px rgba(20, 241, 149, 0.2)',
+                  }}
+                  onClick={() => {
+                    setDebugInfo('🔗 Connecting via Native MWA...');
+                    // Build callback URL with current page
+                    const callbackUrl = `${window.location.origin}${window.location.pathname}?mwa_callback=true`;
+                    connectViaTWA(callbackUrl);
+                  }}
+                >
+                  <div style={{ 
+                    width: '32px', 
+                    height: '32px', 
+                    borderRadius: '8px',
+                    background: 'linear-gradient(135deg, #14F195, #9945FF)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '16px'
+                  }}>
+                    🌱
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                    <span>Connect Seed Vault</span>
+                    <span style={{ fontSize: '11px', color: '#14F195' }}>Native MWA (Recommended)</span>
+                  </div>
+                </button>
+              )}
+
               {/* Direct Seed Vault button using low-level MWA API for debugging */}
               {/android/i.test(navigator?.userAgent || '') && (
                 <>
@@ -987,4 +1095,4 @@ const StandardWalletButton: React.FC = () => {
     </>
   );
 };
-// Build 1770122149 - Added deeplink test button
+// Build 1770122150 - Added native TWA MWA support
