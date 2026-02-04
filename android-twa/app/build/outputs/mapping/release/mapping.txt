@@ -3,8 +3,8 @@
 # min_api: 24
 # common_typos_disable
 # {"id":"com.android.tools.r8.mapping","version":"2.2"}
-# pg_map_id: 3004398
-# pg_map_hash: SHA-256 3004398318253d062b4c92265fbaddef5c9f8cb379e08960e43670cb611a5d51
+# pg_map_id: db12c34
+# pg_map_hash: SHA-256 db12c3448a81bd70edf83c06bf35a478bbb6e2adad332ff78a82f0e6575e1c91
 android.app.AppComponentFactory -> android.app.AppComponentFactory:
 # {"id":"com.android.tools.r8.synthesized"}
     void <clinit>() -> <clinit>
@@ -28985,98 +28985,144 @@ fun.playsolmate.app.NativeMwaBridge -> e0.c:
     fun.playsolmate.app.NativeMwaBridge$Companion Companion -> i
       # {"id":"com.android.tools.r8.residualsignature","signature":"Le0/c$a;"}
     1:9:void <clinit>():0:0 -> <clinit>
-    11:13:void <init>(androidx.activity.ComponentActivity,android.webkit.WebView):28:28 -> <init>
-    14:15:void <init>(androidx.activity.ComponentActivity,android.webkit.WebView):30:30 -> <init>
-    16:19:void <init>(androidx.activity.ComponentActivity,android.webkit.WebView):32:32 -> <init>
-    20:26:void <init>(androidx.activity.ComponentActivity,android.webkit.WebView):33:33 -> <init>
-    27:37:void <init>(androidx.activity.ComponentActivity,android.webkit.WebView):34:34 -> <init>
-    38:48:void <init>(androidx.activity.ComponentActivity,android.webkit.WebView):35:35 -> <init>
-    1:1:void e0.NativeMwaBridge.$r8$lambda$AMVXP5LjvRxeK2Tha_daKp9zgQw(e0.NativeMwaBridge,androidx.activity.ComponentActivity,java.lang.String,java.lang.String,java.lang.String,java.lang.String):0:0 -> a
-      # {"id":"com.android.tools.r8.synthesized"}
-      # {"id":"com.android.tools.r8.residualsignature","signature":"(Le0/c;Landroidx/activity/ComponentActivity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V"}
-    1:1:void e0.NativeMwaBridge.$r8$lambda$bCXk6Wf2j-D8hesk_kH5IQNNAhg(e0.NativeMwaBridge,java.lang.String):0:0 -> b
+    11:13:void <init>(androidx.activity.ComponentActivity,android.webkit.WebView):31:31 -> <init>
+    14:15:void <init>(androidx.activity.ComponentActivity,android.webkit.WebView):33:33 -> <init>
+    16:19:void <init>(androidx.activity.ComponentActivity,android.webkit.WebView):35:35 -> <init>
+    20:26:void <init>(androidx.activity.ComponentActivity,android.webkit.WebView):36:36 -> <init>
+    27:37:void <init>(androidx.activity.ComponentActivity,android.webkit.WebView):37:37 -> <init>
+    38:48:void <init>(androidx.activity.ComponentActivity,android.webkit.WebView):38:38 -> <init>
+    1:1:void e0.NativeMwaBridge.$r8$lambda$-QCx9Z2quQeZcnOFsXqI_QZ1b8o(e0.NativeMwaBridge,java.lang.String):0:0 -> a
       # {"id":"com.android.tools.r8.synthesized"}
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Le0/c;Ljava/lang/String;)V"}
-    1:5:java.lang.String access$base58Encode(fun.playsolmate.app.NativeMwaBridge,byte[]):28:28 -> c
+    1:1:void e0.NativeMwaBridge.$r8$lambda$95cwu4US5bSQq_fQeICW3HmbbhY(e0.NativeMwaBridge,androidx.activity.ComponentActivity,java.lang.String,java.lang.String,java.lang.String,java.lang.String):0:0 -> b
+      # {"id":"com.android.tools.r8.synthesized"}
+      # {"id":"com.android.tools.r8.residualsignature","signature":"(Le0/c;Landroidx/activity/ComponentActivity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V"}
+    1:5:java.lang.String access$base58Encode(fun.playsolmate.app.NativeMwaBridge,byte[]):31:31 -> c
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Le0/c;[B)Ljava/lang/String;"}
-    21:27:java.lang.String connect(java.lang.String,java.lang.String,java.lang.String,java.lang.String):178:178 -> connect
-    28:30:java.lang.String connect(java.lang.String,java.lang.String,java.lang.String,java.lang.String):179:179 -> connect
-    31:35:java.lang.String connect(java.lang.String,java.lang.String,java.lang.String,java.lang.String):181:181 -> connect
-    36:41:java.lang.String connect(java.lang.String,java.lang.String,java.lang.String,java.lang.String):182:182 -> connect
-    42:47:java.lang.String connect(java.lang.String,java.lang.String,java.lang.String,java.lang.String):183:183 -> connect
-    48:54:java.lang.String connect(java.lang.String,java.lang.String,java.lang.String,java.lang.String):184:184 -> connect
-    55:64:java.lang.String connect(java.lang.String,java.lang.String,java.lang.String,java.lang.String):185:185 -> connect
-    21:50:void connectAsync(java.lang.String,java.lang.String,java.lang.String,java.lang.String):77:77 -> connectAsync
-    51:56:void connectAsync(java.lang.String,java.lang.String,java.lang.String,java.lang.String):79:79 -> connectAsync
-    57:63:void connectAsync(java.lang.String,java.lang.String,java.lang.String,java.lang.String):80:80 -> connectAsync
-    64:73:void connectAsync(java.lang.String,java.lang.String,java.lang.String,java.lang.String):81:81 -> connectAsync
-    74:91:void connectAsync(java.lang.String,java.lang.String,java.lang.String,java.lang.String):85:85 -> connectAsync
-    92:98:void connectAsync(java.lang.String,java.lang.String,java.lang.String,java.lang.String):87:87 -> connectAsync
-    99:107:void connectAsync(java.lang.String,java.lang.String,java.lang.String,java.lang.String):88:88 -> connectAsync
-    108:109:void connectAsync(java.lang.String,java.lang.String,java.lang.String,java.lang.String):92:92 -> connectAsync
-    110:125:void connectAsync(java.lang.String,java.lang.String,java.lang.String,java.lang.String):95:95 -> connectAsync
-    1:5:java.lang.String access$errorJson(fun.playsolmate.app.NativeMwaBridge,java.lang.String):28:28 -> d
+    21:27:java.lang.String connect(java.lang.String,java.lang.String,java.lang.String,java.lang.String):255:255 -> connect
+    28:30:java.lang.String connect(java.lang.String,java.lang.String,java.lang.String,java.lang.String):256:256 -> connect
+    31:35:java.lang.String connect(java.lang.String,java.lang.String,java.lang.String,java.lang.String):258:258 -> connect
+    36:41:java.lang.String connect(java.lang.String,java.lang.String,java.lang.String,java.lang.String):259:259 -> connect
+    42:47:java.lang.String connect(java.lang.String,java.lang.String,java.lang.String,java.lang.String):260:260 -> connect
+    48:54:java.lang.String connect(java.lang.String,java.lang.String,java.lang.String,java.lang.String):261:261 -> connect
+    55:64:java.lang.String connect(java.lang.String,java.lang.String,java.lang.String,java.lang.String):262:262 -> connect
+    21:50:void connectAsync(java.lang.String,java.lang.String,java.lang.String,java.lang.String):154:154 -> connectAsync
+    51:56:void connectAsync(java.lang.String,java.lang.String,java.lang.String,java.lang.String):156:156 -> connectAsync
+    57:63:void connectAsync(java.lang.String,java.lang.String,java.lang.String,java.lang.String):157:157 -> connectAsync
+    64:73:void connectAsync(java.lang.String,java.lang.String,java.lang.String,java.lang.String):158:158 -> connectAsync
+    74:91:void connectAsync(java.lang.String,java.lang.String,java.lang.String,java.lang.String):162:162 -> connectAsync
+    92:98:void connectAsync(java.lang.String,java.lang.String,java.lang.String,java.lang.String):164:164 -> connectAsync
+    99:107:void connectAsync(java.lang.String,java.lang.String,java.lang.String,java.lang.String):165:165 -> connectAsync
+    108:109:void connectAsync(java.lang.String,java.lang.String,java.lang.String,java.lang.String):169:169 -> connectAsync
+    110:125:void connectAsync(java.lang.String,java.lang.String,java.lang.String,java.lang.String):172:172 -> connectAsync
+    1:5:java.lang.String access$errorJson(fun.playsolmate.app.NativeMwaBridge,java.lang.String):31:31 -> d
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Le0/c;Ljava/lang/String;)Ljava/lang/String;"}
-    1:8:java.lang.String disconnect():193:193 -> disconnect
-    9:10:java.lang.String disconnect():194:194 -> disconnect
-    11:12:java.lang.String disconnect():195:195 -> disconnect
-    13:17:java.lang.String disconnect():196:196 -> disconnect
-    18:23:java.lang.String disconnect():197:197 -> disconnect
-    24:33:java.lang.String disconnect():198:198 -> disconnect
-    1:3:java.lang.String access$getTAG$p(fun.playsolmate.app.NativeMwaBridge):28:28 -> e
+    1:8:java.lang.String disconnect():270:270 -> disconnect
+    9:10:java.lang.String disconnect():271:271 -> disconnect
+    11:12:java.lang.String disconnect():272:272 -> disconnect
+    13:17:java.lang.String disconnect():273:273 -> disconnect
+    18:23:java.lang.String disconnect():274:274 -> disconnect
+    24:33:java.lang.String disconnect():275:275 -> disconnect
+    1:3:java.lang.String access$getTAG$p(fun.playsolmate.app.NativeMwaBridge):31:31 -> e
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Le0/c;)Ljava/lang/String;"}
-    1:4:void access$sendResultToJS(fun.playsolmate.app.NativeMwaBridge,java.lang.String,java.lang.String):28:28 -> f
+    1:4:void access$sendResultToJS(fun.playsolmate.app.NativeMwaBridge,java.lang.String,java.lang.String):31:31 -> f
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Le0/c;Ljava/lang/String;Ljava/lang/String;)V"}
-    1:3:void access$setAccountLabel$p(fun.playsolmate.app.NativeMwaBridge,java.lang.String):28:28 -> g
+    1:3:void access$setAccountLabel$p(fun.playsolmate.app.NativeMwaBridge,java.lang.String):31:31 -> g
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Le0/c;Ljava/lang/String;)V"}
-    1:7:java.lang.String getConnectionStatus():60:60 -> getConnectionStatus
-    8:17:java.lang.String getConnectionStatus():61:61 -> getConnectionStatus
-    18:47:java.lang.String getConnectionStatus():62:62 -> getConnectionStatus
-    48:52:java.lang.String getConnectionStatus():63:63 -> getConnectionStatus
-    53:57:java.lang.String getConnectionStatus():64:64 -> getConnectionStatus
-    58:62:java.lang.String getConnectionStatus():65:65 -> getConnectionStatus
-    63:69:java.lang.String getConnectionStatus():66:66 -> getConnectionStatus
-    70:79:java.lang.String getConnectionStatus():67:67 -> getConnectionStatus
-    1:3:void access$setConnecting$p(fun.playsolmate.app.NativeMwaBridge,boolean):28:28 -> h
+    1:7:java.lang.String getAvailableWallets():63:63 -> getAvailableWallets
+    8:15:java.lang.String getAvailableWallets():65:65 -> getAvailableWallets
+    16:21:java.lang.String getAvailableWallets():66:66 -> getAvailableWallets
+    22:26:java.lang.String getAvailableWallets():67:67 -> getAvailableWallets
+    27:33:java.lang.String getAvailableWallets():68:68 -> getAvailableWallets
+    34:41:java.lang.String getAvailableWallets():69:69 -> getAvailableWallets
+    42:49:java.lang.String getAvailableWallets():70:70 -> getAvailableWallets
+    50:53:java.lang.String getAvailableWallets():73:73 -> getAvailableWallets
+    54:58:java.lang.String getAvailableWallets():74:74 -> getAvailableWallets
+    59:66:java.lang.String getAvailableWallets():78:78 -> getAvailableWallets
+    67:74:java.lang.String getAvailableWallets():79:79 -> getAvailableWallets
+    75:82:java.lang.String getAvailableWallets():80:80 -> getAvailableWallets
+    83:90:java.lang.String getAvailableWallets():81:81 -> getAvailableWallets
+    91:98:java.lang.String getAvailableWallets():82:82 -> getAvailableWallets
+    99:110:java.lang.String getAvailableWallets():83:83 -> getAvailableWallets
+    111:114:java.lang.String getAvailableWallets():77:77 -> getAvailableWallets
+    115:145:java.lang.String getAvailableWallets():86:86 -> getAvailableWallets
+    146:148:java.lang.String getAvailableWallets():88:88 -> getAvailableWallets
+    149:153:java.lang.String getAvailableWallets():89:89 -> getAvailableWallets
+    154:156:java.lang.String getAvailableWallets():90:90 -> getAvailableWallets
+    157:161:java.lang.String getAvailableWallets():91:91 -> getAvailableWallets
+    162:167:java.lang.String getAvailableWallets():92:92 -> getAvailableWallets
+    168:170:java.lang.String getAvailableWallets():89:89 -> getAvailableWallets
+    171:206:java.lang.String getAvailableWallets():94:94 -> getAvailableWallets
+    207:213:java.lang.String getAvailableWallets():101:101 -> getAvailableWallets
+    214:222:java.lang.String getAvailableWallets():102:102 -> getAvailableWallets
+    223:248:java.lang.String getAvailableWallets():103:103 -> getAvailableWallets
+    249:264:java.lang.String getAvailableWallets():105:105 -> getAvailableWallets
+    265:268:java.lang.String getAvailableWallets():106:106 -> getAvailableWallets
+    269:270:java.lang.String getAvailableWallets():107:107 -> getAvailableWallets
+    271:300:java.lang.String getAvailableWallets():108:108 -> getAvailableWallets
+    301:305:java.lang.String getAvailableWallets():109:109 -> getAvailableWallets
+    306:308:java.lang.String getAvailableWallets():110:110 -> getAvailableWallets
+    309:313:java.lang.String getAvailableWallets():111:111 -> getAvailableWallets
+    314:320:java.lang.String getAvailableWallets():112:112 -> getAvailableWallets
+    321:324:java.lang.String getAvailableWallets():109:109 -> getAvailableWallets
+    325:337:java.lang.String getAvailableWallets():117:117 -> getAvailableWallets
+    338:344:java.lang.String getAvailableWallets():118:118 -> getAvailableWallets
+    345:370:java.lang.String getAvailableWallets():119:119 -> getAvailableWallets
+    371:386:java.lang.String getAvailableWallets():121:121 -> getAvailableWallets
+    387:413:java.lang.String getAvailableWallets():122:122 -> getAvailableWallets
+    414:418:java.lang.String getAvailableWallets():125:125 -> getAvailableWallets
+    419:421:java.lang.String getAvailableWallets():126:126 -> getAvailableWallets
+    422:430:java.lang.String getAvailableWallets():127:127 -> getAvailableWallets
+    431:439:java.lang.String getAvailableWallets():128:128 -> getAvailableWallets
+    440:447:java.lang.String getAvailableWallets():129:129 -> getAvailableWallets
+    1:7:java.lang.String getConnectionStatus():137:137 -> getConnectionStatus
+    8:17:java.lang.String getConnectionStatus():138:138 -> getConnectionStatus
+    18:47:java.lang.String getConnectionStatus():139:139 -> getConnectionStatus
+    48:52:java.lang.String getConnectionStatus():140:140 -> getConnectionStatus
+    53:57:java.lang.String getConnectionStatus():141:141 -> getConnectionStatus
+    58:62:java.lang.String getConnectionStatus():142:142 -> getConnectionStatus
+    63:69:java.lang.String getConnectionStatus():143:143 -> getConnectionStatus
+    70:79:java.lang.String getConnectionStatus():144:144 -> getConnectionStatus
+    1:3:void access$setConnecting$p(fun.playsolmate.app.NativeMwaBridge,boolean):31:31 -> h
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Le0/c;Z)V"}
-    1:3:void access$setPublicKeyBytes$p(fun.playsolmate.app.NativeMwaBridge,byte[]):28:28 -> i
+    1:3:void access$setPublicKeyBytes$p(fun.playsolmate.app.NativeMwaBridge,byte[]):31:31 -> i
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Le0/c;[B)V"}
-    1:9:boolean isAvailable():51:51 -> isAvailable
-    1:5:java.lang.String base58Encode(byte[]):263:263 -> j
-    6:13:java.lang.String base58Encode(byte[]):264:264 -> j
-    14:17:java.lang.String base58Encode(byte[]):265:265 -> j
-    18:19:java.lang.String base58Encode(byte[]):266:266 -> j
-    20:26:java.lang.String base58Encode(byte[]):268:268 -> j
-    27:37:java.lang.String base58Encode(byte[]):269:269 -> j
-    38:50:java.lang.String base58Encode(byte[]):270:270 -> j
-    51:55:java.lang.String base58Encode(byte[]):271:271 -> j
-    56:65:java.lang.String base58Encode(byte[]):275:275 -> j
-    66:71:java.lang.String base58Encode(byte[]):277:277 -> j
-    72:81:java.lang.String base58Encode(byte[]):283:283 -> j
-    27:48:void connectAsync$lambda$2(fun.playsolmate.app.NativeMwaBridge,androidx.activity.ComponentActivity,java.lang.String,java.lang.String,java.lang.String,java.lang.String):96:96 -> k
+    1:9:boolean isAvailable():54:54 -> isAvailable
+    1:5:java.lang.String base58Encode(byte[]):340:340 -> j
+    6:13:java.lang.String base58Encode(byte[]):341:341 -> j
+    14:17:java.lang.String base58Encode(byte[]):342:342 -> j
+    18:19:java.lang.String base58Encode(byte[]):343:343 -> j
+    20:26:java.lang.String base58Encode(byte[]):345:345 -> j
+    27:37:java.lang.String base58Encode(byte[]):346:346 -> j
+    38:50:java.lang.String base58Encode(byte[]):347:347 -> j
+    51:55:java.lang.String base58Encode(byte[]):348:348 -> j
+    56:65:java.lang.String base58Encode(byte[]):352:352 -> j
+    66:71:java.lang.String base58Encode(byte[]):354:354 -> j
+    72:81:java.lang.String base58Encode(byte[]):360:360 -> j
+    27:48:void connectAsync$lambda$6(fun.playsolmate.app.NativeMwaBridge,androidx.activity.ComponentActivity,java.lang.String,java.lang.String,java.lang.String,java.lang.String):173:173 -> k
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Le0/c;Landroidx/activity/ComponentActivity;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V"}
-    1:5:java.lang.String errorJson(java.lang.String):254:254 -> l
-    6:11:java.lang.String errorJson(java.lang.String):255:255 -> l
-    12:16:java.lang.String errorJson(java.lang.String):256:256 -> l
-    17:26:java.lang.String errorJson(java.lang.String):257:257 -> l
-    3:23:void sendResultToJS(java.lang.String,java.lang.String):243:243 -> m
-    24:77:void sendResultToJS(java.lang.String,java.lang.String):244:244 -> m
-    78:88:void sendResultToJS(java.lang.String,java.lang.String):246:246 -> m
-    11:32:void sendResultToJS$lambda$7(fun.playsolmate.app.NativeMwaBridge,java.lang.String):247:247 -> n
+    1:5:java.lang.String errorJson(java.lang.String):331:331 -> l
+    6:11:java.lang.String errorJson(java.lang.String):332:332 -> l
+    12:16:java.lang.String errorJson(java.lang.String):333:333 -> l
+    17:26:java.lang.String errorJson(java.lang.String):334:334 -> l
+    3:23:void sendResultToJS(java.lang.String,java.lang.String):320:320 -> m
+    24:77:void sendResultToJS(java.lang.String,java.lang.String):321:321 -> m
+    78:88:void sendResultToJS(java.lang.String,java.lang.String):323:323 -> m
+    11:32:void sendResultToJS$lambda$11(fun.playsolmate.app.NativeMwaBridge,java.lang.String):324:324 -> n
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Le0/c;Ljava/lang/String;)V"}
-    33:39:void sendResultToJS$lambda$7(fun.playsolmate.app.NativeMwaBridge,java.lang.String):248:248 -> n
-    6:8:java.lang.String signAndSendTransaction(java.lang.String):235:235 -> signAndSendTransaction
-    9:13:java.lang.String signAndSendTransaction(java.lang.String):236:236 -> signAndSendTransaction
-    14:19:java.lang.String signAndSendTransaction(java.lang.String):237:237 -> signAndSendTransaction
-    20:29:java.lang.String signAndSendTransaction(java.lang.String):238:238 -> signAndSendTransaction
-    6:12:void signAndSendTransactionAsync(java.lang.String):226:226 -> signAndSendTransactionAsync
-    13:24:void signAndSendTransactionAsync(java.lang.String):227:227 -> signAndSendTransactionAsync
-    6:8:java.lang.String signTransaction(java.lang.String):215:215 -> signTransaction
-    9:13:java.lang.String signTransaction(java.lang.String):216:216 -> signTransaction
-    14:19:java.lang.String signTransaction(java.lang.String):217:217 -> signTransaction
-    20:29:java.lang.String signTransaction(java.lang.String):218:218 -> signTransaction
-    6:12:void signTransactionAsync(java.lang.String):206:206 -> signTransactionAsync
-    13:24:void signTransactionAsync(java.lang.String):207:207 -> signTransactionAsync
+    33:39:void sendResultToJS$lambda$11(fun.playsolmate.app.NativeMwaBridge,java.lang.String):325:325 -> n
+    6:8:java.lang.String signAndSendTransaction(java.lang.String):312:312 -> signAndSendTransaction
+    9:13:java.lang.String signAndSendTransaction(java.lang.String):313:313 -> signAndSendTransaction
+    14:19:java.lang.String signAndSendTransaction(java.lang.String):314:314 -> signAndSendTransaction
+    20:29:java.lang.String signAndSendTransaction(java.lang.String):315:315 -> signAndSendTransaction
+    6:12:void signAndSendTransactionAsync(java.lang.String):303:303 -> signAndSendTransactionAsync
+    13:24:void signAndSendTransactionAsync(java.lang.String):304:304 -> signAndSendTransactionAsync
+    6:8:java.lang.String signTransaction(java.lang.String):292:292 -> signTransaction
+    9:13:java.lang.String signTransaction(java.lang.String):293:293 -> signTransaction
+    14:19:java.lang.String signTransaction(java.lang.String):294:294 -> signTransaction
+    20:29:java.lang.String signTransaction(java.lang.String):295:295 -> signTransaction
+    6:12:void signTransactionAsync(java.lang.String):283:283 -> signTransactionAsync
+    13:24:void signTransactionAsync(java.lang.String):284:284 -> signTransactionAsync
 fun.playsolmate.app.NativeMwaBridge$$ExternalSyntheticLambda0 -> e0.a:
 # {"id":"sourceFile","fileName":"R8$$SyntheticClass"}
 # {"id":"com.android.tools.r8.synthesized"}
@@ -29115,7 +29161,7 @@ fun.playsolmate.app.NativeMwaBridge$Companion -> e0.c$a:
 # {"id":"sourceFile","fileName":"NativeMwaBridge.kt"}
     1:1:void <init>(kotlin.jvm.internal.DefaultConstructorMarker):0:0 -> <init>
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Lq0/g;)V"}
-    2:2:void <init>():42:42 -> <init>
+    2:2:void <init>():45:45 -> <init>
 fun.playsolmate.app.NativeMwaBridge$connectAsync$1$1 -> e0.c$b:
 # {"id":"sourceFile","fileName":"NativeMwaBridge.kt"}
     int label -> h
@@ -29131,59 +29177,59 @@ fun.playsolmate.app.NativeMwaBridge$connectAsync$1$1 -> e0.c$b:
     1:19:kotlin.coroutines.Continuation create(java.lang.Object,kotlin.coroutines.Continuation):0:0 -> a
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Ljava/lang/Object;Lh0/d;)Lh0/d;"}
     1:9:java.lang.Object invoke(java.lang.Object,java.lang.Object):0:0 -> i
-    13:44:java.lang.Object invokeSuspend(java.lang.Object):96:96 -> l
-    45:55:java.lang.Object invokeSuspend(java.lang.Object):99:99 -> l
-    56:62:java.lang.Object invokeSuspend(java.lang.Object):100:100 -> l
-    63:68:java.lang.Object invokeSuspend(java.lang.Object):102:102 -> l
-    69:74:java.lang.Object invokeSuspend(java.lang.Object):103:103 -> l
-    75:118:java.lang.Object invokeSuspend(java.lang.Object):105:105 -> l
-    119:120:java.lang.Object invokeSuspend(java.lang.Object):106:106 -> l
-    121:123:java.lang.Object invokeSuspend(java.lang.Object):107:107 -> l
-    124:126:java.lang.Object invokeSuspend(java.lang.Object):108:108 -> l
-    127:128:java.lang.Object invokeSuspend(java.lang.Object):109:109 -> l
-    129:131:java.lang.Object invokeSuspend(java.lang.Object):106:106 -> l
-    132:144:java.lang.Object invokeSuspend(java.lang.Object):112:112 -> l
-    145:146:java.lang.Object invokeSuspend(java.lang.Object):114:114 -> l
-    147:157:java.lang.Object invokeSuspend(java.lang.Object):115:115 -> l
-    158:168:java.lang.Object invokeSuspend(java.lang.Object):116:116 -> l
-    169:170:java.lang.Object invokeSuspend(java.lang.Object):117:117 -> l
-    171:173:java.lang.Object invokeSuspend(java.lang.Object):114:114 -> l
-    174:208:java.lang.Object invokeSuspend(java.lang.Object):120:120 -> l
-    209:217:java.lang.Object invokeSuspend(java.lang.Object):122:122 -> l
-    218:219:java.lang.Object invokeSuspend(java.lang.Object):96:96 -> l
-    220:245:java.lang.Object invokeSuspend(java.lang.Object):124:124 -> l
-    246:249:java.lang.Object invokeSuspend(java.lang.Object):127:127 -> l
-    250:255:java.lang.Object invokeSuspend(java.lang.Object):128:128 -> l
-    256:283:java.lang.Object invokeSuspend(java.lang.Object):129:129 -> l
-    284:296:java.lang.Object invokeSuspend(java.lang.Object):131:131 -> l
-    297:307:java.lang.Object invokeSuspend(java.lang.Object):132:132 -> l
-    308:314:java.lang.Object invokeSuspend(java.lang.Object):133:133 -> l
-    315:321:java.lang.Object invokeSuspend(java.lang.Object):134:134 -> l
-    322:332:java.lang.Object invokeSuspend(java.lang.Object):136:136 -> l
-    333:368:java.lang.Object invokeSuspend(java.lang.Object):138:138 -> l
-    369:373:java.lang.Object invokeSuspend(java.lang.Object):140:140 -> l
-    374:378:java.lang.Object invokeSuspend(java.lang.Object):141:141 -> l
-    379:381:java.lang.Object invokeSuspend(java.lang.Object):142:142 -> l
-    382:393:java.lang.Object invokeSuspend(java.lang.Object):143:143 -> l
-    394:404:java.lang.Object invokeSuspend(java.lang.Object):144:144 -> l
-    405:409:java.lang.Object invokeSuspend(java.lang.Object):145:145 -> l
-    410:420:java.lang.Object invokeSuspend(java.lang.Object):147:147 -> l
-    421:428:java.lang.Object invokeSuspend(java.lang.Object):148:148 -> l
-    429:432:java.lang.Object invokeSuspend(java.lang.Object):147:147 -> l
-    433:436:java.lang.Object invokeSuspend(java.lang.Object):151:151 -> l
-    437:447:java.lang.Object invokeSuspend(java.lang.Object):152:152 -> l
-    448:456:java.lang.Object invokeSuspend(java.lang.Object):153:153 -> l
-    457:460:java.lang.Object invokeSuspend(java.lang.Object):155:155 -> l
-    461:491:java.lang.Object invokeSuspend(java.lang.Object):156:156 -> l
-    492:518:java.lang.Object invokeSuspend(java.lang.Object):157:157 -> l
-    519:524:java.lang.Object invokeSuspend(java.lang.Object):164:164 -> l
-    525:530:java.lang.Object invokeSuspend(java.lang.Object):157:157 -> l
-    531:541:java.lang.Object invokeSuspend(java.lang.Object):161:161 -> l
-    542:569:java.lang.Object invokeSuspend(java.lang.Object):162:162 -> l
-    570:595:java.lang.Object invokeSuspend(java.lang.Object):167:167 -> l
-    596:602:java.lang.Object invokeSuspend(java.lang.Object):168:168 -> l
-    603:605:java.lang.Object invokeSuspend(java.lang.Object):169:169 -> l
-    606:611:java.lang.Object invokeSuspend(java.lang.Object):164:164 -> l
+    13:44:java.lang.Object invokeSuspend(java.lang.Object):173:173 -> l
+    45:55:java.lang.Object invokeSuspend(java.lang.Object):176:176 -> l
+    56:62:java.lang.Object invokeSuspend(java.lang.Object):177:177 -> l
+    63:68:java.lang.Object invokeSuspend(java.lang.Object):179:179 -> l
+    69:74:java.lang.Object invokeSuspend(java.lang.Object):180:180 -> l
+    75:118:java.lang.Object invokeSuspend(java.lang.Object):182:182 -> l
+    119:120:java.lang.Object invokeSuspend(java.lang.Object):183:183 -> l
+    121:123:java.lang.Object invokeSuspend(java.lang.Object):184:184 -> l
+    124:126:java.lang.Object invokeSuspend(java.lang.Object):185:185 -> l
+    127:128:java.lang.Object invokeSuspend(java.lang.Object):186:186 -> l
+    129:131:java.lang.Object invokeSuspend(java.lang.Object):183:183 -> l
+    132:144:java.lang.Object invokeSuspend(java.lang.Object):189:189 -> l
+    145:146:java.lang.Object invokeSuspend(java.lang.Object):191:191 -> l
+    147:157:java.lang.Object invokeSuspend(java.lang.Object):192:192 -> l
+    158:168:java.lang.Object invokeSuspend(java.lang.Object):193:193 -> l
+    169:170:java.lang.Object invokeSuspend(java.lang.Object):194:194 -> l
+    171:173:java.lang.Object invokeSuspend(java.lang.Object):191:191 -> l
+    174:208:java.lang.Object invokeSuspend(java.lang.Object):197:197 -> l
+    209:217:java.lang.Object invokeSuspend(java.lang.Object):199:199 -> l
+    218:219:java.lang.Object invokeSuspend(java.lang.Object):173:173 -> l
+    220:245:java.lang.Object invokeSuspend(java.lang.Object):201:201 -> l
+    246:249:java.lang.Object invokeSuspend(java.lang.Object):204:204 -> l
+    250:255:java.lang.Object invokeSuspend(java.lang.Object):205:205 -> l
+    256:283:java.lang.Object invokeSuspend(java.lang.Object):206:206 -> l
+    284:296:java.lang.Object invokeSuspend(java.lang.Object):208:208 -> l
+    297:307:java.lang.Object invokeSuspend(java.lang.Object):209:209 -> l
+    308:314:java.lang.Object invokeSuspend(java.lang.Object):210:210 -> l
+    315:321:java.lang.Object invokeSuspend(java.lang.Object):211:211 -> l
+    322:332:java.lang.Object invokeSuspend(java.lang.Object):213:213 -> l
+    333:368:java.lang.Object invokeSuspend(java.lang.Object):215:215 -> l
+    369:373:java.lang.Object invokeSuspend(java.lang.Object):217:217 -> l
+    374:378:java.lang.Object invokeSuspend(java.lang.Object):218:218 -> l
+    379:381:java.lang.Object invokeSuspend(java.lang.Object):219:219 -> l
+    382:393:java.lang.Object invokeSuspend(java.lang.Object):220:220 -> l
+    394:404:java.lang.Object invokeSuspend(java.lang.Object):221:221 -> l
+    405:409:java.lang.Object invokeSuspend(java.lang.Object):222:222 -> l
+    410:420:java.lang.Object invokeSuspend(java.lang.Object):224:224 -> l
+    421:428:java.lang.Object invokeSuspend(java.lang.Object):225:225 -> l
+    429:432:java.lang.Object invokeSuspend(java.lang.Object):224:224 -> l
+    433:436:java.lang.Object invokeSuspend(java.lang.Object):228:228 -> l
+    437:447:java.lang.Object invokeSuspend(java.lang.Object):229:229 -> l
+    448:456:java.lang.Object invokeSuspend(java.lang.Object):230:230 -> l
+    457:460:java.lang.Object invokeSuspend(java.lang.Object):232:232 -> l
+    461:491:java.lang.Object invokeSuspend(java.lang.Object):233:233 -> l
+    492:518:java.lang.Object invokeSuspend(java.lang.Object):234:234 -> l
+    519:524:java.lang.Object invokeSuspend(java.lang.Object):241:241 -> l
+    525:530:java.lang.Object invokeSuspend(java.lang.Object):234:234 -> l
+    531:541:java.lang.Object invokeSuspend(java.lang.Object):238:238 -> l
+    542:569:java.lang.Object invokeSuspend(java.lang.Object):239:239 -> l
+    570:595:java.lang.Object invokeSuspend(java.lang.Object):244:244 -> l
+    596:602:java.lang.Object invokeSuspend(java.lang.Object):245:245 -> l
+    603:605:java.lang.Object invokeSuspend(java.lang.Object):246:246 -> l
+    606:611:java.lang.Object invokeSuspend(java.lang.Object):241:241 -> l
     1:13:java.lang.Object invoke(kotlinx.coroutines.CoroutineScope,kotlin.coroutines.Continuation):0:0 -> p
       # {"id":"com.android.tools.r8.residualsignature","signature":"(Ly0/C;Lh0/d;)Ljava/lang/Object;"}
 fun.playsolmate.app.WebViewActivity -> fun.playsolmate.app.WebViewActivity:

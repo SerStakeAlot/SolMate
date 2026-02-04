@@ -33,6 +33,7 @@ interface NativeMwaConnectionStatus {
 // The native bridge interface (injected by Android WebView)
 interface NativeMwaBridge {
   isAvailable(): boolean;
+  getAvailableWallets(): string; // Returns JSON with wallet discovery info
   getConnectionStatus(): string; // Returns JSON string
   connect(cluster: string, appName: string, appUri: string, appIcon: string): string; // Returns JSON - but now async!
   connectAsync(cluster: string, appName: string, appUri: string, appIcon: string): void; // Truly async - result via callback
@@ -61,6 +62,22 @@ declare global {
 export function isNativeMwaAvailable(): boolean {
   if (typeof window === 'undefined') return false;
   return !!(window.NativeMwa && window.NativeMwa.isAvailable && window.NativeMwa.isAvailable());
+}
+
+/**
+ * Get available wallets on the device (for diagnostics)
+ */
+export function getAvailableWallets(): { wallets: any[]; mwaHandlerCount: number; schemeHandlerCount: number; error?: string } | null {
+  if (!isNativeMwaAvailable()) return null;
+  
+  try {
+    const resultJson = window.NativeMwa!.getAvailableWallets();
+    console.log('[NativeMwa] Available wallets:', resultJson);
+    return JSON.parse(resultJson);
+  } catch (e) {
+    console.error('[NativeMwa] Failed to get available wallets:', e);
+    return null;
+  }
 }
 
 /**

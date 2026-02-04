@@ -16,7 +16,8 @@ import {
   connectNativeMwa,
   disconnectNativeMwa,
   getNativeMwaStatus,
-  waitForNativeMwa
+  waitForNativeMwa,
+  getAvailableWallets
 } from '@/utils/nativeMwa';
 
 // Detect if we're on a mobile device
@@ -227,6 +228,10 @@ const StandardWalletButton: React.FC = () => {
       setDebugInfo('Native MWA: Connecting to Seed Vault...');
       console.log('[WalletButton] Using native MWA bridge');
       
+      // First, check what wallets are available for diagnostics
+      const walletInfo = getAvailableWallets();
+      console.log('[WalletButton] Available wallets:', walletInfo);
+      
       try {
         const result = await connectNativeMwa('mainnet-beta', 'SolMate', 'https://playsolmate.fun', 'https://playsolmate.fun/images/solmate-logo.png');
         console.log('[WalletButton] Native MWA result:', result);
@@ -239,7 +244,14 @@ const StandardWalletButton: React.FC = () => {
           setMwaConnecting(false);
           return;
         } else {
-          setDebugInfo(`❌ Native MWA: ${result.error || 'Unknown error'}`);
+          // Show diagnostic info on failure
+          let errorMsg = result.error || 'Unknown error';
+          if (errorMsg.includes('No MWA') || errorMsg.includes('No wallet')) {
+            const walletsFound = walletInfo?.wallets?.length || 0;
+            const mwaHandlers = walletInfo?.mwaHandlerCount || 0;
+            errorMsg = `No MWA wallet found. Wallets: ${walletsFound}, MWA handlers: ${mwaHandlers}. Please enable Seed Vault in Settings.`;
+          }
+          setDebugInfo(`❌ ${errorMsg}`);
         }
       } catch (e) {
         console.error('[WalletButton] Native MWA error:', e);

@@ -6,6 +6,8 @@
  */
 package `fun`.playsolmate.app
 
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
@@ -22,6 +24,7 @@ import com.solana.mobilewalletadapter.clientlib.TransactionResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import org.json.JSONObject
 import java.lang.ref.WeakReference
 
@@ -50,6 +53,80 @@ class NativeMwaBridge(
     fun isAvailable(): Boolean {
         Log.d(TAG, "isAvailable() called - returning true")
         return true
+    }
+
+    /**
+     * Check for available MWA wallets on the device
+     */
+    @JavascriptInterface
+    fun getAvailableWallets(): String {
+        Log.d(TAG, "getAvailableWallets() called")
+        
+        val activity = activityRef.get()
+        if (activity == null) {
+            return JSONObject().apply {
+                put("error", "Activity not available")
+                put("wallets", JSONArray())
+            }.toString()
+        }
+        
+        val pm = activity.packageManager
+        val wallets = JSONArray()
+        
+        // Check for common Solana wallet packages
+        val walletPackages = listOf(
+            "com.solana.seedvault" to "Seed Vault",
+            "app.phantom" to "Phantom",
+            "com.solflare.mobile" to "Solflare",
+            "com.backpack.mobile" to "Backpack",
+            "com.solanamobile.seedvault" to "Seed Vault (alt)",
+            "com.solanamobile.seedvaultimpl" to "Seed Vault Impl"
+        )
+        
+        for ((pkg, name) in walletPackages) {
+            try {
+                pm.getPackageInfo(pkg, 0)
+                wallets.put(JSONObject().apply {
+                    put("package", pkg)
+                    put("name", name)
+                    put("installed", true)
+                })
+                Log.d(TAG, "Found wallet: $name ($pkg)")
+            } catch (e: PackageManager.NameNotFoundException) {
+                // Not installed
+            }
+        }
+        
+        // Check for MWA intent handlers
+        val mwaIntent = Intent("com.solana.mobilewalletadapter.WALLET_ACTION")
+        val mwaHandlers = pm.queryIntentActivities(mwaIntent, 0)
+        Log.d(TAG, "MWA intent handlers found: ${mwaHandlers.size}")
+        
+        for (handler in mwaHandlers) {
+            val handlerPkg = handler.activityInfo.packageName
+            val handlerName = handler.activityInfo.name
+            Log.d(TAG, "MWA handler: $handlerPkg / $handlerName")
+            wallets.put(JSONObject().apply {
+                put("package", handlerPkg)
+                put("activity", handlerName)
+                put("type", "mwa_handler")
+            })
+        }
+        
+        // Also check for solana-wallet scheme handlers
+        val schemeIntent = Intent(Intent.ACTION_VIEW, Uri.parse("solana-wallet://"))
+        val schemeHandlers = pm.queryIntentActivities(schemeIntent, 0)
+        Log.d(TAG, "solana-wallet:// scheme handlers: ${schemeHandlers.size}")
+        
+        for (handler in schemeHandlers) {
+            Log.d(TAG, "Scheme handler: ${handler.activityInfo.packageName}")
+        }
+        
+        return JSONObject().apply {
+            put("wallets", wallets)
+            put("mwaHandlerCount", mwaHandlers.size)
+            put("schemeHandlerCount", schemeHandlers.size)
+        }.toString()
     }
 
     /**
