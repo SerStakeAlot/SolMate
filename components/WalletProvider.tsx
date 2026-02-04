@@ -4,33 +4,32 @@ import React, { FC, ReactNode, useMemo, useEffect, useState } from 'react';
 import { ConnectionProvider, WalletProvider as SolanaWalletProvider } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
-import { 
-  SolanaMobileWalletAdapter,
-  createDefaultAddressSelector,
-  createDefaultAuthorizationResultCache,
-  createDefaultWalletNotFoundHandler,
-} from '@solana-mobile/wallet-adapter-mobile';
 
-// We no longer use the library's modal - using custom modal in WalletButton.tsx
+// We use @solana-mobile/wallet-standard-mobile's registerMwa() instead of 
+// SolanaMobileWalletAdapter to properly integrate with Seed Vault via wallet-standard
 
 // Component to register MWA with wallet-standard before wallet-adapter loads
 const MWARegistration: FC<{ children: ReactNode }> = ({ children }) => {
   const [isRegistered, setIsRegistered] = useState(false);
   
   useEffect(() => {
-    // Register MWA on the client side only, and only on Android
+    // Register MWA on the client side only
     if (typeof window === 'undefined') {
       setIsRegistered(true);
       return;
     }
     
     const isAndroid = /android/i.test(navigator.userAgent);
+    
     if (!isAndroid) {
+      // Not Android, no MWA needed
+      console.log('[MWA] Not Android, skipping registration');
       setIsRegistered(true);
       return;
     }
     
     // Import and register MWA with wallet-standard
+    // This makes Seed Vault appear as a standard wallet option
     import('@solana-mobile/wallet-standard-mobile').then((module) => {
       const { 
         registerMwa, 
@@ -40,26 +39,27 @@ const MWARegistration: FC<{ children: ReactNode }> = ({ children }) => {
       } = module;
       
       try {
-        registerMwa({
+        const unregister = registerMwa({
           appIdentity: {
             name: 'SolMate',
             uri: 'https://playsolmate.fun',
-            // Icon must be an absolute URL
             icon: 'https://playsolmate.fun/images/solmate-logo.png',
           },
           authorizationCache: createDefaultAuthorizationCache(),
-          // Use chain identifier format
           chains: ['solana:mainnet'] as any,
           chainSelector: createDefaultChainSelector(),
           onWalletNotFound: createDefaultWalletNotFoundHandler(),
         });
-        console.log('[MWA] Registered with wallet-standard');
+        console.log('[MWA] Registered with wallet-standard successfully');
+        
+        // Store unregister function for cleanup if needed
+        (window as any).__mwaUnregister = unregister;
       } catch (err: any) {
-        console.log('[MWA] Registration skipped:', err.message);
+        console.error('[MWA] Registration failed:', err);
       }
       setIsRegistered(true);
     }).catch((err) => {
-      console.log('[MWA] Module load failed:', err.message);
+      console.error('[MWA] Module load failed:', err);
       setIsRegistered(true);
     });
   }, []);
@@ -82,20 +82,11 @@ export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
     return 'https://mainnet.helius-rpc.com/?api-key=REDACTED_HELIUS_API_KEY';
   }, []);
 
+  // Only include non-MWA wallets here
+  // MWA is registered via registerMwa() in MWARegistration component
+  // and will automatically appear via wallet-standard
   const wallets = useMemo(
     () => [
-      // Mobile Wallet Adapter for Seeker/Seed Vault
-      new SolanaMobileWalletAdapter({
-        addressSelector: createDefaultAddressSelector(),
-        appIdentity: {
-          name: 'SolMate',
-          uri: 'https://playsolmate.fun',
-          icon: 'https://playsolmate.fun/images/solmate-logo.png',
-        },
-        authorizationResultCache: createDefaultAuthorizationResultCache(),
-        chain: 'mainnet-beta',
-        onWalletNotFound: createDefaultWalletNotFoundHandler(),
-      }),
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
     ],
