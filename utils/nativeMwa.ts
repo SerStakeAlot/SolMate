@@ -4,11 +4,15 @@
  * When running in the SolMate Android app (WebView), the NativeMwa
  * JavaScript interface is injected, allowing direct communication
  * with the native Mobile Wallet Adapter.
+ * 
+ * The bridge uses async callbacks because @JavascriptInterface methods
+ * can't block waiting for Android activity results.
  */
 
 // Type definitions for the native bridge
 interface NativeMwaResult {
   success: boolean;
+  pending?: boolean;
   publicKey?: string;
   publicKeyBase64?: string;
   accountLabel?: string;
@@ -17,6 +21,7 @@ interface NativeMwaResult {
   signature?: string;
   signatureBase64?: string;
   error?: string;
+  message?: string;
 }
 
 interface NativeMwaConnectionStatus {
@@ -29,10 +34,13 @@ interface NativeMwaConnectionStatus {
 interface NativeMwaBridge {
   isAvailable(): boolean;
   getConnectionStatus(): string; // Returns JSON string
-  connect(cluster: string, appName: string, appUri: string, appIcon: string): string; // Returns JSON string
+  connect(cluster: string, appName: string, appUri: string, appIcon: string): string; // Returns JSON - but now async!
+  connectAsync(cluster: string, appName: string, appUri: string, appIcon: string): void; // Truly async - result via callback
   disconnect(): string; // Returns JSON string
   signTransaction(transactionBase64: string): string; // Returns JSON string
+  signTransactionAsync(transactionBase64: string): void; // Async version
   signAndSendTransaction(transactionBase64: string): string; // Returns JSON string
+  signAndSendTransactionAsync(transactionBase64: string): void; // Async version
 }
 
 declare global {
@@ -40,6 +48,10 @@ declare global {
     NativeMwa?: NativeMwaBridge;
     isNativeMwaAvailable?: boolean;
     nativeMwaVersion?: string;
+    // Callbacks for async native MWA operations
+    onNativeMwaConnectResult?: (resultJson: string) => void;
+    onNativeMwaSignResult?: (resultJson: string) => void;
+    onNativeMwaSendResult?: (resultJson: string) => void;
   }
 }
 
@@ -100,7 +112,7 @@ export function getNativeMwaStatus(): NativeMwaConnectionStatus | null {
 }
 
 /**
- * Connect to wallet using native MWA
+ * Connect to wallet using native MWA (async with callback)
  */
 export async function connectNativeMwa(
   cluster: string = 'mainnet-beta',
@@ -111,27 +123,46 @@ export async function connectNativeMwa(
   console.log('[NativeMwa] Connecting...', { cluster, appName });
   
   if (!isNativeMwaAvailable()) {
+    console.error('[NativeMwa] Bridge not available');
     return { success: false, error: 'Native MWA bridge not available' };
   }
 
-  try {
-    // The native call is blocking, so we wrap it in a promise
-    // to avoid blocking the UI thread
-    const resultJson = await new Promise<string>((resolve) => {
-      // Use setTimeout to allow UI to update before blocking call
-      setTimeout(() => {
-        const result = window.NativeMwa!.connect(cluster, appName, appUri, appIcon);
+  return new Promise<NativeMwaResult>((resolve) => {
+    // Set up callback for async result
+    window.onNativeMwaConnectResult = (resultJson: string) => {
+      console.log('[NativeMwa] Received connect result:', resultJson);
+      try {
+        const result = JSON.parse(resultJson) as NativeMwaResult;
         resolve(result);
-      }, 100);
-    });
-    
-    const result = JSON.parse(resultJson) as NativeMwaResult;
-    console.log('[NativeMwa] Connect result:', result);
-    return result;
-  } catch (e) {
-    console.error('[NativeMwa] Connect error:', e);
-    return { success: false, error: String(e) };
-  }
+      } catch (e) {
+        console.error('[NativeMwa] Failed to parse result:', e);
+        resolve({ success: false, error: 'Failed to parse result: ' + String(e) });
+      }
+      // Clean up callback
+      window.onNativeMwaConnectResult = undefined;
+    };
+
+    // Set a timeout in case no callback comes
+    const timeout = setTimeout(() => {
+      if (window.onNativeMwaConnectResult) {
+        console.error('[NativeMwa] Connect timed out');
+        window.onNativeMwaConnectResult = undefined;
+        resolve({ success: false, error: 'Connection timed out - no response from wallet' });
+      }
+    }, 120000); // 2 minute timeout for user interaction
+
+    // Call the async version
+    try {
+      console.log('[NativeMwa] Calling connectAsync...');
+      window.NativeMwa!.connectAsync(cluster, appName, appUri, appIcon);
+      console.log('[NativeMwa] connectAsync called, waiting for callback...');
+    } catch (e) {
+      console.error('[NativeMwa] connectAsync error:', e);
+      clearTimeout(timeout);
+      window.onNativeMwaConnectResult = undefined;
+      resolve({ success: false, error: 'Failed to call connectAsync: ' + String(e) });
+    }
+  });
 }
 
 /**

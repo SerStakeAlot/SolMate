@@ -10779,13 +10779,13 @@ com.neovisionaries.ws.client.WritingThread:
     private static final int SHOULD_SEND
     private static final int SHOULD_STOP
     public void queueFlush()
-com.solana.mobilewalletadapter.clientlib.AdapterOperations$DefaultImpls:
-    public static synthetic java.lang.Object authorize$default(com.solana.mobilewalletadapter.clientlib.AdapterOperations,android.net.Uri,android.net.Uri,java.lang.String,com.solana.mobilewalletadapter.clientlib.RpcCluster,kotlin.coroutines.Continuation,int,java.lang.Object)
-    public static synthetic java.lang.Object authorize$default(com.solana.mobilewalletadapter.clientlib.AdapterOperations,android.net.Uri,android.net.Uri,java.lang.String,java.lang.String,java.lang.String,java.lang.String[],byte[][],com.solana.mobilewalletadapter.common.signin.SignInWithSolana$Payload,kotlin.coroutines.Continuation,int,java.lang.Object)
+com.solana.mobilewalletadapter.clientlib.AdapterOperations$DefaultImpls
 com.solana.mobilewalletadapter.clientlib.AdapterOperations:
     public abstract java.lang.Object deauthorize(java.lang.String,kotlin.coroutines.Continuation)
     public abstract java.lang.Object getCapabilities(kotlin.coroutines.Continuation)
+    public abstract java.lang.Object signAndSendTransactions(byte[][],com.solana.mobilewalletadapter.clientlib.TransactionParams,kotlin.coroutines.Continuation)
     public abstract java.lang.Object signMessages(byte[][],byte[][],kotlin.coroutines.Continuation)
+    public abstract java.lang.Object signTransactions(byte[][],kotlin.coroutines.Continuation)
 com.solana.mobilewalletadapter.clientlib.AssociationDetails:
     public synthetic void <init>(android.net.Uri,int,com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterSession,int,kotlin.jvm.internal.DefaultConstructorMarker)
     public final android.net.Uri component1()
@@ -10803,16 +10803,22 @@ com.solana.mobilewalletadapter.clientlib.ConnectionIdentity:
     public final java.lang.String component3()
     public final com.solana.mobilewalletadapter.clientlib.ConnectionIdentity copy(android.net.Uri,android.net.Uri,java.lang.String)
     public static synthetic com.solana.mobilewalletadapter.clientlib.ConnectionIdentity copy$default(com.solana.mobilewalletadapter.clientlib.ConnectionIdentity,android.net.Uri,android.net.Uri,java.lang.String,int,java.lang.Object)
+com.solana.mobilewalletadapter.clientlib.DataModelsKt
+com.solana.mobilewalletadapter.clientlib.DefaultTransactionParams
 com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations$deauthorize$2
 com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations$getCapabilities$2
+com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations$signAndSendTransactions$2
 com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations$signMessages$2
+com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations$signTransactions$2
 com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations:
     public void <init>()
     public synthetic void <init>(kotlinx.coroutines.CoroutineDispatcher,int,kotlin.jvm.internal.DefaultConstructorMarker)
     public java.lang.Object deauthorize(java.lang.String,kotlin.coroutines.Continuation)
     public java.lang.Object getCapabilities(kotlin.coroutines.Continuation)
     public final void setClient(com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient)
+    public java.lang.Object signAndSendTransactions(byte[][],com.solana.mobilewalletadapter.clientlib.TransactionParams,kotlin.coroutines.Continuation)
     public java.lang.Object signMessages(byte[][],byte[][],kotlin.coroutines.Continuation)
+    public java.lang.Object signTransactions(byte[][],kotlin.coroutines.Continuation)
 com.solana.mobilewalletadapter.clientlib.LocalAssociationDetailsKt:
     public static synthetic com.solana.mobilewalletadapter.clientlib.AssociationDetails associationDetails$default(com.solana.mobilewalletadapter.clientlib.scenario.LocalAssociationScenario,android.net.Uri,int,java.lang.Object)
 com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter$disconnect$2
@@ -10830,12 +10836,14 @@ com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter:
     public final java.lang.Object signIn(com.solana.mobilewalletadapter.clientlib.ActivityResultSender,com.solana.mobilewalletadapter.common.signin.SignInWithSolana$Payload,kotlin.coroutines.Continuation)
 com.solana.mobilewalletadapter.clientlib.R
 com.solana.mobilewalletadapter.clientlib.Solana
+com.solana.mobilewalletadapter.clientlib.TransactionParams
 com.solana.mobilewalletadapter.clientlib.TransactionResult$Failure:
     public final java.lang.Exception getE()
 com.solana.mobilewalletadapter.clientlib.TransactionResult$NoWalletFound:
     public final java.lang.String getMessage()
 com.solana.mobilewalletadapter.clientlib.TransactionResult$Success:
     public synthetic void <init>(java.lang.Object,com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$AuthorizationResult,int,kotlin.jvm.internal.DefaultConstructorMarker)
+    public final java.lang.Object getPayload()
 com.solana.mobilewalletadapter.clientlib.protocol.JsonRpc20Client$JsonRpc20RemoteException:
     public static final int SERVER_RESERVED_ERROR_MAX
     public static final int SERVER_RESERVED_ERROR_MIN
@@ -10851,21 +10859,25 @@ com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$Auth
 com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$DeauthorizeFuture
 com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$GetCapabilitiesFuture
 com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$GetCapabilitiesResult
-com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignAndSendTransactionsFuture:
-    private synthetic void lambda$notifyOnComplete$0(com.solana.mobilewalletadapter.common.util.NotifyOnCompleteFuture$OnCompleteCallback,com.solana.mobilewalletadapter.common.util.NotifyOnCompleteFuture)
-    public void notifyOnComplete(com.solana.mobilewalletadapter.common.util.NotifyOnCompleteFuture$OnCompleteCallback)
+com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$NotSubmittedException:
+    public final byte[][] signatures
+    private void <init>(java.lang.String,java.lang.String,int)
+    public java.lang.String getMessage()
+com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignAndSendTransactionsFuture
+com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignAndSendTransactionsResult
 com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignMessagesFuture:
     private synthetic void lambda$notifyOnComplete$0(com.solana.mobilewalletadapter.common.util.NotifyOnCompleteFuture$OnCompleteCallback,com.solana.mobilewalletadapter.common.util.NotifyOnCompleteFuture)
     public void notifyOnComplete(com.solana.mobilewalletadapter.common.util.NotifyOnCompleteFuture$OnCompleteCallback)
-com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignPayloadsFuture:
-    private synthetic void lambda$notifyOnComplete$0(com.solana.mobilewalletadapter.common.util.NotifyOnCompleteFuture$OnCompleteCallback,com.solana.mobilewalletadapter.common.util.NotifyOnCompleteFuture)
-    public void notifyOnComplete(com.solana.mobilewalletadapter.common.util.NotifyOnCompleteFuture$OnCompleteCallback)
+com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignPayloadsFuture
+com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignPayloadsResult
 com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient:
     private static final int OFFCHAIN_MESSAGE_SIGNATURE_LENGTH
     public com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$DeauthorizeFuture deauthorize(java.lang.String)
     public com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$GetCapabilitiesFuture getCapabilities()
     public com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignAndSendTransactionsFuture signAndSendTransactions(byte[][],java.lang.Integer)
+    public com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignAndSendTransactionsFuture signAndSendTransactions(byte[][],java.lang.Integer,java.lang.String,java.lang.Boolean,java.lang.Integer,java.lang.Boolean)
     public com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignPayloadsFuture signMessages(byte[][],byte[][])
+    public com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignPayloadsFuture signTransactions(byte[][])
 com.solana.mobilewalletadapter.clientlib.scenario.LocalAssociationIntentCreator:
     private void <init>()
     public static boolean isWalletEndpointAvailable(android.content.pm.PackageManager)
@@ -21777,6 +21789,12 @@ com.solana.mobilewalletadapter.clientlib.LocalAdapterOperations:
     public java.lang.Object signMessagesDetached(byte[][],byte[][],kotlin.coroutines.Continuation)
 com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter$transact$2:
     final synthetic com.solana.mobilewalletadapter.common.signin.SignInWithSolana$Payload $signInPayload
+com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$InvalidPayloadsException:
+    public final boolean[] validPayloads
+    private void <init>(java.lang.String,java.lang.String,int)
+    synthetic void <init>(java.lang.String,java.lang.String,int,com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient-IA)
+    public java.lang.String getMessage()
+com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$NotSubmittedException
 com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignMessagesFuture
 com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignMessagesResult$SignedMessage:
     public void <init>(byte[],byte[][],byte[][])
@@ -21786,7 +21804,11 @@ com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$Sign
     public java.lang.String toString()
 com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient:
     static final synthetic boolean $assertionsDisabled
+    static synthetic bridge boolean[] -$$Nest$smunpackResponseBooleanArray(org.json.JSONObject,java.lang.String,int)
+    static synthetic bridge byte[][] -$$Nest$smunpackResponsePayloadArray(org.json.JSONObject,java.lang.String,int,boolean)
     public com.solana.mobilewalletadapter.clientlib.protocol.MobileWalletAdapterClient$SignMessagesFuture signMessagesDetached(byte[][],byte[][])
+    private static boolean[] unpackResponseBooleanArray(org.json.JSONObject,java.lang.String,int)
+    private static byte[][] unpackResponsePayloadArray(org.json.JSONObject,java.lang.String,int,boolean)
 com.solana.mobilewalletadapter.clientlib.scenario.LocalAssociationScenario:
     static final synthetic boolean $assertionsDisabled
 com.solana.mobilewalletadapter.clientlib.transport.websockets.MobileWalletAdapterWebSocket$1:
@@ -21800,6 +21822,9 @@ com.solana.mobilewalletadapter.common.signin.SignInWithSolana$Payload:
     public java.lang.String domain
     public abstract java.lang.String prepareMessage(java.lang.String)
     public abstract org.json.JSONObject toJson()
+com.solana.mobilewalletadapter.common.util.JsonPack:
+    public static byte[][] unpackBase64PayloadsArrayToByteArrays(org.json.JSONArray,boolean)
+    public static boolean[] unpackBooleans(org.json.JSONArray)
 com.solana.mobilewalletadapter.common.util.NotifyOnCompleteFuture$OnCompleteCallback
 com.solana.mobilewalletadapter.common.util.NotifyingCompletableFuture:
     private com.solana.mobilewalletadapter.common.util.NotifyOnCompleteFuture$OnCompleteCallback mOnCompleteCallback

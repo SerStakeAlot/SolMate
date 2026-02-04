@@ -7,6 +7,8 @@
 package `fun`.playsolmate.app
 
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.util.Base64
 import android.util.Log
 import android.webkit.JavascriptInterface
@@ -17,14 +19,11 @@ import com.solana.mobilewalletadapter.clientlib.ConnectionIdentity
 import com.solana.mobilewalletadapter.clientlib.MobileWalletAdapter
 import com.solana.mobilewalletadapter.clientlib.Solana
 import com.solana.mobilewalletadapter.clientlib.TransactionResult
-import com.solana.mobilewalletadapter.clientlib.successPayload
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.lang.ref.WeakReference
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 
 class NativeMwaBridge(
     activity: ComponentActivity,
@@ -32,11 +31,13 @@ class NativeMwaBridge(
 ) {
     private val TAG = "NativeMwaBridge"
     private val activityRef = WeakReference(activity)
+    private val mainHandler = Handler(Looper.getMainLooper())
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
     
     // Stored authorization data
-    private var publicKeyBytes: ByteArray? = null
-    private var accountLabel: String? = null
+    @Volatile private var publicKeyBytes: ByteArray? = null
+    @Volatile private var accountLabel: String? = null
+    @Volatile private var isConnecting = false
 
     companion object {
         const val JS_INTERFACE_NAME = "NativeMwa"
@@ -47,7 +48,8 @@ class NativeMwaBridge(
      */
     @JavascriptInterface
     fun isAvailable(): Boolean {
-        return true // On Android with this bridge, native MWA is available
+        Log.d(TAG, "isAvailable() called - returning true")
+        return true
     }
 
     /**
@@ -55,61 +57,77 @@ class NativeMwaBridge(
      */
     @JavascriptInterface
     fun getConnectionStatus(): String {
+        val connected = publicKeyBytes != null
+        val pubKey = publicKeyBytes?.let { base58Encode(it) }
+        Log.d(TAG, "getConnectionStatus() - connected=$connected, pubKey=$pubKey")
         return JSONObject().apply {
-            put("connected", publicKeyBytes != null)
-            put("publicKey", publicKeyBytes?.let { base58Encode(it) })
+            put("connected", connected)
+            put("publicKey", pubKey)
             put("accountLabel", accountLabel)
         }.toString()
     }
 
     /**
-     * Connect to wallet and authorize
-     * Returns JSON with publicKey or error
+     * Connect to wallet - ASYNC version
+     * This starts the connection and immediately returns.
+     * Result will be delivered via JavaScript callback.
      */
     @JavascriptInterface
-    fun connect(cluster: String, appName: String, appUri: String, appIcon: String): String {
-        Log.d(TAG, "connect() called - cluster=$cluster, app=$appName")
+    fun connectAsync(cluster: String, appName: String, appUri: String, appIcon: String) {
+        Log.d(TAG, "connectAsync() called - cluster=$cluster, app=$appName")
+        
+        if (isConnecting) {
+            Log.w(TAG, "Already connecting, ignoring duplicate request")
+            sendResultToJS("onNativeMwaConnectResult", errorJson("Already connecting"))
+            return
+        }
         
         val activity = activityRef.get() as? ComponentActivity
         if (activity == null) {
-            return errorJson("Activity not available")
+            Log.e(TAG, "Activity not available")
+            sendResultToJS("onNativeMwaConnectResult", errorJson("Activity not available"))
+            return
         }
 
-        var result = ""
-        val latch = CountDownLatch(1)
-
-        activity.runOnUiThread {
+        isConnecting = true
+        
+        // Run connection on main thread with coroutine
+        mainHandler.post {
             coroutineScope.launch {
+                var result: String
                 try {
+                    Log.d(TAG, "Creating ActivityResultSender...")
                     val sender = ActivityResultSender(activity)
                     
                     val identityUri = Uri.parse(appUri)
                     val iconUri = Uri.parse(appIcon)
                     
-                    // Create connection identity
+                    Log.d(TAG, "Creating ConnectionIdentity: uri=$identityUri, icon=$iconUri, name=$appName")
                     val connectionIdentity = ConnectionIdentity(
                         identityUri = identityUri,
                         iconUri = iconUri,
                         identityName = appName
                     )
                     
-                    // Create MWA instance with connection identity
                     val mwa = MobileWalletAdapter(connectionIdentity = connectionIdentity)
                     
-                    // Set blockchain/cluster
                     mwa.blockchain = when (cluster) {
                         "devnet" -> Solana.Devnet
                         "testnet" -> Solana.Testnet
                         else -> Solana.Mainnet
                     }
                     
-                    Log.d(TAG, "Calling mwa.connect()...")
+                    Log.d(TAG, "Calling mwa.connect() with blockchain=${mwa.blockchain}...")
                     
                     val connectResult = mwa.connect(sender)
                     
-                    when (connectResult) {
+                    Log.d(TAG, "mwa.connect() returned: $connectResult")
+                    
+                    result = when (connectResult) {
                         is TransactionResult.Success -> {
                             val authResult = connectResult.authResult
+                            Log.d(TAG, "TransactionResult.Success - authResult=$authResult")
+                            
                             if (authResult != null && authResult.accounts.isNotEmpty()) {
                                 val account = authResult.accounts.first()
                                 publicKeyBytes = account.publicKey
@@ -117,44 +135,54 @@ class NativeMwaBridge(
                                 
                                 val pubKeyBase58 = base58Encode(account.publicKey)
                                 
-                                Log.d(TAG, "Authorization successful! PublicKey: $pubKeyBase58")
+                                Log.d(TAG, "Authorization successful! PublicKey: $pubKeyBase58, Label: ${account.accountLabel}")
                                 
-                                result = JSONObject().apply {
+                                JSONObject().apply {
                                     put("success", true)
                                     put("publicKey", pubKeyBase58)
                                     put("publicKeyBase64", Base64.encodeToString(account.publicKey, Base64.NO_WRAP))
                                     put("accountLabel", account.accountLabel ?: "Unknown")
                                 }.toString()
                             } else {
-                                result = errorJson("No accounts returned from wallet")
+                                Log.e(TAG, "Success but no accounts returned")
+                                errorJson("No accounts returned from wallet")
                             }
                         }
                         is TransactionResult.NoWalletFound -> {
-                            Log.e(TAG, "No wallet found")
-                            result = errorJson("No MWA-compatible wallet found. Please install Phantom, Solflare, or ensure Seed Vault is enabled.")
+                            Log.e(TAG, "No wallet found!")
+                            errorJson("No MWA-compatible wallet found. Please ensure Seed Vault is enabled in your settings.")
                         }
                         is TransactionResult.Failure -> {
                             Log.e(TAG, "Authorization failed: ${connectResult.message}")
-                            result = errorJson("Authorization failed: ${connectResult.message}")
+                            errorJson("Authorization failed: ${connectResult.message}")
                         }
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Connection error", e)
                     result = errorJson("Connection error: ${e.message}")
                 } finally {
-                    latch.countDown()
+                    isConnecting = false
                 }
+                
+                Log.d(TAG, "Sending result to JS: $result")
+                sendResultToJS("onNativeMwaConnectResult", result)
             }
         }
-
-        // Wait for result (with timeout)
-        try {
-            latch.await(60, TimeUnit.SECONDS)
-        } catch (e: InterruptedException) {
-            return errorJson("Connection timeout")
-        }
-
-        return result
+    }
+    
+    /**
+     * Old synchronous connect - kept for compatibility but now calls async version
+     */
+    @JavascriptInterface
+    fun connect(cluster: String, appName: String, appUri: String, appIcon: String): String {
+        Log.d(TAG, "connect() (sync) called - redirecting to connectAsync")
+        connectAsync(cluster, appName, appUri, appIcon)
+        // Return immediately - actual result will come via callback
+        return JSONObject().apply {
+            put("success", false)
+            put("pending", true)
+            put("message", "Connection started, result will be delivered via callback")
+        }.toString()
     }
 
     /**
@@ -171,165 +199,57 @@ class NativeMwaBridge(
     }
 
     /**
-     * Sign a transaction
-     * @param transactionBase64 Base64 encoded transaction
-     * @return JSON with signed transaction or error
+     * Sign a transaction (async) - placeholder for future implementation
+     */
+    @JavascriptInterface
+    fun signTransactionAsync(transactionBase64: String) {
+        Log.d(TAG, "signTransactionAsync() called - not yet implemented")
+        sendResultToJS("onNativeMwaSignResult", errorJson("Sign transaction not yet implemented - use connect first"))
+    }
+    
+    /**
+     * Old sync version - now uses async
      */
     @JavascriptInterface
     fun signTransaction(transactionBase64: String): String {
-        Log.d(TAG, "signTransaction() called")
-        
-        val activity = activityRef.get() as? ComponentActivity
-        if (activity == null) {
-            return errorJson("Activity not available")
-        }
-        
-        if (publicKeyBytes == null) {
-            return errorJson("Not connected to wallet")
-        }
-
-        var result = ""
-        val latch = CountDownLatch(1)
-
-        activity.runOnUiThread {
-            coroutineScope.launch {
-                try {
-                    val sender = ActivityResultSender(activity)
-                    val transaction = Base64.decode(transactionBase64, Base64.DEFAULT)
-                    
-                    val connectionIdentity = ConnectionIdentity(
-                        identityUri = Uri.parse("https://playsolmate.fun"),
-                        iconUri = Uri.parse("https://playsolmate.fun/images/solmate-logo.png"),
-                        identityName = "SolMate"
-                    )
-                    
-                    val mwa = MobileWalletAdapter(connectionIdentity = connectionIdentity)
-                    
-                    val transactResult = mwa.transact(sender) { authResult ->
-                        // Sign the transaction using AdapterOperations
-                        @Suppress("DEPRECATION")
-                        signTransactions(arrayOf(transaction))
-                    }
-                    
-                    when (transactResult) {
-                        is TransactionResult.Success -> {
-                            val signedPayloads = transactResult.successPayload
-                            if (signedPayloads != null && signedPayloads.signedPayloads.isNotEmpty()) {
-                                val signedTx = signedPayloads.signedPayloads[0]
-                                result = JSONObject().apply {
-                                    put("success", true)
-                                    put("signedTransaction", Base64.encodeToString(signedTx, Base64.NO_WRAP))
-                                }.toString()
-                            } else {
-                                result = errorJson("No signed transaction returned")
-                            }
-                        }
-                        is TransactionResult.NoWalletFound -> {
-                            result = errorJson("Wallet not found")
-                        }
-                        is TransactionResult.Failure -> {
-                            result = errorJson("Signing failed: ${transactResult.message}")
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Sign error", e)
-                    result = errorJson("Sign error: ${e.message}")
-                } finally {
-                    latch.countDown()
-                }
-            }
-        }
-
-        try {
-            latch.await(120, TimeUnit.SECONDS)
-        } catch (e: InterruptedException) {
-            return errorJson("Sign timeout")
-        }
-
-        return result
+        signTransactionAsync(transactionBase64)
+        return JSONObject().apply {
+            put("pending", true)
+        }.toString()
     }
 
     /**
-     * Sign and send a transaction
-     * @param transactionBase64 Base64 encoded transaction
-     * @return JSON with signature or error
+     * Sign and send a transaction (async) - placeholder for future implementation
+     */
+    @JavascriptInterface
+    fun signAndSendTransactionAsync(transactionBase64: String) {
+        Log.d(TAG, "signAndSendTransactionAsync() called - not yet implemented")
+        sendResultToJS("onNativeMwaSendResult", errorJson("Sign and send not yet implemented - use connect first"))
+    }
+    
+    /**
+     * Old sync version
      */
     @JavascriptInterface
     fun signAndSendTransaction(transactionBase64: String): String {
-        Log.d(TAG, "signAndSendTransaction() called")
-        
-        val activity = activityRef.get() as? ComponentActivity
-        if (activity == null) {
-            return errorJson("Activity not available")
-        }
-        
-        if (publicKeyBytes == null) {
-            return errorJson("Not connected to wallet")
-        }
-
-        var result = ""
-        val latch = CountDownLatch(1)
-
-        activity.runOnUiThread {
-            coroutineScope.launch {
-                try {
-                    val sender = ActivityResultSender(activity)
-                    val transaction = Base64.decode(transactionBase64, Base64.DEFAULT)
-                    
-                    val connectionIdentity = ConnectionIdentity(
-                        identityUri = Uri.parse("https://playsolmate.fun"),
-                        iconUri = Uri.parse("https://playsolmate.fun/images/solmate-logo.png"),
-                        identityName = "SolMate"
-                    )
-                    
-                    val mwa = MobileWalletAdapter(connectionIdentity = connectionIdentity)
-                    
-                    val transactResult = mwa.transact(sender) { authResult ->
-                        // Sign and send using AdapterOperations
-                        signAndSendTransactions(arrayOf(transaction))
-                    }
-                    
-                    when (transactResult) {
-                        is TransactionResult.Success -> {
-                            val sendResult = transactResult.successPayload
-                            if (sendResult != null && sendResult.signatures.isNotEmpty()) {
-                                val sig = sendResult.signatures[0]
-                                result = JSONObject().apply {
-                                    put("success", true)
-                                    put("signature", base58Encode(sig))
-                                    put("signatureBase64", Base64.encodeToString(sig, Base64.NO_WRAP))
-                                }.toString()
-                            } else {
-                                result = errorJson("No signature returned")
-                            }
-                        }
-                        is TransactionResult.NoWalletFound -> {
-                            result = errorJson("Wallet not found")
-                        }
-                        is TransactionResult.Failure -> {
-                            result = errorJson("Send failed: ${transactResult.message}")
-                        }
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Sign and send error", e)
-                    result = errorJson("Sign and send error: ${e.message}")
-                } finally {
-                    latch.countDown()
-                }
-            }
-        }
-
-        try {
-            latch.await(120, TimeUnit.SECONDS)
-        } catch (e: InterruptedException) {
-            return errorJson("Send timeout")
-        }
-
-        return result
+        signAndSendTransactionAsync(transactionBase64)
+        return JSONObject().apply {
+            put("pending", true)
+        }.toString()
     }
 
-    // Helper functions
-    
+    // Helper to send result back to JavaScript
+    private fun sendResultToJS(callback: String, result: String) {
+        val escapedResult = result.replace("\\", "\\\\").replace("'", "\\'")
+        val js = "if(window.$callback){window.$callback('$escapedResult');}else{console.log('No callback: $callback', '$escapedResult');}"
+        
+        mainHandler.post {
+            Log.d(TAG, "Executing JS: $js")
+            webView.evaluateJavascript(js, null)
+        }
+    }
+
+    // Helper to create error JSON
     private fun errorJson(message: String): String {
         return JSONObject().apply {
             put("success", false)
@@ -340,49 +260,26 @@ class NativeMwaBridge(
     // Base58 encoding for Solana public keys
     private fun base58Encode(bytes: ByteArray): String {
         val ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-        
-        if (bytes.isEmpty()) return ""
-        
-        // Count leading zeros
-        var zeros = 0
-        for (b in bytes) {
-            if (b.toInt() == 0) zeros++ else break
+        val result = StringBuilder()
+        var num = java.math.BigInteger(1, bytes)
+        val base = java.math.BigInteger.valueOf(58)
+        val zero = java.math.BigInteger.ZERO
+
+        while (num > zero) {
+            val (quotient, remainder) = num.divideAndRemainder(base)
+            result.insert(0, ALPHABET[remainder.toInt()])
+            num = quotient
         }
-        
-        // Convert to base58
-        val input = bytes.copyOf()
-        val encoded = CharArray(bytes.size * 2)
-        var outputStart = encoded.size
-        
-        var inputStart = zeros
-        while (inputStart < input.size) {
-            outputStart--
-            encoded[outputStart] = ALPHABET[divmod(input, inputStart, 256, 58)]
-            if (input[inputStart].toInt() and 0xFF == 0) {
-                inputStart++
+
+        // Add leading zeros
+        for (byte in bytes) {
+            if (byte.toInt() == 0) {
+                result.insert(0, '1')
+            } else {
+                break
             }
         }
-        
-        // Preserve leading zeros as '1's
-        while (outputStart < encoded.size && encoded[outputStart] == ALPHABET[0]) {
-            outputStart++
-        }
-        for (i in 0 until zeros) {
-            outputStart--
-            encoded[outputStart] = ALPHABET[0]
-        }
-        
-        return String(encoded, outputStart, encoded.size - outputStart)
-    }
-    
-    private fun divmod(number: ByteArray, firstDigit: Int, base: Int, divisor: Int): Int {
-        var remainder = 0
-        for (i in firstDigit until number.size) {
-            val digit = number[i].toInt() and 0xFF
-            val temp = remainder * base + digit
-            number[i] = (temp / divisor).toByte()
-            remainder = temp % divisor
-        }
-        return remainder
+
+        return result.toString()
     }
 }
