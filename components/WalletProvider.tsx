@@ -2,55 +2,47 @@
 
 import React, { FC, ReactNode, useMemo } from 'react';
 import { ConnectionProvider, WalletProvider as SolanaWalletProvider } from '@solana/wallet-adapter-react';
-import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
+import { 
+  registerMwa,
+  createDefaultAuthorizationCache, 
+  createDefaultChainSelector,
+  createDefaultWalletNotFoundHandler,
+} from '@solana-mobile/wallet-standard-mobile';
 
-// Register MWA directly, bypassing the library's WebView detection which blocks Seeker
-// The official registerMwa() checks isWebView() and skips registration - we don't want that
-if (typeof window !== 'undefined') {
-  const isAndroid = /android/i.test(navigator.userAgent);
-  
-  if (isAndroid && window.isSecureContext) {
-    // Dynamically import and directly register the wallet, bypassing WebView check
-    Promise.all([
-      import('@solana-mobile/wallet-standard-mobile'),
-      import('@wallet-standard/wallet')
-    ]).then(([mwaModule, walletStandardModule]) => {
-      const { 
-        LocalSolanaMobileWalletAdapterWallet,
-        createDefaultAuthorizationCache,
-        createDefaultChainSelector,
-        createDefaultWalletNotFoundHandler 
-      } = mwaModule;
-      const { registerWallet } = walletStandardModule;
-      
-      try {
-        // Directly create and register the wallet - this bypasses the isWebView check
-        const wallet = new LocalSolanaMobileWalletAdapterWallet({
-          appIdentity: {
-            name: 'SolMate',
-            uri: 'https://playsolmate.fun',
-            icon: 'https://playsolmate.fun/images/solmate-logo.png',
-          },
-          authorizationCache: createDefaultAuthorizationCache(),
-          chains: ['solana:mainnet'] as any,
-          chainSelector: createDefaultChainSelector(),
-          onWalletNotFound: createDefaultWalletNotFoundHandler(),
-        });
-        
-        registerWallet(wallet);
-        console.log('[MWA] ✅ Directly registered LocalSolanaMobileWalletAdapterWallet');
-      } catch (err: any) {
-        console.error('[MWA] ❌ Direct registration failed:', err);
-      }
-    }).catch((err) => {
-      console.error('[MWA] ❌ Module load failed:', err);
-    });
-  }
+// Get the app URI for identity verification
+function getUriForAppIdentity() {
+  if (typeof window === 'undefined') return 'https://playsolmate.fun';
+  return `${window.location.protocol}//${window.location.host}`;
+}
+
+// Register MWA at module level - CRITICAL: must be outside any component
+// This is exactly how the official Solana Mobile example does it
+registerMwa({
+  appIdentity: {
+    uri: getUriForAppIdentity(),
+    name: 'SolMate',
+    icon: '/images/solmate-logo.png',
+  },
+  authorizationCache: createDefaultAuthorizationCache(),
+  chains: ['solana:mainnet'],
+  chainSelector: createDefaultChainSelector(),
+  // Remote MWA fallback - uses reflector server when local WebSocket fails
+  remoteHostAuthority: 'reflector.solanamobile.com',
+  onWalletNotFound: createDefaultWalletNotFoundHandler(),
+});
+
+// Detect Android mobile for auto-connect
+function isAndroidMobile() {
+  return (
+    typeof window !== 'undefined' &&
+    window.isSecureContext &&
+    typeof document !== 'undefined' &&
+    /android/i.test(navigator.userAgent)
+  );
 }
 
 export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  // Use a reliable RPC endpoint for mainnet
   const endpoint = useMemo(() => {
     if (process.env.NEXT_PUBLIC_RPC_ENDPOINT) {
       return process.env.NEXT_PUBLIC_RPC_ENDPOINT;
@@ -58,20 +50,21 @@ export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
     return 'https://mainnet.helius-rpc.com/?api-key=REDACTED_HELIUS_API_KEY';
   }, []);
 
-  // Only include non-MWA wallets here
-  // MWA is registered via registerMwa() at module level above
-  // and will automatically appear via wallet-standard
+  // Don't include SolanaMobileWalletAdapter here - it's registered via registerMwa()
+  // and will automatically appear via wallet-standard detection
   const wallets = useMemo(
-    () => [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-    ],
+    () => typeof window === 'undefined' 
+      ? [] 
+      : [
+          new PhantomWalletAdapter(),
+          new SolflareWalletAdapter(),
+        ],
     []
   );
 
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <SolanaWalletProvider wallets={wallets} autoConnect={false}>
+      <SolanaWalletProvider wallets={wallets} autoConnect={isAndroidMobile()}>
         {children}
       </SolanaWalletProvider>
     </ConnectionProvider>
