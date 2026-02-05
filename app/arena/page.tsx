@@ -230,29 +230,56 @@ export default function ArenaPage() {
 function CopyableAddress({ label, address }: { label: string; address: string }) {
   const [copied, setCopied] = useState(false);
   
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(address);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy:', err);
+  const handleCopy = () => {
+    // Fallback for environments where clipboard API isn't available
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(address).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch((err) => {
+        console.error('Clipboard API failed:', err);
+        fallbackCopy();
+      });
+    } else {
+      fallbackCopy();
     }
   };
   
+  const fallbackCopy = () => {
+    // Create a temporary textarea element for copying
+    const textArea = document.createElement('textarea');
+    textArea.value = address;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Fallback copy failed:', err);
+    }
+    document.body.removeChild(textArea);
+  };
+  
   return (
-    <button
-      onClick={handleCopy}
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all group"
-    >
-      <span>{label}:</span>
-      <span className="font-mono">{address.slice(0, 4)}...{address.slice(-4)}</span>
-      {copied ? (
-        <Check className="w-3.5 h-3.5 text-green-400" />
-      ) : (
-        <Copy className="w-3.5 h-3.5 text-white/40 group-hover:text-white/70" />
-      )}
-    </button>
+    <div className="flex flex-col gap-1.5">
+      <span className="text-white/50 text-xs">{label} Token Address:</span>
+      <button
+        type="button"
+        onClick={handleCopy}
+        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all group cursor-pointer select-all"
+      >
+        <span className="font-mono text-[10px] sm:text-xs text-white/60 break-all">{address}</span>
+        {copied ? (
+          <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
+        ) : (
+          <Copy className="w-4 h-4 text-white/40 group-hover:text-white/70 flex-shrink-0" />
+        )}
+      </button>
+      {copied && <span className="text-green-400 text-[10px]">Copied!</span>}
+    </div>
   );
 }
 
@@ -364,7 +391,7 @@ function LockedHero({ reason, mateBalance, skrBalance, onConnect }: {
             </a>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-3 justify-center text-xs text-white/40">
+          <div className="flex flex-col gap-4 max-w-md mx-auto">
             <CopyableAddress label="$MATE" address={SOLMATE_TOKEN_MINT} />
             <CopyableAddress label="$SKR" address={SKR_TOKEN_MINT} />
           </div>
