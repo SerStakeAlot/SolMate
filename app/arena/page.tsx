@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lock, Trophy, Zap, Shield, Crown, ExternalLink, Loader2, DollarSign, Gift, Calendar } from 'lucide-react';
+import { Lock, Trophy, Zap, Shield, Crown, ExternalLink, Loader2, DollarSign, Gift, Calendar, Copy, Check } from 'lucide-react';
 import { WalletButton } from '@/components/WalletButton';
 import { ArenaChessGame } from '@/components/ArenaChessGame';
 import { ArenaLeaderboard } from '@/components/ArenaLeaderboard';
@@ -226,6 +226,36 @@ export default function ArenaPage() {
   );
 }
 
+// Copyable Address Component
+function CopyableAddress({ label, address }: { label: string; address: string }) {
+  const [copied, setCopied] = useState(false);
+  
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+  
+  return (
+    <button
+      onClick={handleCopy}
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all group"
+    >
+      <span>{label}:</span>
+      <span className="font-mono">{address.slice(0, 4)}...{address.slice(-4)}</span>
+      {copied ? (
+        <Check className="w-3.5 h-3.5 text-green-400" />
+      ) : (
+        <Copy className="w-3.5 h-3.5 text-white/40 group-hover:text-white/70" />
+      )}
+    </button>
+  );
+}
+
 // Locked Hero Component
 function LockedHero({ reason, mateBalance, skrBalance, onConnect }: { 
   reason: 'wallet' | 'tokens';
@@ -298,16 +328,16 @@ function LockedHero({ reason, mateBalance, skrBalance, onConnect }: {
           {/* Token Balance Display */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             {/* MATE Balance */}
-            <div className="px-6 py-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-center min-w-[180px]">
-              <p className="text-sm text-white/50 mb-1">$MATE</p>
-              <p className="text-xl text-red-400 font-bold mb-2">{formatTokenBalance(mateBalance || 0)}</p>
+            <div className="px-6 py-5 rounded-2xl bg-red-500/10 border border-red-500/30 text-center min-w-[180px]">
+              <p className="text-sm text-white/50 mb-2">$MATE</p>
+              <p className="text-xl text-red-400 font-bold mb-4">{formatTokenBalance(mateBalance || 0)}</p>
               <p className="text-xs text-white/40">Need: {getMinimumRequiredDisplay()}</p>
             </div>
             
             {/* SKR Balance */}
-            <div className="px-6 py-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-center min-w-[180px]">
-              <p className="text-sm text-white/50 mb-1">$SKR</p>
-              <p className="text-xl text-red-400 font-bold mb-2">{formatSkrBalance(skrBalance || 0)}</p>
+            <div className="px-6 py-5 rounded-2xl bg-red-500/10 border border-red-500/30 text-center min-w-[180px]">
+              <p className="text-sm text-white/50 mb-2">$SKR</p>
+              <p className="text-xl text-red-400 font-bold mb-4">{formatSkrBalance(skrBalance || 0)}</p>
               <p className="text-xs text-white/40">Need: {getSkrMinimumRequiredDisplay()}</p>
             </div>
           </div>
@@ -334,9 +364,10 @@ function LockedHero({ reason, mateBalance, skrBalance, onConnect }: {
             </a>
           </div>
           
-          <p className="text-xs text-white/40">
-            $MATE: {SOLMATE_TOKEN_MINT.slice(0, 6)}...{SOLMATE_TOKEN_MINT.slice(-4)} | $SKR: {SKR_TOKEN_MINT.slice(0, 6)}...{SKR_TOKEN_MINT.slice(-4)}
-          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center text-xs text-white/40">
+            <CopyableAddress label="$MATE" address={SOLMATE_TOKEN_MINT} />
+            <CopyableAddress label="$SKR" address={SKR_TOKEN_MINT} />
+          </div>
         </div>
       )}
     </motion.div>
