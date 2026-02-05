@@ -23,8 +23,8 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="fun.playsolmate.app"
-    android:versionCode="13"
-    android:versionName="Version 12 - Native MWA Bridge" >
+    android:versionCode="14"
+    android:versionName="Version 14 - Seed Vault MWA Fix" >
 
     <uses-sdk
         android:minSdkVersion="24"

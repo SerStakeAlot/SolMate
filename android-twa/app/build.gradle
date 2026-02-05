@@ -68,8 +68,8 @@ android {
         applicationId "fun.playsolmate.app"
         minSdkVersion 24
         targetSdkVersion 35
-        versionCode 13
-        versionName "Version 12 - Native MWA Bridge"
+        versionCode 14
+        versionName "Version 14 - Seed Vault MWA Fix"
 
         // The name for the application
         resValue "string", "appName", twaManifest.name
