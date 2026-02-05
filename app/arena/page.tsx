@@ -229,56 +229,87 @@ export default function ArenaPage() {
 // Copyable Address Component
 function CopyableAddress({ label, address }: { label: string; address: string }) {
   const [copied, setCopied] = useState(false);
+  const inputRef = React.useRef<HTMLInputElement>(null);
   
   const handleCopy = () => {
-    // Fallback for environments where clipboard API isn't available
+    // Select the input text
+    if (inputRef.current) {
+      inputRef.current.select();
+      inputRef.current.setSelectionRange(0, 99999); // For mobile
+    }
+    
+    // Try multiple copy methods
+    let success = false;
+    
+    // Method 1: Clipboard API
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(address).then(() => {
+        success = true;
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
-      }).catch((err) => {
-        console.error('Clipboard API failed:', err);
-        fallbackCopy();
+      }).catch(() => {
+        // Try fallback
+        success = fallbackCopy();
       });
     } else {
-      fallbackCopy();
+      success = fallbackCopy();
     }
   };
   
-  const fallbackCopy = () => {
-    // Create a temporary textarea element for copying
-    const textArea = document.createElement('textarea');
-    textArea.value = address;
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-9999px';
-    document.body.appendChild(textArea);
-    textArea.select();
+  const fallbackCopy = (): boolean => {
     try {
-      document.execCommand('copy');
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      // Select input and copy
+      if (inputRef.current) {
+        inputRef.current.select();
+        inputRef.current.setSelectionRange(0, 99999);
+      }
+      const result = document.execCommand('copy');
+      if (result) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+      return result;
     } catch (err) {
-      console.error('Fallback copy failed:', err);
+      console.error('Copy failed:', err);
+      return false;
     }
-    document.body.removeChild(textArea);
+  };
+  
+  const handleInputClick = () => {
+    // Select all text when clicking the input
+    if (inputRef.current) {
+      inputRef.current.select();
+      inputRef.current.setSelectionRange(0, 99999);
+    }
   };
   
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-white/50 text-xs">{label} Token Address:</span>
-      <button
-        type="button"
-        onClick={handleCopy}
-        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all group cursor-pointer select-all"
-      >
-        <span className="font-mono text-[10px] sm:text-xs text-white/60 break-all">{address}</span>
-        {copied ? (
-          <Check className="w-4 h-4 text-green-400 flex-shrink-0" />
-        ) : (
-          <Copy className="w-4 h-4 text-white/40 group-hover:text-white/70 flex-shrink-0" />
-        )}
-      </button>
-      {copied && <span className="text-green-400 text-[10px]">Copied!</span>}
+    <div className="flex flex-col gap-2 w-full">
+      <div className="flex items-center justify-between">
+        <span className="text-white/50 text-xs">{label} Token Address:</span>
+        {copied && <span className="text-green-400 text-xs font-medium">✓ Copied!</span>}
+      </div>
+      <div className="flex gap-2">
+        <input
+          ref={inputRef}
+          type="text"
+          readOnly
+          value={address}
+          onClick={handleInputClick}
+          className="flex-1 px-3 py-2 rounded-lg bg-black/50 border border-white/20 font-mono text-[11px] text-white/80 focus:outline-none focus:border-purple-500/50 cursor-text"
+        />
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="px-3 py-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 text-white font-medium text-xs transition-all flex items-center gap-1.5"
+        >
+          {copied ? (
+            <><Check className="w-4 h-4 text-green-400" /> Copied</>
+          ) : (
+            <><Copy className="w-4 h-4" /> Copy</>
+          )}
+        </button>
+      </div>
     </div>
   );
 }
@@ -311,11 +342,11 @@ function LockedHero({ reason, mateBalance, skrBalance, onConnect }: {
       </h1>
       
       {/* Prize Banner for locked users */}
-      <div className="mb-6 inline-flex items-center gap-3 px-6 py-3 rounded-[32px] bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-green-500/20 border-2 border-green-400/50">
-        <DollarSign className="w-8 h-8 text-green-400" />
-        <div className="text-left">
+      <div className="mb-6 inline-flex flex-col sm:flex-row items-center gap-3 px-8 py-4 rounded-3xl bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-green-500/20 border-2 border-green-400/50">
+        <DollarSign className="w-8 h-8 text-green-400 flex-shrink-0" />
+        <div className="text-center sm:text-left">
           <p className="text-xl font-bold text-green-400">$500 PRIZE POOL</p>
-          <p className="text-sm text-white/70">Compete for the top spot!</p>
+          <p className="text-sm text-white/70 whitespace-nowrap">Compete for the top spot!</p>
         </div>
       </div>
       
@@ -391,7 +422,7 @@ function LockedHero({ reason, mateBalance, skrBalance, onConnect }: {
             </a>
           </div>
           
-          <div className="flex flex-col gap-4 max-w-md mx-auto">
+          <div className="flex flex-col gap-4 w-full max-w-lg mx-auto px-4">
             <CopyableAddress label="$MATE" address={SOLMATE_TOKEN_MINT} />
             <CopyableAddress label="$SKR" address={SKR_TOKEN_MINT} />
           </div>
