@@ -1151,7 +1151,7 @@ const StandardWalletButton: React.FC = () => {
                       />
                     )}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                      <span>{wallet.adapter.name}</span>
+                      <span>{wallet.adapter.name === 'Mobile Wallet Adapter' ? 'Seeker' : wallet.adapter.name}</span>
                       {!isInstalled && (
                         <span style={{ fontSize: '11px', color: '#888' }}>Tap to install</span>
                       )}
