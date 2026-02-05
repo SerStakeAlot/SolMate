@@ -9,9 +9,12 @@ import { ArenaChessGame } from '@/components/ArenaChessGame';
 import { ArenaLeaderboard } from '@/components/ArenaLeaderboard';
 import { 
   checkHolderArenaAccess, 
-  SOLMATE_TOKEN_MINT, 
+  SOLMATE_TOKEN_MINT,
+  SKR_TOKEN_MINT,
   formatTokenBalance,
-  getMinimumRequiredDisplay 
+  formatSkrBalance,
+  getMinimumRequiredDisplay,
+  getSkrMinimumRequiredDisplay
 } from '@/utils/tokenGate';
 
 export default function ArenaPage() {
@@ -22,6 +25,9 @@ export default function ArenaPage() {
     checked: boolean;
     hasAccess: boolean;
     balance: number;
+    mateBalance?: number;
+    skrBalance?: number;
+    qualifyingToken?: 'MATE' | 'SKR' | null;
     error?: string;
   }>({ checked: false, hasAccess: false, balance: 0 });
   
@@ -41,6 +47,9 @@ export default function ArenaPage() {
         checked: true,
         hasAccess: result.hasAccess,
         balance: result.balance,
+        mateBalance: result.mateBalance,
+        skrBalance: result.skrBalance,
+        qualifyingToken: result.qualifyingToken,
         error: result.error,
       });
     } catch (error: any) {
@@ -90,7 +99,8 @@ export default function ArenaPage() {
         <div className="max-w-4xl mx-auto">
           <LockedHero 
             reason="tokens"
-            balance={accessStatus.balance}
+            mateBalance={accessStatus.mateBalance}
+            skrBalance={accessStatus.skrBalance}
           />
         </div>
       </div>
@@ -115,7 +125,7 @@ export default function ArenaPage() {
             <Crown className="w-8 h-8 text-yellow-400" />
           </div>
           <p className="text-white/60 text-lg">
-            Exclusive AI challenge for SolMate token holders
+            Exclusive AI challenge for $MATE & $SKR token holders
           </p>
           
           {/* Prize Banner */}
@@ -217,9 +227,10 @@ export default function ArenaPage() {
 }
 
 // Locked Hero Component
-function LockedHero({ reason, balance, onConnect }: { 
+function LockedHero({ reason, mateBalance, skrBalance, onConnect }: { 
   reason: 'wallet' | 'tokens';
-  balance?: number;
+  mateBalance?: number;
+  skrBalance?: number;
   onConnect?: () => void;
 }) {
   return (
@@ -254,7 +265,7 @@ function LockedHero({ reason, balance, onConnect }: {
       <p className="text-xl text-white/60 mb-8 max-w-md mx-auto">
         {reason === 'wallet' 
           ? 'Connect your wallet to access the exclusive Holder Arena'
-          : 'Hold $MATE tokens to unlock the exclusive Holder Arena'
+          : 'Hold $MATE or $SKR tokens to unlock the exclusive Holder Arena'
         }
       </p>
 
@@ -283,30 +294,48 @@ function LockedHero({ reason, balance, onConnect }: {
           <WalletButton />
         </div>
       ) : (
-        <div className="space-y-4">
-          <div className="inline-block px-6 py-3 rounded-2xl bg-red-500/10 border border-red-500/30">
-            <p className="text-red-400">
-              Your balance: <span className="font-bold">{formatTokenBalance(balance || 0)}</span>
-            </p>
-            <p className="text-sm text-white/50 mt-1">
-              Required: <span className="font-bold">{getMinimumRequiredDisplay()}</span>
-            </p>
+        <div className="space-y-6">
+          {/* Token Balance Display */}
+          <div className="inline-block px-6 py-4 rounded-2xl bg-red-500/10 border border-red-500/30">
+            <p className="text-white/80 font-medium mb-3">Your Token Balances:</p>
+            <div className="grid grid-cols-2 gap-4 text-left">
+              <div>
+                <p className="text-sm text-white/50">$MATE</p>
+                <p className="text-red-400 font-bold">{formatTokenBalance(mateBalance || 0)}</p>
+                <p className="text-xs text-white/40">Need: {getMinimumRequiredDisplay()}</p>
+              </div>
+              <div>
+                <p className="text-sm text-white/50">$SKR</p>
+                <p className="text-red-400 font-bold">{formatSkrBalance(skrBalance || 0)}</p>
+                <p className="text-xs text-white/40">Need: {getSkrMinimumRequiredDisplay()}</p>
+              </div>
+            </div>
           </div>
           
-          <div>
+          {/* Get Tokens Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <a
               href={`https://pump.fun/coin/${SOLMATE_TOKEN_MINT}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-bold hover:from-yellow-400 hover:to-amber-400 transition-all"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-bold hover:from-yellow-400 hover:to-amber-400 transition-all"
             >
-              Get $MATE Tokens
-              <ExternalLink className="w-5 h-5" />
+              Get $MATE
+              <ExternalLink className="w-4 h-4" />
+            </a>
+            <a
+              href={`https://pump.fun/coin/${SKR_TOKEN_MINT}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-500 to-violet-500 text-white font-bold hover:from-purple-400 hover:to-violet-400 transition-all"
+            >
+              Get $SKR
+              <ExternalLink className="w-4 h-4" />
             </a>
           </div>
           
-          <p className="text-sm text-white/40">
-            Token: {SOLMATE_TOKEN_MINT.slice(0, 8)}...{SOLMATE_TOKEN_MINT.slice(-8)}
+          <p className="text-xs text-white/40">
+            $MATE: {SOLMATE_TOKEN_MINT.slice(0, 6)}...{SOLMATE_TOKEN_MINT.slice(-4)} | $SKR: {SKR_TOKEN_MINT.slice(0, 6)}...{SKR_TOKEN_MINT.slice(-4)}
           </p>
         </div>
       )}
