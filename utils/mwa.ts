@@ -17,6 +17,21 @@ import {
   extractAttestationChallenge 
 } from './mwaAttestation';
 
+// Helper to decode base64 to Uint8Array (MWA returns addresses as base64)
+function base64ToUint8Array(base64: string): Uint8Array {
+  // Handle both browser and Node.js environments
+  if (typeof atob !== 'undefined') {
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
+  } else {
+    return new Uint8Array(Buffer.from(base64, 'base64'));
+  }
+}
+
 // APP Identity for MWA authorization
 const APP_IDENTITY = {
   name: 'SolMate',
@@ -109,10 +124,19 @@ export async function connectMWA(
       const authResult = await wallet.authorize(authorizeParams);
       
       console.log('[MWA] Authorization result:', authResult);
+      console.log('[MWA] Accounts:', authResult.accounts);
       
       if (authResult.accounts.length > 0) {
         const account = authResult.accounts[0];
-        const pubkey = new PublicKey(account.address);
+        console.log('[MWA] First account:', account);
+        console.log('[MWA] Account address (base64):', account.address);
+        
+        // IMPORTANT: account.address is base64-encoded, need to decode to bytes
+        const publicKeyBytes = base64ToUint8Array(account.address);
+        console.log('[MWA] PublicKey bytes length:', publicKeyBytes.length);
+        
+        const pubkey = new PublicKey(publicKeyBytes);
+        console.log('[MWA] PublicKey (base58):', pubkey.toBase58());
         
         return {
           publicKey: pubkey,
