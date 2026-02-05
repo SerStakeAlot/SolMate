@@ -10,76 +10,6 @@ import { useState, useEffect } from "react";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-production.up.railway.app';
 
-// Debug component for MWA troubleshooting (only shows on Android)
-const MWADebug = () => {
-  const { connecting, connected, wallet, publicKey, wallets } = useWallet();
-  const [isAndroid, setIsAndroid] = useState(false);
-  const [logs, setLogs] = useState<string[]>([]);
-  
-  // Expose addLog globally so WalletButton can use it
-  useEffect(() => {
-    (window as any).mwaDebugLog = (msg: string) => {
-      setLogs(prev => [...prev.slice(-5), msg]);
-    };
-  }, []);
-  
-  useEffect(() => {
-    const android = /android/i.test(navigator.userAgent);
-    setIsAndroid(android);
-    
-    if (android) {
-      const mwaWallet = wallets.find(w => w.adapter.name === 'Mobile Wallet Adapter');
-      setLogs([`Android, secure=${window.isSecureContext}, MWA=${mwaWallet ? 'found' : 'NOT FOUND'}`]);
-    }
-  }, [wallets]);
-  
-  useEffect(() => {
-    if (isAndroid) {
-      if (connecting) {
-        setLogs(prev => [...prev.slice(-5), `⏳ Connecting: ${wallet?.adapter?.name}...`]);
-      } else if (connected && publicKey) {
-        setLogs(prev => [...prev.slice(-5), `✅ Connected: ${publicKey.toBase58().slice(0, 8)}...`]);
-      }
-    }
-  }, [connecting, connected, wallet, publicKey, isAndroid]);
-  
-  if (!isAndroid) return null;
-  
-  return (
-    <div style={{
-      position: 'fixed',
-      bottom: '10px',
-      left: '10px',
-      right: '10px',
-      backgroundColor: 'rgba(0,0,0,0.95)',
-      border: '1px solid #444',
-      borderRadius: '8px',
-      padding: '10px',
-      fontSize: '11px',
-      fontFamily: 'monospace',
-      color: '#0f0',
-      zIndex: 9998,
-      maxHeight: '120px',
-      overflow: 'auto'
-    }}>
-      <div style={{ color: '#888', marginBottom: '4px' }}>MWA Debug v4:</div>
-      {logs.map((log, i) => (
-        <div key={i} style={{ 
-          color: log.includes('Error') || log.includes('❌') ? '#f55' : 
-                 log.includes('✅') ? '#5f5' : 
-                 log.includes('⏳') ? '#ff5' : '#fff',
-          marginBottom: '2px'
-        }}>
-          {log}
-        </div>
-      ))}
-      <div style={{ color: '#888', marginTop: '4px' }}>
-        State: {connecting ? '⏳connecting' : connected ? '✅connected' : '❌disconnected'} | Wallet: {wallet?.adapter?.name || 'none'}
-      </div>
-    </div>
-  );
-};
-
 interface PlatformStats {
   totalGames: number;
   uniquePlayers: number;
@@ -120,7 +50,6 @@ export default function Home() {
 
   return (
     <>
-    <MWADebug />
     <main className="mx-auto w-full max-w-6xl px-4 sm:px-6">
       {/* Hero Section */}
       <section className="flex flex-col items-center text-center pt-12 sm:pt-20 pb-16 sm:pb-24">
