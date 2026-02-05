@@ -446,7 +446,7 @@ export default function Home() {
                     <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: 'white', WebkitTextFillColor: 'white' }}>Holder Arena ($500 Prize!)</h3>
                   </div>
                   <div style={{ color: '#d1d5db', fontSize: '14px', lineHeight: '1.6' }}>
-                    <p>Hold <strong style={{ color: 'white' }}>2M+ $MATE</strong> or <strong style={{ color: 'white' }}>100K+ $SKR</strong> tokens to unlock the exclusive Holder Arena. Play vs AI, compete on the leaderboard!</p>
+                    <p>Hold <strong style={{ color: 'white' }}>2M+ $MATE</strong> or <strong style={{ color: 'white' }}>10K+ $SKR</strong> tokens to unlock the exclusive Holder Arena. Play vs AI, compete on the leaderboard!</p>
                   </div>
                 </div>
 

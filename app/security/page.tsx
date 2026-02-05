@@ -241,7 +241,7 @@ export default function SecurityAuditPage() {
           <div>
             <h3 className="font-semibold text-green-400 mb-2">✓ Token Gate Verification</h3>
             <p className="text-neutral-400 text-sm">
-              Holder Arena requires verified ownership of 2M+ $MATE or 100K+ $SKR tokens, with real-time 
+              Holder Arena requires verified ownership of 2M+ $MATE or 10K+ $SKR tokens, with real-time 
               balance checks to prevent unauthorized access.
             </p>
           </div>

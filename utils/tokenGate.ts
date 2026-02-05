@@ -9,7 +9,7 @@ export const TOKEN_DECIMALS = 6;
 export const SKR_TOKEN_MINT = 'SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3';
 export const SKR_TOKEN_SYMBOL = '$SKR';
 export const SKR_TOKEN_DECIMALS = 6;
-export const SKR_MIN_BALANCE = 100_000 * Math.pow(10, SKR_TOKEN_DECIMALS); // 100K $SKR
+export const SKR_MIN_BALANCE = 10_000 * Math.pow(10, SKR_TOKEN_DECIMALS); // 10K $SKR
 
 // Minimum token balance required for Holder Arena access (in raw token units)
 // 2 million tokens with 6 decimals = 2,000,000 * 10^6 = 2,000,000,000,000
