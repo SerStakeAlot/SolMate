@@ -353,7 +353,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
           <p className="text-white/70">{errorMessage}</p>
           <button
             onClick={onGameEnd}
-            className="mt-6 px-6 py-3 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white transition-colors border border-white/10"
+            className="mt-6 px-6 py-3 rounded-2xl bg-neutral-800 hover:bg-neutral-700 text-white transition-colors border border-white/10"
             style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
           >
             Back to Arena
@@ -379,7 +379,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
         </div>
         
         {/* AI Timer */}
-        <div className={`px-4 py-2 rounded-lg font-mono text-lg ${
+        <div className={`px-4 py-2 rounded-xl font-mono text-lg ${
           chess.turn() !== playerColor ? 'bg-yellow-500/20 text-yellow-400' : 'bg-white/10 text-white/60'
         }`}>
           <Clock className="w-4 h-4 inline-block mr-2" />
@@ -390,7 +390,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
       {/* Chess Board */}
       <div className="relative">
         <div className="aspect-square max-w-[600px] mx-auto">
-          <div className="w-full h-full overflow-hidden rounded-xl border-2 border-white/20 shadow-2xl">
+          <div className="w-full h-full overflow-hidden rounded-2xl border-2 border-white/20 shadow-2xl">
             <div className="grid grid-cols-8 grid-rows-8 h-full w-full">
             {Array.from({ length: 64 }).map((_, i) => {
               const row = Math.floor(i / 8);
@@ -522,8 +522,8 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
         
         {/* Thinking Overlay */}
         {isAiThinking && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-xl">
-            <div className="px-6 py-3 rounded-xl bg-purple-600 text-white font-semibold animate-pulse">
+          <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-2xl">
+            <div className="px-6 py-3 rounded-2xl bg-purple-600 text-white font-semibold animate-pulse">
               <Cpu className="w-5 h-5 inline-block mr-2 animate-spin" />
               AI is thinking...
             </div>
@@ -545,7 +545,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
         </div>
         
         {/* Player Timer */}
-        <div className={`px-4 py-2 rounded-lg font-mono text-lg ${
+        <div className={`px-4 py-2 rounded-xl font-mono text-lg ${
           chess.turn() === playerColor ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/60'
         }`}>
           <Clock className="w-4 h-4 inline-block mr-2" />
@@ -558,7 +558,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
         <button
           onClick={handleResign}
           disabled={gameOver}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-colors disabled:opacity-50 border border-red-500/30"
+          className="flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold transition-colors disabled:opacity-50 border border-red-500/30"
           style={{
             backgroundColor: '#7f1d1d',
             color: '#fca5a5',

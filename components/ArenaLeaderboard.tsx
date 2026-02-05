@@ -89,7 +89,7 @@ export function ArenaLeaderboard({ walletAddress }: ArenaLeaderboardProps) {
         <p className="text-red-400 mb-4">{error}</p>
         <button
           onClick={fetchLeaderboard}
-          className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+          className="px-6 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white transition-colors"
         >
           <RefreshCw className="w-5 h-5 inline-block mr-2" />
           Retry
@@ -116,7 +116,7 @@ export function ArenaLeaderboard({ walletAddress }: ArenaLeaderboardProps) {
         </div>
         <button
           onClick={fetchLeaderboard}
-          className="p-2 rounded-lg hover:bg-neutral-700 transition-colors bg-neutral-800 border border-white/10"
+          className="p-2 rounded-2xl hover:bg-neutral-700 transition-colors bg-neutral-800 border border-white/10"
           title="Refresh"
         >
           <RefreshCw className="w-5 h-5 text-white" />
@@ -128,7 +128,7 @@ export function ArenaLeaderboard({ walletAddress }: ArenaLeaderboardProps) {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-4 rounded-xl bg-gradient-to-r from-solana-purple/20 to-solana-green/20 border border-solana-purple/40"
+          className="mb-6 p-3 sm:p-4 rounded-3xl sm:rounded-[32px] bg-gradient-to-r from-solana-purple/20 to-solana-green/20 border border-solana-purple/40"
         >
           <p className="text-sm text-white/60 mb-2">Your Position</p>
           <div className="flex items-center justify-between">
@@ -152,9 +152,9 @@ export function ArenaLeaderboard({ walletAddress }: ArenaLeaderboardProps) {
       )}
 
       {/* Leaderboard Table */}
-      <div className="rounded-2xl overflow-hidden border border-white/10">
+      <div className="rounded-3xl overflow-hidden border border-white/10 bg-neutral-900/50">
         {/* Header */}
-        <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-white/5 text-white/60 text-sm font-semibold border-b border-white/10">
+        <div className="grid grid-cols-12 gap-4 px-8 py-4 bg-white/5 text-white/60 text-sm font-semibold border-b border-white/10">
           <div className="col-span-1">Rank</div>
           <div className="col-span-5">Player</div>
           <div className="col-span-2 text-center">Matches</div>
@@ -179,7 +179,7 @@ export function ArenaLeaderboard({ walletAddress }: ArenaLeaderboardProps) {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
                   className={`
-                    grid grid-cols-12 gap-4 px-6 py-4 items-center transition-colors
+                    grid grid-cols-12 gap-4 px-8 py-4 items-center transition-colors
                     ${getRankStyle(entry.rank)}
                     ${isCurrentUser ? 'ring-2 ring-solana-purple ring-inset' : ''}
                     hover:bg-white/5
@@ -227,7 +227,7 @@ export function ArenaLeaderboard({ walletAddress }: ArenaLeaderboardProps) {
       </div>
 
       {/* Scoring Info */}
-      <div className="mt-6 p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+      <div className="mt-6 p-3 sm:p-4 rounded-3xl sm:rounded-[32px] bg-white/5 border border-white/10 text-center">
         <p className="text-white/50 text-sm">
           <TrendingUp className="w-4 h-4 inline-block mr-2" />
           Score = (Matches × 1.0) + (Wins × 0.5)

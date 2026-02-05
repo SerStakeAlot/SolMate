@@ -1823,7 +1823,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
         <div className="flex-1 flex flex-col items-center w-full min-w-0">
           {/* Match Header */}
           {mode === 'wager' && matchInfo && (
-            <div className="w-full max-w-[min(480px,calc(100vw-1rem))] glass-card border-solana-purple/20 rounded-lg sm:rounded-xl lg:rounded-2xl p-2 sm:p-3 lg:p-4 shadow-glow-sm mb-3 sm:mb-4">
+            <div className="w-full max-w-[min(480px,calc(100vw-1rem))] glass-card border-solana-purple/20 rounded-xl sm:rounded-2xl lg:rounded-3xl p-2 sm:p-3 lg:p-4 shadow-glow-sm mb-3 sm:mb-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs sm:text-sm">
                 <div className="flex items-center gap-2">
                   <Swords className="h-4 w-4 text-solana-purple" />
@@ -1885,7 +1885,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                   <button
                     onClick={handleCancelMatch}
                     disabled={isCancellingMatch}
-                    className="mt-3 w-full py-2 px-4 bg-red-600/20 border border-red-500/30 text-red-400 hover:bg-red-600/30 hover:text-red-300 rounded-lg text-sm font-medium transition-all disabled:opacity-50"
+                    className="mt-3 w-full py-2 px-4 bg-red-600/20 border border-red-500/30 text-red-400 hover:bg-red-600/30 hover:text-red-300 rounded-xl text-sm font-medium transition-all disabled:opacity-50"
                   >
                     {isCancellingMatch ? 'Cancelling...' : 'Cancel Match & Refund SOL'}
                   </button>
@@ -1895,7 +1895,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
           )}
 
           <div className="w-full max-w-[min(480px,calc(100vw-1rem))] space-y-3 sm:space-y-4">
-            <div className="glass-card rounded-lg sm:rounded-xl lg:rounded-2xl p-2 sm:p-3 lg:p-4 shadow-glow">
+            <div className="glass-card rounded-xl sm:rounded-2xl lg:rounded-3xl p-2 sm:p-3 lg:p-4 shadow-glow">
               {/* Opponent info bar for multiplayer/free play (shown at top) */}
               {(isFreePlay || isMultiplayer) && opponentConnected && (
                 <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10">
@@ -1932,7 +1932,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       )}
                     </AnimatePresence>
                   </div>
-                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-lg ${
+                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-xl ${
                     (playerColor === 'w' && chessRef.current?.turn() === 'b') || 
                     (playerColor === 'b' && chessRef.current?.turn() === 'w')
                       ? 'bg-solana-purple/30 text-white'
@@ -1967,7 +1967,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       )}
                     </AnimatePresence>
                   </div>
-                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-lg ${
+                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-xl ${
                     chessRef.current?.turn() === (aiPlayerColor === 'w' ? 'b' : 'w') && aiGameStarted
                       ? 'bg-solana-purple/30 text-white'
                       : 'bg-white/5 text-neutral-400'
@@ -1998,7 +1998,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
               
               {/* Chess Board with Coordinates */}
               <div className="relative">
-              <div className="aspect-square w-full overflow-hidden rounded-lg sm:rounded-xl border-2 border-white/10">
+              <div className="aspect-square w-full overflow-hidden rounded-xl sm:rounded-2xl border-2 border-white/10">
                 <div className="grid h-full w-full grid-cols-8 grid-rows-8">
               {Array.from({ length: 64 }).map((_, i) => {
                 // Flip board for black player - their pieces should be at bottom
@@ -2165,7 +2165,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                   <div className="relative">
                     <button
                       onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowChat(false); }}
-                      className="btn-secondary flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-white hover:text-white transition-all"
+                      className="btn-secondary flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-white hover:text-white transition-all"
                     >
                       <span className="text-base">😊</span>
                       <span>React</span>
@@ -2180,12 +2180,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           transition={{ duration: 0.15 }}
                           className="absolute bottom-full left-0 mb-2 z-40"
                         >
-                          <div className="glass-card rounded-xl p-3 border border-white/20 shadow-2xl flex gap-2 flex-wrap max-w-[200px]">
+                          <div className="glass-card rounded-2xl p-3 border border-white/20 shadow-2xl flex gap-2 flex-wrap max-w-[200px]">
                             {REACTION_EMOJIS.map((emoji) => (
                               <button
                                 key={emoji}
                                 onClick={() => sendReaction(emoji)}
-                                className="text-2xl hover:scale-125 active:scale-110 transition-transform p-2 hover:bg-white/10 rounded-lg touch-manipulation"
+                                className="text-2xl hover:scale-125 active:scale-110 transition-transform p-2 hover:bg-white/10 rounded-xl touch-manipulation"
                                 style={{
                                   touchAction: 'manipulation',
                                   WebkitTapHighlightColor: 'rgba(153, 69, 255, 0.3)'
@@ -2204,7 +2204,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                   {/* Chat Button - Premium */}
                   <button
                     onClick={() => { setShowChat(!showChat); setShowEmojiPicker(false); }}
-                    className={`btn-secondary flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm relative transition-all ${
+                    className={`btn-secondary flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm relative transition-all ${
                       showChat ? 'ring-2 ring-solana-purple/50' : ''
                     }`}
                   >
@@ -2262,7 +2262,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                         </div>
                         <button
                           onClick={() => setShowChat(false)}
-                          className="btn-ghost p-1.5 rounded-lg text-neutral-400 hover:text-white transition-all hover:bg-white/10"
+                          className="btn-ghost p-1.5 rounded-xl text-neutral-400 hover:text-white transition-all hover:bg-white/10"
                           aria-label="Close chat"
                         >
                           <X className="w-4 h-4" />
@@ -2294,7 +2294,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                               className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}
                             >
                               <div
-                                className={`max-w-[75%] sm:max-w-[80%] px-4 py-2.5 rounded-xl text-sm text-white shadow-lg ${
+                                className={`max-w-[75%] sm:max-w-[80%] px-4 py-2.5 rounded-2xl text-sm text-white shadow-lg ${
                                   msg.sender === 'me' 
                                     ? 'bg-gradient-to-r from-solana-purple to-solana-green rounded-br-sm' 
                                     : 'glass-card border border-white/10 rounded-bl-sm'
@@ -2387,7 +2387,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       )}
                     </AnimatePresence>
                   </div>
-                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-lg ${
+                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-xl ${
                     (playerColor === 'w' && chessRef.current?.turn() === 'w') || 
                     (playerColor === 'b' && chessRef.current?.turn() === 'b')
                       ? 'bg-solana-purple/30 text-white'
@@ -2422,7 +2422,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       )}
                     </AnimatePresence>
                   </div>
-                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-lg ${
+                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-xl ${
                     chessRef.current?.turn() === aiPlayerColor && aiGameStarted
                       ? 'bg-solana-purple/30 text-white'
                       : 'bg-white/5 text-neutral-400'
@@ -2443,15 +2443,15 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
       {/* Game Controls */}
       <div className="w-full lg:w-80 space-y-4 mt-2 lg:mt-0">
-        <div className="glass-card rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-6">
+        <div className="glass-card rounded-2xl lg:rounded-3xl p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold">Game Mode</h3>
               {showModeSelector && (
-                <div className="flex rounded-xl border border-white/10 bg-neutral-900 p-1">
+                <div className="flex rounded-2xl border border-white/10 bg-neutral-900 p-1">
                   <button
                     type="button"
                     onClick={() => setMode('practice')}
-                    className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+                    className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all ${
                       mode === 'practice'
                         ? 'bg-gradient-to-r from-solana-purple to-solana-green text-white'
                         : 'bg-neutral-800 text-white hover:bg-neutral-700'
@@ -2463,7 +2463,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                   <button
                     type="button"
                     onClick={() => setMode('wager')}
-                    className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+                    className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all ${
                       mode === 'wager'
                         ? 'bg-gradient-to-r from-solana-purple to-solana-green text-white'
                         : 'bg-neutral-800 text-white hover:bg-neutral-700'
@@ -2489,7 +2489,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       <p className="text-xs font-medium uppercase tracking-wider text-neutral-500 mb-2">
                         AI Difficulty
                       </p>
-                      <div className="flex rounded-lg border border-white/10 bg-black/40 p-1">
+                      <div className="flex rounded-xl border border-white/10 bg-black/40 p-1">
                         <button
                           type="button"
                           onClick={() => { setAiDifficulty('novice'); resetPractice(); }}
@@ -2542,7 +2542,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       <p className="text-xs font-medium uppercase tracking-wider text-neutral-500 mb-2">
                         Play As
                       </p>
-                      <div className="flex rounded-lg border border-white/10 bg-black/40 p-1">
+                      <div className="flex rounded-xl border border-white/10 bg-black/40 p-1">
                         <button
                           type="button"
                           onClick={() => { setAiPlayerColor('w'); resetPractice(); }}
@@ -2721,7 +2721,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                             <div className="flex gap-2">
                               <button
                                 onClick={() => socket?.emit('freeplay:swapColors', { code: freePlayCode })}
-                                className={`flex-1 py-2 px-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+                                className={`flex-1 py-2 px-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
                                   lobbyHostColor === 'w' 
                                     ? 'bg-white text-black ring-2 ring-solana-green' 
                                     : 'bg-white/20 text-white hover:bg-white/30'
@@ -2732,7 +2732,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                               </button>
                               <button
                                 onClick={() => socket?.emit('freeplay:swapColors', { code: freePlayCode })}
-                                className={`flex-1 py-2 px-3 rounded-lg font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
+                                className={`flex-1 py-2 px-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
                                   lobbyHostColor === 'b' 
                                     ? 'bg-neutral-800 text-white ring-2 ring-solana-green' 
                                     : 'bg-white/20 text-white hover:bg-white/30'
@@ -2751,7 +2751,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                                 Host controls color selection. You can request to swap:
                               </p>
                               <div className="flex gap-2">
-                                <div className={`flex-1 py-2 px-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 ${
+                                <div className={`flex-1 py-2 px-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 ${
                                   playerColor === 'w' 
                                     ? 'bg-white text-black ring-2 ring-solana-green' 
                                     : 'bg-white/10 text-neutral-500'
@@ -2759,7 +2759,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                                   <div className="w-4 h-4 rounded-full bg-white border border-neutral-300" />
                                   White {playerColor === 'w' && '(You)'}
                                 </div>
-                                <div className={`flex-1 py-2 px-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 ${
+                                <div className={`flex-1 py-2 px-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 ${
                                   playerColor === 'b' 
                                     ? 'bg-neutral-800 text-white ring-2 ring-solana-green' 
                                     : 'bg-white/10 text-neutral-500'
@@ -2775,7 +2775,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                                     socket?.emit('freeplay:requestSwap', { code: freePlayCode, wantColor: playerColor === 'w' ? 'b' : 'w' });
                                     setWhiteRequestPending(true);
                                   }}
-                                  className="w-full py-2 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm transition-all"
+                                  className="w-full py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm transition-all"
                                 >
                                   Request to play as {playerColor === 'w' ? 'Black' : 'White'}
                                 </button>
@@ -2788,7 +2788,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           
                           {/* Swap Request from Guest (Host sees this) */}
                           {whiteRequest && (dynamicPlayerRole === 'host' || isCreatingFreePlay) && (
-                            <div className="p-3 bg-yellow-500/20 rounded-lg border border-yellow-500/30">
+                            <div className="p-3 bg-yellow-500/20 rounded-xl border border-yellow-500/30">
                               <p className="text-sm text-yellow-300 mb-2">
                                 {lobbyOpponentName} wants to play as {swapRequestWantColor === 'w' ? 'White' : 'Black'}
                               </p>
@@ -2799,7 +2799,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                                     setWhiteRequest(false);
                                     setSwapRequestWantColor(null);
                                   }}
-                                  className="flex-1 py-1.5 px-3 rounded-lg bg-green-500/30 hover:bg-green-500/40 text-green-400 text-sm font-semibold transition-all flex items-center justify-center gap-1"
+                                  className="flex-1 py-1.5 px-3 rounded-xl bg-green-500/30 hover:bg-green-500/40 text-green-400 text-sm font-semibold transition-all flex items-center justify-center gap-1"
                                 >
                                   <CheckCircle2 className="w-4 h-4" />
                                   Accept
@@ -2810,7 +2810,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                                     setWhiteRequest(false);
                                     setSwapRequestWantColor(null);
                                   }}
-                                  className="flex-1 py-1.5 px-3 rounded-lg bg-red-500/30 hover:bg-red-500/40 text-red-400 text-sm font-semibold transition-all flex items-center justify-center gap-1"
+                                  className="flex-1 py-1.5 px-3 rounded-xl bg-red-500/30 hover:bg-red-500/40 text-red-400 text-sm font-semibold transition-all flex items-center justify-center gap-1"
                                 >
                                   <XCircle className="w-4 h-4" />
                                   Decline
@@ -2889,7 +2889,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                             }}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            className="mt-3 w-full flex items-center justify-center gap-2 bg-solana-green/20 hover:bg-solana-green/30 text-solana-green font-semibold py-2 px-4 rounded-lg border border-solana-green/30 transition-all text-sm"
+                            className="mt-3 w-full flex items-center justify-center gap-2 bg-solana-green/20 hover:bg-solana-green/30 text-solana-green font-semibold py-2 px-4 rounded-xl border border-solana-green/30 transition-all text-sm"
                           >
                             <Share2 className="h-4 w-4" />
                             {opponentConnected ? 'Share Spectator Link' : 'Share Invite Link'}
@@ -2960,7 +2960,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           <p className="text-white font-semibold">Join Wager Match</p>
                         </div>
                         
-                        <div className="bg-black/20 rounded-lg p-3 mb-3">
+                        <div className="bg-black/20 rounded-xl p-3 mb-3">
                           <p className="text-sm text-neutral-400">Your Stake</p>
                           <p className="text-xl font-bold text-white">{getStakeTierInfo(selectedStakeTier).label}</p>
                         </div>
@@ -2970,7 +2970,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                         </p>
                         
                         {joinerStakeError && (
-                          <div className="mb-3 p-2 bg-red-500/20 border border-red-500/30 rounded-lg">
+                          <div className="mb-3 p-2 bg-red-500/20 border border-red-500/30 rounded-xl">
                             <p className="text-sm text-red-400">{joinerStakeError}</p>
                           </div>
                         )}
@@ -3011,7 +3011,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                         </div>
                         
                         {/* Stake display */}
-                        <div className="bg-black/20 rounded-lg p-3 mb-3">
+                        <div className="bg-black/20 rounded-xl p-3 mb-3">
                           <p className="text-sm text-neutral-400">Stake</p>
                           <p className="text-lg font-bold text-white">{getStakeTierInfo(selectedStakeTier).label}</p>
                         </div>
@@ -3035,7 +3035,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                                   setWagerLobbyHostColor('w');
                                   socket?.emit('match:setColor', { matchCode: wagerMatchCode, color: 'w' });
                                 }}
-                                className="py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all"
+                                className="py-2 px-4 rounded-xl flex items-center justify-center gap-2 transition-all"
                                 style={{
                                   backgroundColor: wagerLobbyHostColor === 'w' ? '#ffffff' : '#262626',
                                   color: wagerLobbyHostColor === 'w' ? '#000000' : '#ffffff',
@@ -3053,7 +3053,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                                   setWagerLobbyHostColor('b');
                                   socket?.emit('match:setColor', { matchCode: wagerMatchCode, color: 'b' });
                                 }}
-                                className="py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-all"
+                                className="py-2 px-4 rounded-xl flex items-center justify-center gap-2 transition-all"
                                 style={{
                                   backgroundColor: wagerLobbyHostColor === 'b' ? '#171717' : '#262626',
                                   color: '#ffffff',
@@ -3142,7 +3142,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                             }}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            className="w-full flex items-center justify-center gap-2 bg-solana-green/20 hover:bg-solana-green/30 text-solana-green font-semibold py-2 px-4 rounded-lg border border-solana-green/30 transition-all text-sm"
+                            className="w-full flex items-center justify-center gap-2 bg-solana-green/20 hover:bg-solana-green/30 text-solana-green font-semibold py-2 px-4 rounded-xl border border-solana-green/30 transition-all text-sm"
                           >
                             <Share2 className="h-4 w-4" />
                             Share Invite Link
@@ -3186,7 +3186,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                             }}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
-                            className="mt-3 w-full flex items-center justify-center gap-2 bg-solana-green/20 hover:bg-solana-green/30 text-solana-green font-semibold py-2 px-4 rounded-lg border border-solana-green/30 transition-all text-sm"
+                            className="mt-3 w-full flex items-center justify-center gap-2 bg-solana-green/20 hover:bg-solana-green/30 text-solana-green font-semibold py-2 px-4 rounded-xl border border-solana-green/30 transition-all text-sm"
                           >
                             <Share2 className="h-4 w-4" />
                             Share Spectator Link
@@ -3223,12 +3223,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                             value={pendingMatchPubkey}
                             onChange={(e) => setPendingMatchPubkey(e.target.value)}
                             placeholder="Enter Match PDA"
-                            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs font-mono text-white placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-solana-purple"
+                            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-mono text-white placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-solana-purple"
                           />
                           <button
                             onClick={handleRecoverMatch}
                             disabled={!pendingMatchPubkey}
-                            className="mt-2 w-full py-2 px-4 bg-yellow-600/20 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-600/30 rounded-lg text-xs font-medium transition-all disabled:opacity-50"
+                            className="mt-2 w-full py-2 px-4 bg-yellow-600/20 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-600/30 rounded-xl text-xs font-medium transition-all disabled:opacity-50"
                           >
                             Recover Match
                           </button>
@@ -3335,7 +3335,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                   {mode === 'wager' && matchCreated && isWinner && (
                     <div className="mb-3 text-center">
                       <p className="text-[10px] font-medium text-neutral-400 uppercase mb-1">Reward</p>
-                      <div className="bg-gradient-to-r from-purple-600/20 to-purple-400/20 border border-purple-500/30 rounded-lg py-2 px-3">
+                      <div className="bg-gradient-to-r from-purple-600/20 to-purple-400/20 border border-purple-500/30 rounded-xl py-2 px-3">
                         <p className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-purple-200">
                           +{getStakeTierInfo(selectedStakeTier).stake * 1.8} SOL
                         </p>
@@ -3353,7 +3353,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           disabled={isSubmittingResult}
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
-                          className="mt-2 w-full bg-gradient-to-r from-emerald-500 to-green-400 hover:from-emerald-400 hover:to-green-300 disabled:from-neutral-600 disabled:to-neutral-500 text-black font-bold py-3 px-4 rounded-lg transition-all text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30"
+                          className="mt-2 w-full bg-gradient-to-r from-emerald-500 to-green-400 hover:from-emerald-400 hover:to-green-300 disabled:from-neutral-600 disabled:to-neutral-500 text-black font-bold py-3 px-4 rounded-xl transition-all text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30"
                         >
                           {isSubmittingResult ? (
                             <><RefreshCw className="w-5 h-5 animate-spin" /> Claiming...</>
@@ -3369,7 +3369,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                   {mode === 'wager' && matchCreated && !isWinner && (
                     <div className="mb-3 text-center">
                       <p className="text-[10px] font-medium text-neutral-400 uppercase mb-1">Result</p>
-                      <div className="bg-gradient-to-r from-red-600/20 to-red-400/20 border border-red-500/30 rounded-lg py-2 px-3">
+                      <div className="bg-gradient-to-r from-red-600/20 to-red-400/20 border border-red-500/30 rounded-xl py-2 px-3">
                         <p className="text-lg font-bold text-red-400">
                           -{getStakeTierInfo(selectedStakeTier).stake} SOL
                         </p>
@@ -3395,7 +3395,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
               }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white font-semibold py-2 px-4 rounded-lg transition-all text-sm"
+              className="w-full bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white font-semibold py-2 px-4 rounded-xl transition-all text-sm"
             >
               Dismiss
             </motion.button>

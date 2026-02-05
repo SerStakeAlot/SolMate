@@ -75,24 +75,24 @@ export default function PlayPage() {
               transition={{ duration: 0.4, delay: index * 0.1 }}
               whileHover={{ scale: 1.02, y: -4 }}
               whileTap={{ scale: 0.98 }}
-              className="relative group text-left transition-all duration-300 rounded-2xl overflow-hidden"
+              className="relative group text-left transition-all duration-300 rounded-3xl sm:rounded-[32px] overflow-hidden"
             >
               {/* Background - solid dark for Android visibility */}
-              <div className={`absolute inset-0 ${
+              <div className={`absolute inset-0 rounded-3xl sm:rounded-[32px] ${
                 option.featured
                   ? "bg-[#1a1a2e]"
                   : "bg-[#0d0d0d]"
               }`} />
               
               {/* Border glow for selected */}
-              <div className={`absolute inset-0 rounded-2xl transition-all duration-300 ${
+              <div className={`absolute inset-0 rounded-3xl sm:rounded-[32px] transition-all duration-300 ${
                 mode === option.id
                   ? "ring-2 ring-solana-purple shadow-glow border border-solana-purple/50"
                   : "ring-1 ring-white/10 group-hover:ring-white/25 border border-white/10 group-hover:border-white/20"
               }`} />
               
               {/* Content */}
-              <div className="relative p-4 sm:p-6">
+              <div className="relative p-6 sm:p-8">
                 <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-3 sm:mb-4 transition-all duration-300 ${
                   option.featured
                     ? "bg-gradient-to-br from-solana-purple to-solana-green shadow-lg shadow-solana-purple/30"
@@ -129,7 +129,7 @@ export default function PlayPage() {
             onClick={() => router.push("/")}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="btn-secondary flex items-center justify-center gap-2 px-6 py-3.5 text-base font-medium text-neutral-300 hover:text-white rounded-xl"
+            className="btn-secondary flex items-center justify-center gap-2 px-6 py-3.5 text-base font-medium text-neutral-300 hover:text-white rounded-2xl"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
@@ -141,7 +141,7 @@ export default function PlayPage() {
             onClick={() => router.push(gameHref)}
             whileHover={mode ? { scale: 1.02 } : {}}
             whileTap={mode ? { scale: 0.98 } : {}}
-            className={`flex-1 sm:flex-none flex items-center justify-center gap-2.5 px-8 py-3.5 text-base font-semibold rounded-xl ${
+            className={`flex-1 sm:flex-none flex items-center justify-center gap-2.5 px-8 py-3.5 text-base font-semibold rounded-2xl ${
               mode
                 ? "btn-glow text-white"
                 : "btn-secondary text-neutral-600 cursor-not-allowed"

@@ -104,7 +104,7 @@ export default function Home() {
             onClick={() => router.push("/play")}
             whileHover={connected ? { scale: 1.02 } : {}}
             whileTap={connected ? { scale: 0.98 } : {}}
-            className={`group relative px-8 sm:px-10 py-4 sm:py-4.5 text-base sm:text-lg font-semibold rounded-xl transition-all w-full sm:w-auto ${
+            className={`group relative px-8 sm:px-10 py-4 sm:py-4.5 text-base sm:text-lg font-semibold rounded-2xl transition-all w-full sm:w-auto ${
               connected
                 ? "btn-glow text-white"
                 : "btn-secondary text-neutral-500 cursor-not-allowed"
@@ -127,7 +127,7 @@ export default function Home() {
             onClick={() => router.push("/game?mode=computer")}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="btn-secondary px-8 sm:px-10 py-4 sm:py-4.5 text-base sm:text-lg font-semibold text-white rounded-xl w-full sm:w-auto"
+            className="btn-secondary px-8 sm:px-10 py-4 sm:py-4.5 text-base sm:text-lg font-semibold text-white rounded-2xl w-full sm:w-auto"
           >
             Practice Mode
           </motion.button>
@@ -211,7 +211,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: feature.delay }}
-            className="group glass-card glass-card-hover rounded-2xl p-8 transition-all duration-300"
+            className="group glass-card glass-card-hover rounded-3xl p-8 transition-all duration-300"
           >
             <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform`}>
               <feature.icon className="h-7 w-7 text-white" />
@@ -237,7 +237,7 @@ export default function Home() {
           rel="noopener noreferrer"
           className="block group"
         >
-          <div className="glass-card glass-card-hover rounded-2xl p-6 sm:p-8 border-2 border-solana-purple/30 hover:border-solana-purple/60 transition-all">
+          <div className="glass-card glass-card-hover rounded-3xl p-6 sm:p-8 border-2 border-solana-purple/30 hover:border-solana-purple/60 transition-all">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-solana-purple to-solana-green flex items-center justify-center flex-shrink-0">
@@ -255,7 +255,7 @@ export default function Home() {
               <motion.div
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
-                className="btn-glow px-6 py-3 text-sm font-semibold rounded-xl text-white whitespace-nowrap"
+                className="btn-glow px-6 py-3 text-sm font-semibold rounded-2xl text-white whitespace-nowrap"
               >
                 Trade Now →
               </motion.div>
@@ -272,7 +272,7 @@ export default function Home() {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="mb-8"
         >
-          <div className="glass-card rounded-2xl p-6 sm:p-8">
+          <div className="glass-card rounded-3xl p-6 sm:p-8">
             <div className="flex items-center justify-center gap-2 mb-6">
               <div className="status-dot status-dot-online" />
               <span className="stat-label">Live Platform Stats</span>
@@ -389,7 +389,7 @@ export default function Home() {
               maxHeight: '90vh',
               overflowY: 'auto',
               backgroundColor: '#0a0a0a',
-              borderRadius: '16px',
+              borderRadius: '24px',
               border: '1px solid rgba(255,255,255,0.1)'
             }}
           >
@@ -418,7 +418,7 @@ export default function Home() {
                 </h2>
 
                 {/* Step 1: Connect Wallet */}
-                <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '12px', border: '1px solid rgba(153, 69, 255, 0.3)', backgroundColor: '#1a1a2e' }}>
+                <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '16px', border: '1px solid rgba(153, 69, 255, 0.3)', backgroundColor: '#1a1a2e' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                     <div style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'black', backgroundColor: '#9945FF' }}>1</div>
                     <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: 'white', WebkitTextFillColor: 'white' }}>Connect Your Wallet</h3>
@@ -429,7 +429,7 @@ export default function Home() {
                 </div>
 
                 {/* Step 2: Create Username */}
-                <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '12px', border: '1px solid rgba(20, 241, 149, 0.3)', backgroundColor: '#0d1a0d' }}>
+                <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '16px', border: '1px solid rgba(20, 241, 149, 0.3)', backgroundColor: '#0d1a0d' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                     <div style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'black', backgroundColor: '#14F195' }}>2</div>
                     <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: 'white', WebkitTextFillColor: 'white' }}>Create Username</h3>
@@ -440,7 +440,7 @@ export default function Home() {
                 </div>
 
                 {/* Step 3: Holder Arena */}
-                <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '12px', border: '1px solid rgba(234, 179, 8, 0.3)', backgroundColor: '#1a1a1a' }}>
+                <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '16px', border: '1px solid rgba(234, 179, 8, 0.3)', backgroundColor: '#1a1a1a' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                     <div style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'black', backgroundColor: '#eab308' }}>3</div>
                     <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: 'white', WebkitTextFillColor: 'white' }}>Holder Arena ($500 Prize!)</h3>
@@ -451,7 +451,7 @@ export default function Home() {
                 </div>
 
                 {/* Step 4: Play with Friends */}
-                <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '12px', border: '1px solid rgba(153, 69, 255, 0.3)', backgroundColor: '#1a1a2e' }}>
+                <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '16px', border: '1px solid rgba(153, 69, 255, 0.3)', backgroundColor: '#1a1a2e' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                     <div style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'black', backgroundColor: '#9945FF' }}>4</div>
                     <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: 'white', WebkitTextFillColor: 'white' }}>Free Play with Friends</h3>
@@ -465,7 +465,7 @@ export default function Home() {
                 </div>
 
                 {/* Step 5: Wager Matches */}
-                <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '12px', border: '1px solid rgba(249, 115, 22, 0.3)', backgroundColor: '#1a0d0d' }}>
+                <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '16px', border: '1px solid rgba(249, 115, 22, 0.3)', backgroundColor: '#1a0d0d' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                     <div style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'black', backgroundColor: '#f97316' }}>5</div>
                     <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: 'white', WebkitTextFillColor: 'white' }}>Staked Wager Matches</h3>
@@ -482,7 +482,7 @@ export default function Home() {
                   style={{
                     width: '100%',
                     padding: '12px',
-                    borderRadius: '12px',
+                    borderRadius: '16px',
                     fontWeight: '600',
                     background: 'linear-gradient(to right, #9945FF, #14F195)',
                     color: '#ffffff',

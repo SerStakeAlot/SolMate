@@ -262,12 +262,12 @@ export default function LobbyPage() {
           </div>
           <div className="flex items-center gap-2">
             {isConnected ? (
-              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                 <Wifi className="w-3 h-3" />
                 Live
               </span>
             ) : (
-              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
                 <WifiOff className="w-3 h-3" />
                 Offline
               </span>
@@ -294,7 +294,7 @@ export default function LobbyPage() {
         </div>
 
         {/* Search by Match Code */}
-        <div className="glass-card rounded-2xl p-6 mb-6">
+        <div className="glass-card rounded-3xl p-6 mb-6">
           <h3 className="text-sm font-medium text-neutral-400 mb-4">Search by Match Code</h3>
           <div className="flex gap-3">
             <div className="relative flex-1 max-w-xs">
@@ -308,13 +308,13 @@ export default function LobbyPage() {
                 }}
                 placeholder="ABCD"
                 maxLength={4}
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-neutral-500 focus:outline-none focus:border-solana-purple/50 focus:ring-2 focus:ring-solana-purple/20 font-mono text-lg tracking-widest text-center uppercase"
+                className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-neutral-500 focus:outline-none focus:border-solana-purple/50 focus:ring-2 focus:ring-solana-purple/20 font-mono text-lg tracking-widest text-center uppercase"
               />
             </div>
             <button
               onClick={handleSearch}
               disabled={searchCode.length !== 4}
-              className="btn-glow px-6 py-3 rounded-xl text-sm font-semibold text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-glow px-6 py-3 rounded-2xl text-sm font-semibold text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Search className="w-4 h-4" />
               Search
@@ -361,7 +361,7 @@ export default function LobbyPage() {
         </div>
 
         {/* Main Content */}
-        <div className="glass-card rounded-2xl overflow-hidden">
+        <div className="glass-card rounded-3xl overflow-hidden">
           {/* Tier Filter */}
           <div className="p-6 border-b border-white/5">
             <h3 className="text-sm font-medium text-neutral-400 mb-4">Filter by Stake</h3>
@@ -417,20 +417,20 @@ export default function LobbyPage() {
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex flex-wrap items-center gap-2 mb-3">
-                            <span className="font-mono text-xl font-bold text-white bg-gradient-to-r from-solana-purple/20 to-solana-green/20 px-3 py-1 rounded-lg border border-solana-purple/30">
+                            <span className="font-mono text-xl font-bold text-white bg-gradient-to-r from-solana-purple/20 to-solana-green/20 px-3 py-1 rounded-xl border border-solana-purple/30">
                               {match.matchCode}
                             </span>
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-solana-purple/20 to-solana-green/20 text-white border border-solana-purple/30">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-gradient-to-r from-solana-purple/20 to-solana-green/20 text-white border border-solana-purple/30">
                               <Coins className="w-3 h-3" />
                               {match.stakeTier === 0 ? "0.5 SOL" : "1 SOL"}
                             </span>
                             {isOwn && (
-                              <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                              <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
                                 Your Match
                               </span>
                             )}
                             <span
-                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium ${
+                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium ${
                                 isExpired
                                   ? "bg-red-500/10 text-red-400 border border-red-500/20"
                                   : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
@@ -541,17 +541,17 @@ export default function LobbyPage() {
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex flex-wrap items-center gap-2 mb-3">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-solana-purple/20 to-solana-green/20 text-white border border-solana-purple/30">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-gradient-to-r from-solana-purple/20 to-solana-green/20 text-white border border-solana-purple/30">
                               <Coins className="w-3 h-3" />
                               {tierInfo.label}
                             </span>
                             {isOwn && (
-                              <span className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                              <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
                                 Your Match
                               </span>
                             )}
                             <span
-                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium ${
+                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium ${
                                 isExpired
                                   ? "bg-red-500/10 text-red-400 border border-red-500/20"
                                   : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"

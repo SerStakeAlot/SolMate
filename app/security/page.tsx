@@ -37,23 +37,23 @@ export default function SecurityAuditPage() {
           The SolMate escrow program has undergone comprehensive security review and is deployed on Solana Mainnet.
         </p>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6">
-          <div className="text-center p-3 bg-black/30 rounded-lg">
+          <div className="text-center p-3 bg-black/30 rounded-xl">
             <p className="text-green-400 font-bold">✓</p>
             <p className="text-sm text-neutral-400">Code Quality</p>
           </div>
-          <div className="text-center p-3 bg-black/30 rounded-lg">
+          <div className="text-center p-3 bg-black/30 rounded-xl">
             <p className="text-green-400 font-bold">✓</p>
             <p className="text-sm text-neutral-400">Arithmetic Safety</p>
           </div>
-          <div className="text-center p-3 bg-black/30 rounded-lg">
+          <div className="text-center p-3 bg-black/30 rounded-xl">
             <p className="text-green-400 font-bold">✓</p>
             <p className="text-sm text-neutral-400">Access Control</p>
           </div>
-          <div className="text-center p-3 bg-black/30 rounded-lg">
+          <div className="text-center p-3 bg-black/30 rounded-xl">
             <p className="text-green-400 font-bold">✓</p>
             <p className="text-sm text-neutral-400">PDA Security</p>
           </div>
-          <div className="text-center p-3 bg-black/30 rounded-lg">
+          <div className="text-center p-3 bg-black/30 rounded-xl">
             <p className="text-green-400 font-bold">✓</p>
             <p className="text-sm text-neutral-400">Frontend Security</p>
           </div>
@@ -309,11 +309,11 @@ export default function SecurityAuditPage() {
       >
         <h2 className="text-xl font-bold mb-4">Fee Structure</h2>
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-black/30 rounded-lg p-4 text-center">
+          <div className="bg-black/30 rounded-xl p-4 text-center">
             <p className="text-3xl font-bold text-green-400">90%</p>
             <p className="text-neutral-400 text-sm">Winner Payout</p>
           </div>
-          <div className="bg-black/30 rounded-lg p-4 text-center">
+          <div className="bg-black/30 rounded-xl p-4 text-center">
             <p className="text-3xl font-bold text-solana-purple">10%</p>
             <p className="text-neutral-400 text-sm">Platform Fee</p>
           </div>
@@ -332,19 +332,19 @@ export default function SecurityAuditPage() {
       >
         <h2 className="text-xl font-bold mb-4">Available Stake Tiers</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="bg-black/30 rounded-lg p-4 text-center border border-neutral-700">
+          <div className="bg-black/30 rounded-xl p-4 text-center border border-neutral-700">
             <p className="text-2xl font-bold text-white">0.05</p>
             <p className="text-neutral-400 text-sm">SOL</p>
           </div>
-          <div className="bg-black/30 rounded-lg p-4 text-center border border-neutral-700">
+          <div className="bg-black/30 rounded-xl p-4 text-center border border-neutral-700">
             <p className="text-2xl font-bold text-white">0.1</p>
             <p className="text-neutral-400 text-sm">SOL</p>
           </div>
-          <div className="bg-black/30 rounded-lg p-4 text-center border border-neutral-700">
+          <div className="bg-black/30 rounded-xl p-4 text-center border border-neutral-700">
             <p className="text-2xl font-bold text-white">0.5</p>
             <p className="text-neutral-400 text-sm">SOL</p>
           </div>
-          <div className="bg-black/30 rounded-lg p-4 text-center border border-neutral-700">
+          <div className="bg-black/30 rounded-xl p-4 text-center border border-neutral-700">
             <p className="text-2xl font-bold text-white">1.0</p>
             <p className="text-neutral-400 text-sm">SOL</p>
           </div>

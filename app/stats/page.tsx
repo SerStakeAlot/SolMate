@@ -192,7 +192,7 @@ export default function StatsPage() {
         )}
 
         {/* Personal Stats Section */}
-        <div className="bg-[#12121a] rounded-2xl border border-purple-500/20 p-6 mb-8">
+        <div className="rounded-3xl sm:rounded-[32px] bg-gradient-to-br from-[#12121a] to-[#0d0d15] border border-purple-500/20 p-5 sm:p-8 mb-8 shadow-xl">
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
             <span>📊</span> Your Stats
           </h2>
@@ -252,7 +252,7 @@ export default function StatsPage() {
               <p className="text-gray-400">No games played yet. Start playing to see your stats!</p>
               <a
                 href="/play"
-                className="inline-block mt-4 px-6 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg transition-colors"
+                className="inline-block mt-4 px-6 py-2 bg-purple-600 hover:bg-purple-500 rounded-xl transition-colors"
               >
                 Play Now
               </a>
@@ -261,7 +261,7 @@ export default function StatsPage() {
         </div>
 
         {/* Leaderboard */}
-        <div className="bg-[#12121a] rounded-2xl border border-purple-500/20 p-6">
+        <div className="rounded-3xl sm:rounded-[32px] bg-gradient-to-br from-[#12121a] to-[#0d0d15] border border-purple-500/20 p-5 sm:p-8 shadow-xl">
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
             <span>🏆</span> Leaderboard
           </h2>
@@ -271,83 +271,83 @@ export default function StatsPage() {
               No games played yet. Be the first!
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="text-left text-gray-400 border-b border-gray-700">
-                    <th className="pb-3 font-medium">#</th>
-                    <th className="pb-3 font-medium">Player</th>
-                    <th className="pb-3 font-medium text-center">Games</th>
-                    <th className="pb-3 font-medium text-center">Won</th>
-                    <th className="pb-3 font-medium text-center">Win Rate</th>
-                    <th className="pb-3 font-medium text-center">Best Streak</th>
-                    <th className="pb-3 font-medium text-right">Net Profit</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leaderboard.map((player, index) => (
-                    <tr
-                      key={player.walletAddress}
-                      className="border-b border-gray-800 hover:bg-purple-500/5 transition-colors"
-                    >
-                      <td className="py-4 font-bold">
-                        {index === 0 && '🥇'}
-                        {index === 1 && '🥈'}
-                        {index === 2 && '🥉'}
-                        {index > 2 && <span className="text-gray-500">{index + 1}</span>}
-                      </td>
-                      <td className="py-4">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">
-                            {player.username || formatWallet(player.walletAddress)}
-                          </span>
-                          {player.username && (
-                            <span className="text-gray-500 text-sm">
-                              ({formatWallet(player.walletAddress)})
-                            </span>
-                          )}
+            <div className="space-y-4">
+              {leaderboard.map((player, index) => (
+                <div
+                  key={player.walletAddress}
+                  className={`rounded-2xl p-5 transition-all duration-300 hover:scale-[1.01] ${
+                    index === 0
+                      ? 'bg-gradient-to-r from-yellow-500/20 to-amber-500/10 border border-yellow-500/30'
+                      : index === 1
+                      ? 'bg-gradient-to-r from-gray-400/20 to-gray-500/10 border border-gray-400/30'
+                      : index === 2
+                      ? 'bg-gradient-to-r from-orange-600/20 to-orange-700/10 border border-orange-600/30'
+                      : 'bg-white/5 border border-white/10 hover:border-purple-500/30'
+                  }`}
+                >
+                  {/* Player Info Row */}
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="text-2xl font-bold w-12 flex-shrink-0">
+                      {index === 0 && '🥇'}
+                      {index === 1 && '🥈'}
+                      {index === 2 && '🥉'}
+                      {index > 2 && <span className="text-gray-500">#{index + 1}</span>}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-white truncate">
+                        {player.username || formatWallet(player.walletAddress)}
+                      </div>
+                      {player.username && (
+                        <div className="text-gray-500 text-sm">
+                          ({formatWallet(player.walletAddress)})
                         </div>
-                      </td>
-                      <td className="py-4 text-center text-gray-300">
-                        {player.gamesPlayed}
-                      </td>
-                      <td className="py-4 text-center text-green-400">
-                        {player.gamesWon}
-                      </td>
-                      <td className="py-4 text-center">
-                        <span
-                          className={`px-2 py-1 rounded text-sm ${
-                            player.winRate >= 60
-                              ? 'bg-green-500/20 text-green-400'
-                              : player.winRate >= 40
-                              ? 'bg-yellow-500/20 text-yellow-400'
-                              : 'bg-red-500/20 text-red-400'
-                          }`}
-                        >
-                          {player.winRate}%
-                        </span>
-                      </td>
-                      <td className="py-4 text-center text-purple-400">
-                        {player.bestStreak > 0 ? `🔥 ${player.bestStreak}` : '-'}
-                      </td>
-                      <td className="py-4 text-right font-medium">
-                        <span
-                          className={
-                            player.netProfit > 0
-                              ? 'text-green-400'
-                              : player.netProfit < 0
-                              ? 'text-red-400'
-                              : 'text-gray-400'
-                          }
-                        >
-                          {player.netProfit > 0 ? '+' : ''}
-                          {player.netProfit.toFixed(2)} SOL
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-5 gap-2 sm:gap-4 text-center">
+                    <div className="bg-white/5 rounded-xl p-2 sm:p-3">
+                      <div className="text-gray-400 text-[10px] sm:text-xs mb-1">Games</div>
+                      <div className="font-semibold text-white text-sm sm:text-base">{player.gamesPlayed}</div>
+                    </div>
+                    <div className="bg-white/5 rounded-xl p-2 sm:p-3">
+                      <div className="text-gray-400 text-[10px] sm:text-xs mb-1">Won</div>
+                      <div className="font-semibold text-green-400 text-sm sm:text-base">{player.gamesWon}</div>
+                    </div>
+                    <div className="bg-white/5 rounded-xl p-2 sm:p-3">
+                      <div className="text-gray-400 text-[10px] sm:text-xs mb-1">Win%</div>
+                      <div className={`font-semibold text-sm sm:text-base ${
+                        player.winRate >= 60
+                          ? 'text-green-400'
+                          : player.winRate >= 40
+                          ? 'text-yellow-400'
+                          : 'text-red-400'
+                      }`}>
+                        {player.winRate}%
+                      </div>
+                    </div>
+                    <div className="bg-white/5 rounded-xl p-2 sm:p-3">
+                      <div className="text-gray-400 text-[10px] sm:text-xs mb-1">Streak</div>
+                      <div className="font-semibold text-purple-400 text-sm sm:text-base">
+                        {player.bestStreak > 0 ? `🔥${player.bestStreak}` : '-'}
+                      </div>
+                    </div>
+                    <div className="bg-white/5 rounded-xl p-2 sm:p-3">
+                      <div className="text-gray-400 text-[10px] sm:text-xs mb-1">Profit</div>
+                      <div className={`font-bold text-sm sm:text-base ${
+                        player.netProfit > 0
+                          ? 'text-green-400'
+                          : player.netProfit < 0
+                          ? 'text-red-400'
+                          : 'text-gray-400'
+                      }`}>
+                        {player.netProfit > 0 ? '+' : ''}{player.netProfit.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -379,17 +379,17 @@ function StatCard({
 }) {
   return (
     <div
-      className={`rounded-xl p-5 ${
+      className={`rounded-2xl p-5 overflow-hidden min-w-0 ${
         highlight
           ? 'bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30'
           : 'bg-[#12121a] border border-purple-500/10'
       }`}
     >
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-xl">{icon}</span>
-        <span className="text-gray-400 text-sm">{label}</span>
+      <div className="flex items-center gap-2 mb-2 min-w-0">
+        <span className="text-xl flex-shrink-0">{icon}</span>
+        <span className="text-gray-400 text-sm truncate">{label}</span>
       </div>
-      <div className={`text-2xl font-bold ${highlight ? 'text-purple-300' : 'text-white'}`}>
+      <div className={`text-2xl font-bold truncate ${highlight ? 'text-purple-300' : 'text-white'}`}>
         {value}
       </div>
     </div>

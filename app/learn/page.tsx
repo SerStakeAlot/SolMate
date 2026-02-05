@@ -660,7 +660,7 @@ export default function LearnPage() {
             <button
               key={category}
               onClick={() => setActiveCategory(category)}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all"
               style={{
                 background: activeCategory === category ? 'linear-gradient(to right, #9945FF, #14F195)' : 'transparent',
                 color: activeCategory === category ? 'white' : '#a3a3a3',
@@ -696,7 +696,7 @@ export default function LearnPage() {
               <button
                 key={diff}
                 onClick={() => setDifficultyFilter(diff)}
-                className="px-3 py-1 text-sm rounded-lg transition-all"
+                className="px-3 py-1 text-sm rounded-xl transition-all"
                 style={{
                   backgroundColor: bgColor,
                   color: textColor,

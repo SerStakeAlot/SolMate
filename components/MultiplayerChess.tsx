@@ -73,13 +73,13 @@ function MatchmakingQueue({ onCancel }: MatchmakingProps) {
         <p className="text-neutral-400 mb-8">
           Searching for a player at your stake tier
         </p>
-        <div className="bg-white/5 rounded-xl p-5 mb-8 border border-white/5">
+        <div className="bg-white/5 rounded-2xl p-5 mb-8 border border-white/5">
           <p className="text-xs text-neutral-500 uppercase tracking-wider mb-2">Queue Position</p>
           <p className="text-4xl font-bold text-gradient">{queuePosition} <span className="text-neutral-600">/</span> {queueSize}</p>
         </div>
         <button
           onClick={onCancel}
-          className="w-full bg-white/5 hover:bg-white/10 text-white font-semibold py-3.5 px-6 rounded-xl transition-all border border-white/10 hover:border-white/20"
+          className="w-full bg-white/5 hover:bg-white/10 text-white font-semibold py-3.5 px-6 rounded-2xl transition-all border border-white/10 hover:border-white/20"
         >
           Cancel Search
         </button>
@@ -232,7 +232,7 @@ function GameRoom({ socket, roomId, yourColor, opponent, stakeTier, onExit }: Ga
       <div className="flex-1 flex flex-col items-center">
         <div className="w-full max-w-[600px]">
           {/* Opponent Info */}
-          <div className="glass-card rounded-xl p-4 mb-4 flex items-center justify-between">
+          <div className="glass-card rounded-2xl p-4 mb-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-neutral-500 uppercase tracking-wider mb-1">Opponent</p>
               <p className="font-semibold truncate">
@@ -240,7 +240,7 @@ function GameRoom({ socket, roomId, yourColor, opponent, stakeTier, onExit }: Ga
               </p>
               <p className="text-xs text-solana-green">{opponent.rank}</p>
             </div>
-            <div className={`flex items-center gap-2 text-2xl font-mono px-4 py-2 rounded-lg ${
+            <div className={`flex items-center gap-2 text-2xl font-mono px-4 py-2 rounded-xl ${
               (!isFlipped && currentTurn === 'b') || (isFlipped && currentTurn === 'w')
                 ? 'bg-solana-purple/20 text-white'
                 : 'bg-white/5 text-neutral-400'
@@ -327,14 +327,14 @@ function GameRoom({ socket, roomId, yourColor, opponent, stakeTier, onExit }: Ga
           </div>
 
           {/* Your Info */}
-          <div className="glass-card rounded-xl p-4 mt-4 flex items-center justify-between">
+          <div className="glass-card rounded-2xl p-4 mt-4 flex items-center justify-between">
             <div>
               <p className="text-xs text-neutral-500 uppercase tracking-wider mb-1">You ({yourColor === 'w' ? 'White' : 'Black'})</p>
               <p className={`text-sm font-medium ${isMyTurn ? 'text-solana-green' : 'text-neutral-400'}`}>
                 {isMyTurn ? '● Your Turn' : '○ Waiting...'}
               </p>
             </div>
-            <div className={`flex items-center gap-2 text-2xl font-mono px-4 py-2 rounded-lg ${
+            <div className={`flex items-center gap-2 text-2xl font-mono px-4 py-2 rounded-xl ${
               (!isFlipped && currentTurn === 'w') || (isFlipped && currentTurn === 'b')
                 ? 'bg-solana-purple/20 text-white'
                 : 'bg-white/5 text-neutral-400'
@@ -350,19 +350,19 @@ function GameRoom({ socket, roomId, yourColor, opponent, stakeTier, onExit }: Ga
       <div className="lg:w-80">
         <div className="glass-card rounded-2xl p-6 sticky top-24">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-solana-purple/20 to-solana-green/20 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-solana-purple/20 to-solana-green/20 flex items-center justify-center">
               <Swords className="h-5 w-5 text-solana-purple" />
             </div>
             <h3 className="text-xl font-bold">Live Match</h3>
           </div>
 
           <div className="space-y-4 mb-6">
-            <div className="bg-white/5 rounded-xl p-4 border border-white/5">
+            <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
               <p className="text-xs text-neutral-500 uppercase tracking-wider mb-2">Stake</p>
               <p className="text-2xl font-bold text-gradient">{stakeTierInfo.label}</p>
             </div>
 
-            <div className="bg-white/5 rounded-xl p-4 border border-white/5">
+            <div className="bg-white/5 rounded-2xl p-4 border border-white/5">
               <p className="text-xs text-neutral-500 uppercase tracking-wider mb-2">Status</p>
               <p className="text-lg font-semibold flex items-center gap-2">
                 {gameStatus === 'active' ? (
@@ -383,7 +383,7 @@ function GameRoom({ socket, roomId, yourColor, opponent, stakeTier, onExit }: Ga
           {gameStatus === 'active' && (
             <button
               onClick={handleResign}
-              className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 font-semibold py-3.5 px-6 rounded-xl transition-all flex items-center justify-center gap-2 border border-red-500/20"
+              className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 font-semibold py-3.5 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 border border-red-500/20"
             >
               <LogOut className="h-5 w-5" />
               Resign
@@ -401,7 +401,7 @@ function GameRoom({ socket, roomId, yourColor, opponent, stakeTier, onExit }: Ga
               <p className="text-sm text-neutral-400 mb-6">{endReason}</p>
               <button
                 onClick={onExit}
-                className="w-full btn-glow font-bold py-3.5 px-6 rounded-xl text-white"
+                className="w-full btn-glow font-bold py-3.5 px-6 rounded-2xl text-white"
               >
                 Exit Game
               </button>

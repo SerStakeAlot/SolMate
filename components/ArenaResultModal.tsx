@@ -100,7 +100,7 @@ Play now: https://playsolmate.fun/arena`;
         exit={{ scale: 0.9, y: 20 }}
         onClick={(e) => e.stopPropagation()}
         className={`
-          relative w-full max-w-md p-6 rounded-2xl 
+          relative w-full max-w-md p-6 rounded-3xl 
           bg-gradient-to-br ${config.bgClass}
           border ${config.borderClass}
           backdrop-blur-xl shadow-2xl
@@ -130,7 +130,7 @@ Play now: https://playsolmate.fun/arena`;
 
         {/* Game Stats Warning */}
         {!gameCounts && (
-          <div className="mb-4 p-3 rounded-xl bg-orange-500/20 border border-orange-500/30">
+          <div className="mb-4 p-3 rounded-2xl bg-orange-500/20 border border-orange-500/30">
             <p className="text-orange-400 text-sm text-center">
               ⚠️ Game didn't count - needed {minMovesToCount} moves (had {moveCount})
             </p>
@@ -139,25 +139,25 @@ Play now: https://playsolmate.fun/arena`;
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
             <Gamepad2 className="w-6 h-6 text-solana-purple mx-auto mb-2" />
             <p className="text-2xl font-bold text-white">{stats.matchesPlayed}</p>
             <p className="text-xs text-white/50">Matches Played</p>
           </div>
           
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
             <Target className="w-6 h-6 text-green-400 mx-auto mb-2" />
             <p className="text-2xl font-bold text-white">{stats.wins}</p>
             <p className="text-xs text-white/50">Wins</p>
           </div>
           
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
             <TrendingUp className="w-6 h-6 text-yellow-400 mx-auto mb-2" />
             <p className="text-2xl font-bold text-yellow-400">{stats.score.toFixed(1)}</p>
             <p className="text-xs text-white/50">Score</p>
           </div>
           
-          <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-center">
+          <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
             <Medal className="w-6 h-6 text-amber-400 mx-auto mb-2" />
             <p className="text-2xl font-bold text-white">#{stats.rank}</p>
             <p className="text-xs text-white/50">Rank</p>
@@ -175,7 +175,7 @@ Play now: https://playsolmate.fun/arena`;
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 px-4 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white font-semibold transition-colors border border-white/10"
+            className="flex-1 py-3 px-4 rounded-2xl bg-neutral-800 hover:bg-neutral-700 text-white font-semibold transition-colors border border-white/10"
             style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
           >
             Continue
@@ -183,7 +183,7 @@ Play now: https://playsolmate.fun/arena`;
           
           <button
             onClick={handleShare}
-            className="flex items-center justify-center gap-2 py-3 px-6 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-semibold transition-all"
+            className="flex items-center justify-center gap-2 py-3 px-6 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-semibold transition-all"
           >
             <Share2 className="w-5 h-5" />
             Share

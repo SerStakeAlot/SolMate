@@ -91,12 +91,13 @@ html {
     radial-gradient(at 0% 100%, rgba(153, 69, 255, 0.08) 0px, transparent 50%);
 }
 
-/* Premium Glass morphism card */
+/* Premium Glass morphism card - more rounded for app-like feel */
 .glass-card {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
   box-shadow: 
     0 4px 16px rgba(0, 0, 0, 0.2),
     0 0 0 1px rgba(255, 255, 255, 0.05) inset;
@@ -113,13 +114,14 @@ html {
   transform: translateY(-2px);
 }
 
-/* Premium Glow Button - Primary CTA */
+/* Premium Glow Button - Primary CTA with pill shape */
 .btn-glow {
   position: relative;
   overflow: hidden;
   background: linear-gradient(135deg, #9945FF 0%, #14F195 100%);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
   box-shadow: 
     0 4px 14px 0 rgba(153, 69, 255, 0.25),
     0 0 0 1px rgba(255, 255, 255, 0.05) inset,
@@ -174,13 +176,14 @@ html {
   box-shadow: none;
 }
 
-/* Premium Secondary Button */
+/* Premium Secondary Button - rounded for app-like feel */
 .btn-secondary {
   position: relative;
   background: rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 
     0 2px 8px rgba(0, 0, 0, 0.2),

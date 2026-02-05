@@ -105,7 +105,7 @@ export const UsernameSetting: React.FC<UsernameSettingProps> = ({ onUsernameChan
 
   const containerStyle: React.CSSProperties = {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: '12px',
+    borderRadius: '16px',
     padding: '16px',
     marginBottom: '16px',
   };
@@ -135,7 +135,7 @@ export const UsernameSetting: React.FC<UsernameSettingProps> = ({ onUsernameChan
   const editButtonStyle: React.CSSProperties = {
     backgroundColor: 'transparent',
     border: '1px solid #444',
-    borderRadius: '8px',
+    borderRadius: '12px',
     padding: '6px 12px',
     color: '#888',
     fontSize: '13px',
@@ -146,7 +146,7 @@ export const UsernameSetting: React.FC<UsernameSettingProps> = ({ onUsernameChan
     width: '100%',
     backgroundColor: '#1a1a1a',
     border: `1px solid ${error ? '#ff4444' : isAvailable === true ? '#44ff44' : '#333'}`,
-    borderRadius: '8px',
+    borderRadius: '12px',
     padding: '10px 12px',
     color: '#fff',
     fontSize: '16px',
@@ -163,7 +163,7 @@ export const UsernameSetting: React.FC<UsernameSettingProps> = ({ onUsernameChan
     flex: 1,
     backgroundColor: '#9945FF',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '12px',
     padding: '10px',
     color: '#fff',
     fontWeight: 600,
@@ -175,7 +175,7 @@ export const UsernameSetting: React.FC<UsernameSettingProps> = ({ onUsernameChan
     flex: 1,
     backgroundColor: 'transparent',
     border: '1px solid #444',
-    borderRadius: '8px',
+    borderRadius: '12px',
     padding: '10px',
     color: '#888',
     cursor: 'pointer',

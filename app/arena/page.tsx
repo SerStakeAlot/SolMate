@@ -123,7 +123,7 @@ export default function ArenaPage() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
-            className="mt-4 inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-green-500/20 border-2 border-green-400/50 shadow-lg shadow-green-500/20"
+            className="mt-4 inline-flex items-center gap-3 px-6 py-3 rounded-[32px] bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-green-500/20 border-2 border-green-400/50 shadow-lg shadow-green-500/20"
           >
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-500 animate-pulse">
               <DollarSign className="w-6 h-6 text-white" />
@@ -147,7 +147,7 @@ export default function ArenaPage() {
         <div className="flex justify-center gap-4 mb-8">
           <button
             onClick={() => { setShowLeaderboard(false); setIsPlaying(false); }}
-            className="px-6 py-3 rounded-xl font-semibold transition-all border border-white/10"
+            className="px-6 py-3 rounded-2xl font-semibold transition-all border border-white/10"
             style={{
               background: !showLeaderboard && !isPlaying 
                 ? 'linear-gradient(to right, #eab308, #f59e0b)' 
@@ -162,7 +162,7 @@ export default function ArenaPage() {
           </button>
           <button
             onClick={() => { setShowLeaderboard(true); setIsPlaying(false); }}
-            className="px-6 py-3 rounded-xl font-semibold transition-all border border-white/10"
+            className="px-6 py-3 rounded-2xl font-semibold transition-all border border-white/10"
             style={{
               background: showLeaderboard 
                 ? 'linear-gradient(to right, #eab308, #f59e0b)' 
@@ -243,7 +243,7 @@ function LockedHero({ reason, balance, onConnect }: {
       </h1>
       
       {/* Prize Banner for locked users */}
-      <div className="mb-6 inline-flex items-center gap-3 px-6 py-3 rounded-2xl bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-green-500/20 border-2 border-green-400/50">
+      <div className="mb-6 inline-flex items-center gap-3 px-6 py-3 rounded-[32px] bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-green-500/20 border-2 border-green-400/50">
         <DollarSign className="w-8 h-8 text-green-400" />
         <div className="text-left">
           <p className="text-xl font-bold text-green-400">$500 PRIZE POOL</p>
@@ -260,17 +260,17 @@ function LockedHero({ reason, balance, onConnect }: {
 
       {/* Benefits */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
-        <div className="p-4 rounded-xl bg-neutral-900 border border-white/10">
+        <div className="p-4 rounded-2xl bg-neutral-900 border border-white/10">
           <Zap className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
           <h3 className="font-semibold mb-1 text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>Unlimited AI Matches</h3>
           <p className="text-sm text-neutral-300">Challenge our high-ELO bot</p>
         </div>
-        <div className="p-4 rounded-xl bg-neutral-900 border border-white/10">
+        <div className="p-4 rounded-2xl bg-neutral-900 border border-white/10">
           <Trophy className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
           <h3 className="font-semibold mb-1 text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>All-Time Leaderboard</h3>
           <p className="text-sm text-neutral-300">Compete for top ranks</p>
         </div>
-        <div className="p-4 rounded-xl bg-neutral-900 border border-white/10">
+        <div className="p-4 rounded-2xl bg-neutral-900 border border-white/10">
           <Shield className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
           <h3 className="font-semibold mb-1 text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>Exclusive Access</h3>
           <p className="text-sm text-neutral-300">Token holders only</p>
@@ -284,7 +284,7 @@ function LockedHero({ reason, balance, onConnect }: {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="inline-block px-6 py-3 rounded-xl bg-red-500/10 border border-red-500/30">
+          <div className="inline-block px-6 py-3 rounded-2xl bg-red-500/10 border border-red-500/30">
             <p className="text-red-400">
               Your balance: <span className="font-bold">{formatTokenBalance(balance || 0)}</span>
             </p>
@@ -298,7 +298,7 @@ function LockedHero({ reason, balance, onConnect }: {
               href={`https://pump.fun/coin/${SOLMATE_TOKEN_MINT}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-bold hover:from-yellow-400 hover:to-amber-400 transition-all"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-bold hover:from-yellow-400 hover:to-amber-400 transition-all"
             >
               Get $MATE Tokens
               <ExternalLink className="w-5 h-5" />
@@ -322,7 +322,7 @@ function ArenaLobby({ onStartGame }: { onStartGame: () => void }) {
       <motion.div 
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="p-6 rounded-2xl bg-gradient-to-br from-green-500/20 via-emerald-500/10 to-green-500/20 border-2 border-green-400/50 mb-6 relative overflow-hidden"
+        className="p-4 sm:p-6 rounded-3xl sm:rounded-[32px] bg-gradient-to-br from-green-500/20 via-emerald-500/10 to-green-500/20 border-2 border-green-400/50 mb-6 relative overflow-hidden shadow-xl"
       >
         <div className="absolute top-0 right-0 w-32 h-32 bg-green-400/10 rounded-full blur-3xl" />
         <div className="relative flex items-center justify-between">
@@ -347,29 +347,29 @@ function ArenaLobby({ onStartGame }: { onStartGame: () => void }) {
       </motion.div>
 
       {/* Rules Card */}
-      <div className="p-6 rounded-2xl bg-neutral-900 border border-white/10 mb-6">
+      <div className="p-4 sm:p-6 rounded-3xl sm:rounded-[32px] bg-gradient-to-br from-neutral-900 to-neutral-800 border border-white/10 mb-6 shadow-xl">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
           <Shield className="w-6 h-6 text-yellow-400" />
           Arena Rules
         </h2>
         <ul className="space-y-3 text-neutral-300">
-          <li className="flex items-start gap-3">
+          <li className="flex items-start gap-3 p-3 rounded-2xl bg-white/5">
             <span className="text-yellow-400">•</span>
             Play against SolMate AI (~1500 ELO with opening book)
           </li>
-          <li className="flex items-start gap-3">
+          <li className="flex items-start gap-3 p-3 rounded-2xl bg-white/5">
             <span className="text-yellow-400">•</span>
             Maximum 20 games per day per wallet
           </li>
-          <li className="flex items-start gap-3">
+          <li className="flex items-start gap-3 p-3 rounded-2xl bg-white/5">
             <span className="text-yellow-400">•</span>
             Games must have at least 10 moves to count
           </li>
-          <li className="flex items-start gap-3">
+          <li className="flex items-start gap-3 p-3 rounded-2xl bg-white/5">
             <span className="text-yellow-400">•</span>
             Resignation is allowed - losses still count toward participation
           </li>
-          <li className="flex items-start gap-3">
+          <li className="flex items-start gap-3 p-3 rounded-2xl bg-white/5">
             <span className="text-yellow-400">•</span>
             All-time leaderboard - your progress is permanent!
           </li>
@@ -377,23 +377,23 @@ function ArenaLobby({ onStartGame }: { onStartGame: () => void }) {
       </div>
 
       {/* Scoring Card */}
-      <div className="p-6 rounded-2xl bg-neutral-900 border border-white/10 mb-8">
+      <div className="p-4 sm:p-6 rounded-3xl sm:rounded-[32px] bg-gradient-to-br from-neutral-900 to-neutral-800 border border-white/10 mb-8 shadow-xl">
         <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
           <Trophy className="w-6 h-6 text-yellow-400" />
           Scoring System
         </h2>
-        <div className="space-y-2 mb-4">
-          <div className="flex justify-between items-center p-3 rounded-lg bg-black/50">
+        <div className="space-y-3 mb-4">
+          <div className="flex justify-between items-center p-4 rounded-2xl bg-white/5 border border-white/5">
             <span className="text-neutral-300">Each match played</span>
-            <span className="text-yellow-400 font-bold">+1.0 pts</span>
+            <span className="text-yellow-400 font-bold text-lg">+1.0 pts</span>
           </div>
-          <div className="flex justify-between items-center p-3 rounded-lg bg-black/50">
+          <div className="flex justify-between items-center p-4 rounded-2xl bg-white/5 border border-white/5">
             <span className="text-neutral-300">Win bonus</span>
-            <span className="text-green-400 font-bold">+0.5 pts</span>
+            <span className="text-green-400 font-bold text-lg">+0.5 pts</span>
           </div>
-          <div className="flex justify-between items-center p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+          <div className="flex justify-between items-center p-4 rounded-2xl bg-blue-500/10 border border-blue-500/30">
             <span className="text-neutral-300">Share on X bonus</span>
-            <span className="text-blue-400 font-bold">+0.25 pts</span>
+            <span className="text-blue-400 font-bold text-lg">+0.25 pts</span>
           </div>
         </div>
         <p className="text-neutral-400 text-sm text-center">
@@ -407,7 +407,7 @@ function ArenaLobby({ onStartGame }: { onStartGame: () => void }) {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={onStartGame}
-          className="px-12 py-5 rounded-2xl font-bold text-xl shadow-lg shadow-yellow-500/30 hover:shadow-yellow-500/50 transition-all"
+          className="px-12 py-5 rounded-3xl font-bold text-xl shadow-lg shadow-yellow-500/30 hover:shadow-yellow-500/50 transition-all"
           style={{
             background: 'linear-gradient(to right, #eab308, #f59e0b, #eab308)',
             color: '#000000',

@@ -262,7 +262,7 @@ export default function RefundPage() {
               <button
                 onClick={loadMatches}
                 disabled={loading}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 transition-colors text-sm text-white border border-white/10"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 transition-colors text-sm text-white border border-white/10"
                 style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
               >
                 <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -273,7 +273,7 @@ export default function RefundPage() {
             {/* Result Message */}
             {result && (
               <div
-                className={`mb-6 p-4 rounded-xl border ${
+                className={`mb-6 p-4 rounded-2xl border ${
                   result.success
                     ? "bg-green-500/10 border-green-500/30 text-green-400"
                     : "bg-red-500/10 border-red-500/30 text-red-400"
@@ -316,35 +316,35 @@ export default function RefundPage() {
                       key={match.pubkey.toBase58()}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`glass-card rounded-xl p-6 ${(match.isWinner || match.isBackendWinner) ? 'border-2 border-green-500/50' : ''}`}
+                      className={`glass-card rounded-2xl p-6 ${(match.isWinner || match.isBackendWinner) ? 'border-2 border-green-500/50' : ''}`}
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div>
                           <div className="flex items-center gap-2 mb-2 flex-wrap">
                             {(match.isWinner || match.isBackendWinner) && (
-                              <span className="px-2 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-400 flex items-center gap-1">
+                              <span className="px-2 py-0.5 rounded-lg text-xs font-medium bg-green-500/20 text-green-400 flex items-center gap-1">
                                 <Trophy className="w-3 h-3" />
                                 Winner - Claim Your Prize!
                               </span>
                             )}
                             {match.isBackendWinner && !match.isWinner && (
-                              <span className="px-2 py-0.5 rounded text-xs font-medium bg-yellow-500/20 text-yellow-400">
+                              <span className="px-2 py-0.5 rounded-lg text-xs font-medium bg-yellow-500/20 text-yellow-400">
                                 (Pending on-chain)
                               </span>
                             )}
                             {match.isBackendLoser && (
-                              <span className="px-2 py-0.5 rounded text-xs font-medium bg-red-500/20 text-red-400">
+                              <span className="px-2 py-0.5 rounded-lg text-xs font-medium bg-red-500/20 text-red-400">
                                 You Lost - No Refund
                               </span>
                             )}
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            <span className={`px-2 py-0.5 rounded-lg text-xs font-medium ${
                               match.isPlayerA 
                                 ? "bg-blue-500/20 text-blue-400" 
                                 : "bg-purple-500/20 text-purple-400"
                             }`}>
                               {match.isPlayerA ? "You created this match" : "You are Player B"}
                             </span>
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            <span className={`px-2 py-0.5 rounded-lg text-xs font-medium ${
                               match.account.status === MatchStatus.Open
                                 ? "bg-blue-500/20 text-blue-400"
                                 : match.account.status === MatchStatus.Finished
@@ -401,7 +401,7 @@ export default function RefundPage() {
             )}
 
             {/* Info */}
-            <div className="mt-8 p-4 rounded-xl bg-white/5 border border-white/10">
+            <div className="mt-8 p-4 rounded-2xl bg-white/5 border border-white/10">
               <h3 className="font-semibold mb-2 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-yellow-400" />
                 How it works

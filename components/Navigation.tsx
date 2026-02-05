@@ -38,7 +38,7 @@ export function Navigation() {
               href="https://x.com/SolMateChess"
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-secondary flex items-center justify-center p-2 sm:p-2.5 rounded-lg text-white hover:text-white transition-all relative z-10"
+              className="btn-secondary flex items-center justify-center p-2 sm:p-2.5 rounded-xl text-white hover:text-white transition-all relative z-10"
               aria-label="Follow on X (Twitter)"
               style={{ minWidth: 40, minHeight: 40 }}
             >
@@ -57,7 +57,7 @@ export function Navigation() {
             {/* Mobile Learn link - more visible */}
             <Link
               href="/learn"
-              className={`sm:hidden flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg transition-all ${
+              className={`sm:hidden flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-xl transition-all ${
                 pathname === '/learn'
                   ? 'btn-glow text-white'
                   : 'btn-secondary text-white'
@@ -70,7 +70,7 @@ export function Navigation() {
             {/* Mobile Arena link - always visible */}
             <Link
               href="/arena"
-              className={`sm:hidden flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg transition-all ${
+              className={`sm:hidden flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-xl transition-all ${
                 pathname === '/arena'
                   ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-black'
                   : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
@@ -86,7 +86,7 @@ export function Navigation() {
                 <>
                   <Link
                     href="/play"
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                    className={`px-4 py-2 text-sm font-medium rounded-xl transition-all ${
                       pathname === '/play'
                         ? 'btn-glow text-white'
                         : 'text-neutral-400 hover:text-white btn-ghost'
@@ -96,7 +96,7 @@ export function Navigation() {
                   </Link>
                   <Link
                     href="/lobby"
-                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                    className={`px-4 py-2 text-sm font-medium rounded-xl transition-all ${
                       pathname === '/lobby'
                         ? 'btn-glow text-white'
                         : 'text-neutral-400 hover:text-white btn-ghost'
@@ -108,7 +108,7 @@ export function Navigation() {
               )}
               <Link
                 href="/arena"
-                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-all ${
                   pathname === '/arena'
                     ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-black'
                     : 'text-yellow-400 hover:text-yellow-300 btn-ghost'
@@ -119,7 +119,7 @@ export function Navigation() {
               </Link>
               <Link
                 href="/learn"
-                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-all ${
                   pathname === '/learn'
                     ? 'btn-glow text-white'
                     : 'text-neutral-400 hover:text-white btn-ghost'
