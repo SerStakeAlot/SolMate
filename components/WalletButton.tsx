@@ -610,13 +610,25 @@ const StandardWalletButton: React.FC = () => {
       
       debugLog(`Calling connect()...`);
       
-      // Try to connect with timeout
-      const connectPromise = connect();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout after 45s')), 45000)
+      // Try to connect with timeout and capture any error
+      let connectError: Error | null = null;
+      const connectPromise = connect().catch((e) => {
+        connectError = e;
+        debugLog(`⚠️ connect() threw: ${e?.name}: ${e?.message}`);
+        // Don't rethrow - let polling continue
+      });
+      const timeoutPromise = new Promise<void>((resolve) => 
+        setTimeout(() => {
+          debugLog(`⏱️ 45s timeout reached`);
+          resolve();
+        }, 45000)
       );
       
       await Promise.race([connectPromise, timeoutPromise]);
+      
+      if (connectError) {
+        debugLog(`connect() error details: ${JSON.stringify(connectError, Object.getOwnPropertyNames(connectError))}`);
+      }
       
       debugLog(`connect() completed - polling for publicKey (SDK race condition workaround)...`);
       
