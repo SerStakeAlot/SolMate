@@ -1056,42 +1056,6 @@ const StandardWalletButton: React.FC = () => {
             </button>
             <div style={modalTitleStyle}>Connect Wallet</div>
             
-            {/* Debug info display */}
-            {debugInfo && (
-              <div style={{
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '8px',
-                padding: '8px 12px',
-                marginBottom: '16px',
-                fontSize: '12px',
-                color: debugInfo.includes('Error') || debugInfo.includes('No wallet') || debugInfo.includes('timed out')
-                  ? '#f87171' 
-                  : debugInfo.includes('Connected') 
-                    ? '#4ade80' 
-                    : '#fff',
-                fontFamily: 'monospace',
-                wordBreak: 'break-all',
-              }}>
-                {debugInfo}
-              </div>
-            )}
-            
-            {/* MWA browser requirement note - show only on Android */}
-            {/android/i.test(navigator?.userAgent || '') && (
-              <div style={{
-                backgroundColor: 'rgba(20, 241, 149, 0.1)',
-                border: '1px solid rgba(20, 241, 149, 0.3)',
-                borderRadius: '8px',
-                padding: '8px 12px',
-                marginBottom: '16px',
-                fontSize: '11px',
-                color: '#14F195',
-              }}>
-                📱 On Seeker? Tap "<strong>Mobile Wallet Adapter</strong>" to use Seed Vault Wallet
-              </div>
-            )}
-            
             <div>
               {/* On mobile, show Open in Phantom option */}
               {isMobile && !isInWalletBrowser() && (
