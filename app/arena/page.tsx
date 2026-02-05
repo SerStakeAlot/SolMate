@@ -342,12 +342,12 @@ function LockedHero({ reason, mateBalance, skrBalance, onConnect }: {
       </h1>
       
       {/* Prize Banner for locked users */}
-      <div className="mb-6 inline-flex flex-col sm:flex-row items-center gap-3 px-8 py-4 rounded-3xl bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-green-500/20 border-2 border-green-400/50">
-        <DollarSign className="w-8 h-8 text-green-400 flex-shrink-0" />
-        <div className="text-center sm:text-left">
+      <div className="mb-6 flex flex-col items-center gap-2 px-6 py-4 rounded-3xl bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-green-500/20 border-2 border-green-400/50 w-full max-w-sm mx-auto">
+        <div className="flex items-center gap-2">
+          <DollarSign className="w-7 h-7 text-green-400" />
           <p className="text-xl font-bold text-green-400">$500 PRIZE POOL</p>
-          <p className="text-sm text-white/70 whitespace-nowrap">Compete for the top spot!</p>
         </div>
+        <p className="text-sm text-white/70 text-center">Compete for the top spot!</p>
       </div>
       
       <p className="text-xl text-white/60 mb-8 max-w-md mx-auto">
