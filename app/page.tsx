@@ -439,6 +439,43 @@ export default function Home() {
                   </div>
                 </div>
 
+                {/* Step 3: Holder Arena */}
+                <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '12px', border: '1px solid rgba(234, 179, 8, 0.3)', backgroundColor: '#1a1a1a' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'black', backgroundColor: '#eab308' }}>3</div>
+                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: 'white', WebkitTextFillColor: 'white' }}>Holder Arena ($500 Prize!)</h3>
+                  </div>
+                  <div style={{ color: '#d1d5db', fontSize: '14px', lineHeight: '1.6' }}>
+                    <p>Hold <strong style={{ color: 'white' }}>2M+ $MATE tokens</strong> to unlock the exclusive Holder Arena. Play vs AI, compete on the leaderboard!</p>
+                  </div>
+                </div>
+
+                {/* Step 4: Play with Friends */}
+                <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '12px', border: '1px solid rgba(153, 69, 255, 0.3)', backgroundColor: '#1a1a2e' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'black', backgroundColor: '#9945FF' }}>4</div>
+                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: 'white', WebkitTextFillColor: 'white' }}>Free Play with Friends</h3>
+                  </div>
+                  <div style={{ color: '#d1d5db', fontSize: '14px', lineHeight: '1.6' }}>
+                    <p style={{ marginBottom: '8px' }}><strong style={{ color: 'white' }}>Train vs AI:</strong> Click "Practice Mode" on home page</p>
+                    <p style={{ marginBottom: '8px' }}><strong style={{ color: 'white' }}>Host a Game:</strong> Practice Mode → Create Game → Share 4-letter code</p>
+                    <p style={{ marginBottom: '8px' }}><strong style={{ color: 'white' }}>Join a Game:</strong> Practice Mode → Enter friend's code → Join</p>
+                    <p style={{ marginTop: '12px', color: '#a3a3a3', fontStyle: 'italic' }}>💡 Tip: You can also access Free Play from "Enter Arena" → "Free Play" tab!</p>
+                  </div>
+                </div>
+
+                {/* Step 5: Wager Matches */}
+                <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '12px', border: '1px solid rgba(249, 115, 22, 0.3)', backgroundColor: '#1a0d0d' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'black', backgroundColor: '#f97316' }}>5</div>
+                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: 'white', WebkitTextFillColor: 'white' }}>Staked Wager Matches</h3>
+                  </div>
+                  <div style={{ color: '#d1d5db', fontSize: '14px', lineHeight: '1.6' }}>
+                    <p style={{ marginBottom: '8px' }}><strong style={{ color: 'white' }}>Host:</strong> Enter Arena → Host Match → Select stake (0.05-1 SOL)</p>
+                    <p><strong style={{ color: 'white' }}>Join:</strong> Enter Arena → Join Match → Winner takes 90%!</p>
+                  </div>
+                </div>
+
                 {/* Close Button */}
                 <button
                   onClick={() => setShowHowToPlay(false)}
