@@ -296,19 +296,19 @@ function LockedHero({ reason, mateBalance, skrBalance, onConnect }: {
       ) : (
         <div className="space-y-6">
           {/* Token Balance Display */}
-          <div className="inline-block px-6 py-4 rounded-2xl bg-red-500/10 border border-red-500/30">
-            <p className="text-white/80 font-medium mb-3">Your Token Balances:</p>
-            <div className="grid grid-cols-2 gap-4 text-left">
-              <div>
-                <p className="text-sm text-white/50">$MATE</p>
-                <p className="text-red-400 font-bold">{formatTokenBalance(mateBalance || 0)}</p>
-                <p className="text-xs text-white/40">Need: {getMinimumRequiredDisplay()}</p>
-              </div>
-              <div>
-                <p className="text-sm text-white/50">$SKR</p>
-                <p className="text-red-400 font-bold">{formatSkrBalance(skrBalance || 0)}</p>
-                <p className="text-xs text-white/40">Need: {getSkrMinimumRequiredDisplay()}</p>
-              </div>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            {/* MATE Balance */}
+            <div className="px-6 py-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-center min-w-[180px]">
+              <p className="text-sm text-white/50 mb-1">$MATE</p>
+              <p className="text-xl text-red-400 font-bold mb-2">{formatTokenBalance(mateBalance || 0)}</p>
+              <p className="text-xs text-white/40">Need: {getMinimumRequiredDisplay()}</p>
+            </div>
+            
+            {/* SKR Balance */}
+            <div className="px-6 py-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-center min-w-[180px]">
+              <p className="text-sm text-white/50 mb-1">$SKR</p>
+              <p className="text-xl text-red-400 font-bold mb-2">{formatSkrBalance(skrBalance || 0)}</p>
+              <p className="text-xs text-white/40">Need: {getSkrMinimumRequiredDisplay()}</p>
             </div>
           </div>
           
@@ -324,7 +324,7 @@ function LockedHero({ reason, mateBalance, skrBalance, onConnect }: {
               <ExternalLink className="w-4 h-4" />
             </a>
             <a
-              href={`https://pump.fun/coin/${SKR_TOKEN_MINT}`}
+              href="https://solanamobile.com/skr"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-500 to-violet-500 text-white font-bold hover:from-purple-400 hover:to-violet-400 transition-all"
