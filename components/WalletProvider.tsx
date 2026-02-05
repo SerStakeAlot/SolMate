@@ -2,37 +2,16 @@
 
 import React, { FC, ReactNode, useMemo } from 'react';
 import { ConnectionProvider, WalletProvider as SolanaWalletProvider } from '@solana/wallet-adapter-react';
+import { Adapter } from '@solana/wallet-adapter-base';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { 
-  registerMwa,
-  createDefaultAuthorizationCache, 
-  createDefaultChainSelector,
+  RemoteSolanaMobileWalletAdapter,
+  createDefaultAddressSelector,
+  createDefaultAuthorizationResultCache,
   createDefaultWalletNotFoundHandler,
-} from '@solana-mobile/wallet-standard-mobile';
+} from '@solana-mobile/wallet-adapter-mobile';
 
-// Get the app URI for identity verification
-function getUriForAppIdentity() {
-  if (typeof window === 'undefined') return 'https://playsolmate.fun';
-  return `${window.location.protocol}//${window.location.host}`;
-}
-
-// Register MWA at module level - CRITICAL: must be outside any component
-// This is exactly how the official Solana Mobile example does it
-registerMwa({
-  appIdentity: {
-    uri: getUriForAppIdentity(),
-    name: 'SolMate',
-    icon: '/images/solmate-logo.png',
-  },
-  authorizationCache: createDefaultAuthorizationCache(),
-  chains: ['solana:mainnet'],
-  chainSelector: createDefaultChainSelector(),
-  // Remote MWA fallback - uses reflector server when local WebSocket fails
-  remoteHostAuthority: 'reflector.solanamobile.com',
-  onWalletNotFound: createDefaultWalletNotFoundHandler(),
-});
-
-// Detect Android mobile for auto-connect
+// Detect Android mobile
 function isAndroidMobile() {
   return (
     typeof window !== 'undefined' &&
@@ -50,21 +29,42 @@ export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
     return 'https://mainnet.helius-rpc.com/?api-key=REDACTED_HELIUS_API_KEY';
   }, []);
 
-  // Don't include SolanaMobileWalletAdapter here - it's registered via registerMwa()
-  // and will automatically appear via wallet-standard detection
   const wallets = useMemo(
-    () => typeof window === 'undefined' 
-      ? [] 
-      : [
-          new PhantomWalletAdapter(),
-          new SolflareWalletAdapter(),
-        ],
+    (): Adapter[] => {
+      if (typeof window === 'undefined') return [];
+      
+      const adapters: Adapter[] = [
+        new PhantomWalletAdapter(),
+        new SolflareWalletAdapter(),
+      ];
+      
+      // On Android, add Remote MWA that uses reflector server exclusively
+      // This bypasses local WebSocket which fails on Seeker
+      if (isAndroidMobile()) {
+        adapters.unshift(
+          new RemoteSolanaMobileWalletAdapter({
+            addressSelector: createDefaultAddressSelector(),
+            appIdentity: {
+              name: 'SolMate',
+              uri: window.location.origin,
+              icon: '/images/solmate-logo.png',
+            },
+            authorizationResultCache: createDefaultAuthorizationResultCache(),
+            chain: 'solana:mainnet',
+            remoteHostAuthority: 'reflector.solanamobile.com',
+            onWalletNotFound: createDefaultWalletNotFoundHandler(),
+          })
+        );
+      }
+      
+      return adapters;
+    },
     []
   );
 
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <SolanaWalletProvider wallets={wallets} autoConnect={isAndroidMobile()}>
+      <SolanaWalletProvider wallets={wallets} autoConnect={false}>
         {children}
       </SolanaWalletProvider>
     </ConnectionProvider>
