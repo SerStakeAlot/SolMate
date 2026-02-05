@@ -119,7 +119,7 @@ const StandardWalletButton: React.FC = () => {
   const [debugInfo, setDebugInfo] = useState<string>('');
   const [playerStats, setPlayerStats] = useState<PlayerStats | null>(null);
   const [username, setUsername] = useState<string | null>(null);
-  const connectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   // MWA state (separate from wallet-adapter)
@@ -200,6 +200,38 @@ const StandardWalletButton: React.FC = () => {
       setTwaAuthToken(localStorage.getItem('twa_mwa_authToken'));
     }
   }, []);
+
+  // DIAGNOSTIC: Listen to adapter events directly
+  useEffect(() => {
+    if (!wallet?.adapter) return;
+    
+    const adapter = wallet.adapter;
+    const debugLog = (window as any).mwaDebugLog || console.log;
+    
+    const onConnect = (publicKey: any) => {
+      debugLog(`[AdapterEvent] 'connect' fired with publicKey: ${publicKey?.toBase58()?.slice(0, 8) || 'null'}`);
+    };
+    
+    const onDisconnect = () => {
+      debugLog(`[AdapterEvent] 'disconnect' fired`);
+    };
+    
+    const onError = (error: any) => {
+      debugLog(`[AdapterEvent] 'error' fired: ${error?.message || error}`);
+    };
+    
+    adapter.on('connect', onConnect);
+    adapter.on('disconnect', onDisconnect);
+    adapter.on('error', onError);
+    
+    debugLog(`[AdapterEvent] Attached listeners to ${adapter.name}`);
+    
+    return () => {
+      adapter.off('connect', onConnect);
+      adapter.off('disconnect', onDisconnect);
+      adapter.off('error', onError);
+    };
+  }, [wallet]);
 
   // Listen for MWA state changes
   useEffect(() => {
@@ -524,12 +556,56 @@ const StandardWalletButton: React.FC = () => {
     // Close modal FIRST to allow wallet bottom sheet to appear
     setShowModal(false);
     
+    // Add diagnostic listener for wallet-standard change events
+    const selectedWallet = wallets.find(w => w.adapter.name === walletName);
+    let changeEventReceived = false;
+    let receivedAccounts: any[] = [];
+    
+    if (selectedWallet?.adapter) {
+      const adapter = selectedWallet.adapter as any;
+      
+      // Listen for adapter 'connect' event
+      const onConnect = (pk: any) => {
+        debugLog(`📡 Adapter 'connect' event: ${pk?.toBase58?.()?.slice(0,8) || pk || 'null'}`);
+      };
+      adapter.on?.('connect', onConnect);
+      
+      // Try to access internal wallet-standard wallet to monitor 'change' events
+      try {
+        // The wallet-standard wallet emits 'change' with { accounts: [...] }
+        const win = window as any;
+        const walletStandard = win.navigator?.wallets;
+        if (walletStandard?.get) {
+          const registeredWallets = walletStandard.get();
+          const mwaWallet = registeredWallets?.find((w: any) => 
+            w.name === 'Mobile Wallet Adapter' || w.name?.includes('Mobile')
+          );
+          if (mwaWallet?.features?.['standard:events']?.on) {
+            debugLog(`Setting up wallet-standard change listener on: ${mwaWallet.name}`);
+            mwaWallet.features['standard:events'].on('change', (props: any) => {
+              changeEventReceived = true;
+              receivedAccounts = props?.accounts || [];
+              debugLog(`📡 Wallet-standard 'change' event: accounts=${receivedAccounts.length}`);
+              if (receivedAccounts.length > 0) {
+                const acc = receivedAccounts[0];
+                debugLog(`  First account: address=${acc?.address?.slice?.(0,8) || 'N/A'}, pubKey=${acc?.publicKey ? `[${acc.publicKey.length} bytes]` : 'N/A'}`);
+              } else {
+                debugLog(`  ⚠️ EMPTY accounts array received!`);
+              }
+            });
+          }
+        }
+      } catch (e) {
+        debugLog(`Could not setup wallet-standard listener: ${e}`);
+      }
+    }
+    
     try {
       // Select the wallet - this updates the hook state asynchronously
       debugLog(`Calling select()...`);
       select(walletName);
       
-      // Wait longer for selection to take effect and state to update
+      // Wait for selection to take effect
       await new Promise(r => setTimeout(r, 500));
       
       debugLog(`Calling connect()...`);
@@ -542,16 +618,74 @@ const StandardWalletButton: React.FC = () => {
       
       await Promise.race([connectPromise, timeoutPromise]);
       
-      debugLog(`connect() completed - waiting for state update...`);
+      debugLog(`connect() completed - polling for publicKey (SDK race condition workaround)...`);
       
-      // Wait for React state to update after connection
-      // The publicKey is set asynchronously after connect() resolves
-      await new Promise(r => setTimeout(r, 1000));
-      
-      // Log final state - NOTE: We can't read new state from closure
-      // The UI will update automatically when publicKey changes
-      debugLog(`Connection flow completed. Check UI for wallet state.`);
-      setDebugInfo('Connected! Check wallet display.');
+      // WORKAROUND for SDK race condition: 
+      // The wallet-standard-mobile SDK has a non-awaited Promise.all that emits
+      // the 'change' event AFTER connect() returns. Poll for publicKey.
+      const selectedWallet = wallets.find(w => w.adapter.name === walletName);
+      if (selectedWallet?.adapter) {
+        const adapter = selectedWallet.adapter as any; // Cast to access internal properties
+        let attempts = 0;
+        const maxAttempts = 30; // 3 seconds total
+        
+        // Log initial adapter state
+        debugLog(`Adapter state: connected=${adapter.connected}, publicKey=${adapter.publicKey?.toBase58()?.slice(0,8) || 'null'}`);
+        
+        // Try to access internal wallet-standard wallet for diagnostics
+        try {
+          const internalWallet = adapter._wallet || adapter['#wallet'];
+          if (internalWallet) {
+            debugLog(`Internal wallet accounts: ${JSON.stringify(internalWallet.accounts?.length || 0)}`);
+          }
+        } catch (e) {
+          debugLog(`Could not access internal wallet: ${e}`);
+        }
+        
+        while (attempts < maxAttempts) {
+          // Check adapter's publicKey directly (not from React state)
+          if (adapter.publicKey) {
+            debugLog(`✅ publicKey available after ${attempts * 100}ms: ${adapter.publicKey.toBase58().slice(0, 8)}...`);
+            setDebugInfo(`✅ Connected: ${adapter.publicKey.toBase58().slice(0, 8)}...`);
+            return;
+          }
+          
+          // Log state every 500ms
+          if (attempts % 5 === 0 && attempts > 0) {
+            debugLog(`Poll ${attempts}: connected=${adapter.connected}, pubKey=${adapter.publicKey ? 'yes' : 'no'}`);
+          }
+          
+          await new Promise(r => setTimeout(r, 100));
+          attempts++;
+        }
+        
+        // After polling, check connected state and log full diagnostic
+        debugLog(`Final adapter state: connected=${adapter.connected}, publicKey=${adapter.publicKey?.toBase58() || 'null'}`);
+        debugLog(`Change event received: ${changeEventReceived}, accounts received: ${receivedAccounts.length}`);
+        
+        if (adapter.connected) {
+          debugLog(`⚠️ Adapter.connected=true but publicKey=null after ${maxAttempts * 100}ms`);
+          debugLog(`This means Seed Vault authorized but returned 0 accounts or SDK failed to parse accounts`);
+          if (!changeEventReceived) {
+            setDebugInfo(`⚠️ No 'change' event received from SDK`);
+          } else if (receivedAccounts.length === 0) {
+            setDebugInfo(`⚠️ Wallet returned 0 accounts`);
+          } else {
+            setDebugInfo(`⚠️ Had ${receivedAccounts.length} accounts but adapter.publicKey=null`);
+          }
+        } else {
+          debugLog(`❌ Adapter not connected after polling`);
+          if (!changeEventReceived) {
+            setDebugInfo(`❌ No response from wallet`);
+          } else {
+            setDebugInfo(`❌ Got ${receivedAccounts.length} accounts but not connected`);
+          }
+          setTimeout(() => setShowModal(true), 500);
+        }
+      } else {
+        debugLog(`Connection flow completed. Check UI for wallet state.`);
+        setDebugInfo('Connected! Check wallet display.');
+      }
       
     } catch (error: any) {
       const errorName = error?.name || 'Unknown';
@@ -566,7 +700,7 @@ const StandardWalletButton: React.FC = () => {
       // Re-show modal on error so user can try again
       setTimeout(() => setShowModal(true), 500);
     }
-  }, [select, connect]);
+  }, [select, connect, wallets]);
 
   const handleDisconnect = useCallback(() => {
     // Disconnect both wallet-adapter and MWA

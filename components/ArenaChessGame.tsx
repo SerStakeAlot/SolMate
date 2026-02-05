@@ -109,7 +109,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
   // Time control (10 min per side)
   const [playerTime, setPlayerTime] = useState(600);
   const [aiTime, setAiTime] = useState(600);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   // Check remaining games
   const [canPlay, setCanPlay] = useState(true);
