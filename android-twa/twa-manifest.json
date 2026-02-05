@@ -20,8 +20,8 @@
     "path": "/workspaces/SolMate/android-twa/android.keystore",
     "alias": "android"
   },
-  "appVersionName": "Version 7",
-  "appVersionCode": 8,
+  "appVersionName": "Version 8",
+  "appVersionCode": 9,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://shiny-chebakia-11939c.netlify.app/manifest.json",
