@@ -309,6 +309,15 @@ const StandardWalletButton: React.FC = () => {
     setDebugInfo('MWA Disconnected');
   }, [nativeMwaConnected]);
 
+  // Debug: Log when wallet connection state changes
+  useEffect(() => {
+    const debugLog = (window as any).mwaDebugLog || console.log;
+    debugLog(`[WalletState] connected=${connected}, publicKey=${publicKey?.toBase58()?.slice(0,8) || 'null'}, wallet=${wallet?.adapter?.name || 'none'}`);
+    if (connected && publicKey) {
+      setDebugInfo(`✅ Connected: ${publicKey.toBase58().slice(0,8)}...`);
+    }
+  }, [connected, publicKey, wallet]);
+
   // Fetch player stats when connected (either wallet-adapter, MWA, or native MWA)
   useEffect(() => {
     const walletAddr = publicKey?.toBase58() || mwaPublicKey || nativeMwaPublicKey;
@@ -516,15 +525,13 @@ const StandardWalletButton: React.FC = () => {
     setShowModal(false);
     
     try {
-      // Select the wallet
+      // Select the wallet - this updates the hook state asynchronously
       debugLog(`Calling select()...`);
       select(walletName);
       
-      // Small delay to let selection take effect
-      await new Promise(r => setTimeout(r, 200));
+      // Wait longer for selection to take effect and state to update
+      await new Promise(r => setTimeout(r, 500));
       
-      // Log wallet state before connect
-      debugLog(`Pre-connect: wallet=${wallet?.adapter?.name}, connected=${connected}`);
       debugLog(`Calling connect()...`);
       
       // Try to connect with timeout
@@ -535,24 +542,17 @@ const StandardWalletButton: React.FC = () => {
       
       await Promise.race([connectPromise, timeoutPromise]);
       
-      // IMPORTANT: publicKey from hook won't update until next render
-      // So we need to wait a bit and check the wallet adapter directly
-      await new Promise(r => setTimeout(r, 500));
+      debugLog(`connect() completed - waiting for state update...`);
       
-      // Check the adapter's publicKey directly, not the hook state
-      const adapterPublicKey = wallet?.adapter?.publicKey;
-      debugLog(`Post-connect: adapterPublicKey=${adapterPublicKey?.toBase58()?.slice(0,8) || 'null'}, hookPublicKey=${publicKey?.toBase58()?.slice(0,8) || 'null'}`);
+      // Wait for React state to update after connection
+      // The publicKey is set asynchronously after connect() resolves
+      await new Promise(r => setTimeout(r, 1000));
       
-      if (adapterPublicKey) {
-        debugLog(`✅ Connected: ${adapterPublicKey.toBase58().slice(0,8)}...`);
-        setDebugInfo('Connected!');
-      } else {
-        // Check if connect actually failed or is still pending
-        debugLog(`⚠️ connect() returned but no publicKey - checking wallet state...`);
-        debugLog(`Wallet adapter state: connected=${wallet?.adapter?.connected}, readyState=${wallet?.adapter?.readyState}`);
-        setDebugInfo('Wallet dismissed or pending. Please try again.');
-        setTimeout(() => setShowModal(true), 1500);
-      }
+      // Log final state - NOTE: We can't read new state from closure
+      // The UI will update automatically when publicKey changes
+      debugLog(`Connection flow completed. Check UI for wallet state.`);
+      setDebugInfo('Connected! Check wallet display.');
+      
     } catch (error: any) {
       const errorName = error?.name || 'Unknown';
       const errorCode = error?.code || '';
@@ -566,7 +566,7 @@ const StandardWalletButton: React.FC = () => {
       // Re-show modal on error so user can try again
       setTimeout(() => setShowModal(true), 500);
     }
-  }, [select, connect, wallet, connected, publicKey]);
+  }, [select, connect]);
 
   const handleDisconnect = useCallback(() => {
     // Disconnect both wallet-adapter and MWA
