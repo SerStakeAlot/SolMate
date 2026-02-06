@@ -843,6 +843,16 @@ io.on('connection', (socket) => {
       matchPubkey: match.matchPubkey,
       joinDeadline: match.joinDeadline,
     });
+
+    // If match is already in lobby (guest already joined), re-notify host
+    if (match.status === 'lobby' && match.guestWallet) {
+      console.log(`Match ${match.matchCode} already in lobby, re-sending playerJoined to new host socket`);
+      socket.emit('match:playerJoined', {
+        matchCode: match.matchCode,
+        guestWallet: match.guestWallet,
+        hostColor: match.hostColor,
+      });
+    }
   });
 
   // Join hosted match by code

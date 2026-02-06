@@ -32,10 +32,10 @@ class HostedMatchManager {
     const existingCode = this.walletToMatch.get(hostWallet);
     if (existingCode) {
       const existing = this.matches.get(existingCode);
-      if (existing && existing.status === 'waiting') {
+      if (existing && (existing.status === 'waiting' || existing.status === 'lobby')) {
         // If same match (same pubkey), just update the socket ID instead of cancelling
         if (existing.matchPubkey === matchPubkey && hostSocketId) {
-          console.log(`Updating socket ID for existing match ${existingCode}: ${existing.hostSocketId?.slice(0, 8) || '(empty)'}... -> ${hostSocketId.slice(0, 8)}...`);
+          console.log(`Updating socket ID for existing match ${existingCode} (status: ${existing.status}): ${existing.hostSocketId?.slice(0, 8) || '(empty)'}... -> ${hostSocketId.slice(0, 8)}...`);
           existing.hostSocketId = hostSocketId;
           return existing;
         }
@@ -133,9 +133,15 @@ class HostedMatchManager {
     
     match.hostColor = color;
     
-    // Notify guest of color change
+    // Notify both players of color change
     if (match.guestSocketId) {
       io.to(match.guestSocketId).emit('match:colorsUpdated', {
+        matchCode,
+        hostColor: color,
+      });
+    }
+    if (match.hostSocketId) {
+      io.to(match.hostSocketId).emit('match:colorsUpdated', {
         matchCode,
         hostColor: color,
       });

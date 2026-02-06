@@ -1186,6 +1186,22 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     socket.emit('freeplay:swapColors', { code: freePlayCode });
   };
 
+  // Host starts the wager game from lobby
+  const handleStartWagerGame = () => {
+    if (!socket || !wagerMatchCode) return;
+    console.log('Host starting wager game:', wagerMatchCode);
+    socket.emit('match:startGame', { matchCode: wagerMatchCode });
+  };
+
+  // Host flips colors in the wager lobby
+  const handleFlipWagerColors = () => {
+    if (!socket || !wagerMatchCode) return;
+    const newColor = wagerLobbyHostColor === 'w' ? 'b' : 'w';
+    console.log('Flipping wager colors, new host color:', newColor);
+    socket.emit('match:setColor', { matchCode: wagerMatchCode, color: newColor });
+    setWagerLobbyHostColor(newColor);
+  };
+
   const board = useMemo(() => {
     return chessRef.current!.board();
   }, [fen]);
@@ -2390,6 +2406,154 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           borderRadius: '50%', animation: 'freeplay-lobby-spin 0.8s linear infinite',
                         }} />
                         <style>{`@keyframes freeplay-lobby-spin { to { transform: rotate(360deg); } }`}</style>
+                        Waiting for host...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Wager Match Lobby Overlay - shown when opponent joined but game hasn't started */}
+              {isMultiplayer && inWagerLobby && !opponentConnected && (
+                <div style={{
+                  marginTop: 12,
+                  background: 'linear-gradient(135deg, rgba(153,69,255,0.08), rgba(0,255,163,0.06))',
+                  border: '1px solid rgba(153,69,255,0.2)',
+                  borderRadius: 16,
+                  padding: '24px 28px',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}>
+                  {/* Top accent line */}
+                  <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+                    background: 'linear-gradient(90deg, transparent, #9945ff, #00ffa3, transparent)',
+                  }} />
+                  
+                  <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                    <div style={{ fontSize: 24, marginBottom: 8 }}>⚔️</div>
+                    <h3 style={{
+                      fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em',
+                      color: '#e8e8f0', fontFamily: "'Outfit', sans-serif", margin: '0 0 4px',
+                    }}>
+                      {dynamicPlayerRole === 'host' ? 'Opponent Joined!' : 'Joined Match!'}
+                    </h3>
+                    <p style={{ fontSize: 13, color: '#6b6b80', margin: 0, fontFamily: "'Outfit', sans-serif" }}>
+                      {dynamicPlayerRole === 'host' ? 'Choose colors and start when ready' : 'Waiting for host to start the game'}
+                    </p>
+                  </div>
+
+                  {/* Color Assignment */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20,
+                    marginBottom: 20, padding: '16px 20px',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: 12,
+                  }}>
+                    {/* White side */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                      <div style={{
+                        width: 44, height: 44, borderRadius: 12,
+                        background: '#e8e8f0', border: '2px solid rgba(255,255,255,0.3)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 4px 16px rgba(255,255,255,0.1)',
+                      }}>
+                        <img src="/pieces/wK.svg" alt="White King" style={{ width: 32, height: 32 }} draggable={false} />
+                      </div>
+                      <span style={{
+                        fontSize: 12, fontWeight: 700, fontFamily: "'Space Mono', monospace",
+                        color: wagerLobbyHostColor === 'w'
+                          ? (dynamicPlayerRole === 'host' ? '#00ffa3' : '#a0a0b8')
+                          : (dynamicPlayerRole === 'host' ? '#a0a0b8' : '#00ffa3'),
+                      }}>
+                        {wagerLobbyHostColor === 'w'
+                          ? (dynamicPlayerRole === 'host' ? 'You' : lobbyOpponentName || 'Host')
+                          : (dynamicPlayerRole === 'host' ? lobbyOpponentName || 'Guest' : 'You')}
+                      </span>
+                    </div>
+
+                    {/* VS */}
+                    <div style={{
+                      fontSize: 14, fontWeight: 800, color: '#9945ff',
+                      fontFamily: "'Space Mono', monospace",
+                    }}>VS</div>
+
+                    {/* Black side */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                      <div style={{
+                        width: 44, height: 44, borderRadius: 12,
+                        background: '#1a1a2e', border: '2px solid rgba(255,255,255,0.15)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                      }}>
+                        <img src="/pieces/bK.svg" alt="Black King" style={{ width: 32, height: 32 }} draggable={false} />
+                      </div>
+                      <span style={{
+                        fontSize: 12, fontWeight: 700, fontFamily: "'Space Mono', monospace",
+                        color: wagerLobbyHostColor === 'b'
+                          ? (dynamicPlayerRole === 'host' ? '#00ffa3' : '#a0a0b8')
+                          : (dynamicPlayerRole === 'host' ? '#a0a0b8' : '#00ffa3'),
+                      }}>
+                        {wagerLobbyHostColor === 'b'
+                          ? (dynamicPlayerRole === 'host' ? 'You' : lobbyOpponentName || 'Host')
+                          : (dynamicPlayerRole === 'host' ? lobbyOpponentName || 'Guest' : 'You')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {/* Flip Colors button - host only */}
+                    {dynamicPlayerRole === 'host' && (
+                      <button
+                        onClick={handleFlipWagerColors}
+                        style={{
+                          flex: 1, padding: '12px 20px', borderRadius: 12,
+                          background: 'rgba(255,255,255,0.04)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          color: '#a0a0b8', fontSize: 14, fontWeight: 600,
+                          cursor: 'pointer', transition: 'all 0.2s',
+                          fontFamily: "'Outfit', sans-serif",
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#e8e8f0'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#a0a0b8'; }}
+                      >
+                        ⟳ Flip Colors
+                      </button>
+                    )}
+
+                    {/* Start Game button - host only */}
+                    {dynamicPlayerRole === 'host' ? (
+                      <button
+                        onClick={handleStartWagerGame}
+                        style={{
+                          flex: 2, padding: '14px 28px', borderRadius: 12,
+                          background: 'linear-gradient(135deg, #00ffa3 0%, #00d4ff 50%, #9945ff 100%)',
+                          border: 'none', color: '#07070e', fontSize: 15, fontWeight: 700,
+                          cursor: 'pointer', transition: 'all 0.3s',
+                          fontFamily: "'Outfit', sans-serif",
+                          boxShadow: '0 4px 20px rgba(0,255,163,0.3)',
+                        }}
+                      >
+                        Start Game →
+                      </button>
+                    ) : (
+                      <div style={{
+                        flex: 1, padding: '14px 28px', borderRadius: 12,
+                        background: 'rgba(153,69,255,0.08)',
+                        border: '1px solid rgba(153,69,255,0.2)',
+                        color: '#9945ff', fontSize: 14, fontWeight: 600,
+                        fontFamily: "'Outfit', sans-serif",
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      }}>
+                        <div style={{
+                          width: 16, height: 16,
+                          border: '2px solid rgba(153,69,255,0.3)', borderTopColor: '#9945ff',
+                          borderRadius: '50%', animation: 'wager-lobby-spin 0.8s linear infinite',
+                        }} />
+                        <style>{`@keyframes wager-lobby-spin { to { transform: rotate(360deg); } }`}</style>
                         Waiting for host...
                       </div>
                     )}

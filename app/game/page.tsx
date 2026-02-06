@@ -156,6 +156,7 @@ function GameContent() {
   const [hostSocket, setHostSocket] = useState<Socket | null>(null);
   const [hostConnected, setHostConnected] = useState(false);
   const [dotCount, setDotCount] = useState(0);
+  const [hostSelectedColor, setHostSelectedColor] = useState<'w' | 'b'>('w');
 
   // Refs to access latest state in socket callbacks
   const hostMatchRef = useRef<{ pubkey: PublicKey | null; code: string; tier: number; step: HostStep }>({
@@ -323,6 +324,10 @@ function GameContent() {
 
   const handleStartGame = () => {
     if (!hostMatchPubkey) return;
+    // Set host's chosen color before navigating
+    if (hostSocket && hostMatchCode && hostSelectedColor !== 'w') {
+      hostSocket.emit('match:setColor', { matchCode: hostMatchCode, color: hostSelectedColor });
+    }
     // Navigate to the game with match params (this page will re-render with match param)
     window.location.href = `/game?mode=host&match=${hostMatchPubkey.toBase58()}&code=${hostMatchCode}&tier=${selectedTier}`;
   };
@@ -728,6 +733,70 @@ function GameContent() {
                   <div style={{ padding: "12px 20px", borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
                     <div style={{ fontSize: 11, color: "#444", marginBottom: 4, fontFamily: "'Space Mono', monospace" }}>Pot</div>
                     <div style={{ fontSize: 18, fontWeight: 700, color: "#00ffa3", fontFamily: "'Space Mono', monospace" }}>{(tierInfo.stake * 2 * 0.9).toFixed(2)}</div>
+                  </div>
+                </div>
+
+                {/* Color Picker */}
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 16,
+                  marginBottom: 24, padding: "16px 20px",
+                  background: "rgba(255,255,255,0.03)",
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  borderRadius: 12,
+                }}>
+                  {/* White side */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: 12,
+                      background: "#e8e8f0", border: hostSelectedColor === 'w' ? "2px solid #00ffa3" : "2px solid rgba(255,255,255,0.3)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      boxShadow: hostSelectedColor === 'w' ? "0 4px 16px rgba(0,255,163,0.2)" : "0 4px 16px rgba(255,255,255,0.1)",
+                    }}>
+                      <img src="/pieces/wK.svg" alt="White King" style={{ width: 32, height: 32 }} draggable={false} />
+                    </div>
+                    <span style={{
+                      fontSize: 12, fontWeight: 700, fontFamily: "'Space Mono', monospace",
+                      color: hostSelectedColor === 'w' ? '#00ffa3' : '#a0a0b8',
+                    }}>
+                      {hostSelectedColor === 'w' ? 'You' : hostOpponentWallet ? `${hostOpponentWallet.slice(0, 4)}...` : 'Opponent'}
+                    </span>
+                  </div>
+
+                  {/* Flip button */}
+                  <button
+                    onClick={() => {
+                      const newColor = hostSelectedColor === 'w' ? 'b' : 'w';
+                      setHostSelectedColor(newColor);
+                      if (hostSocket && hostMatchCode) {
+                        hostSocket.emit('match:setColor', { matchCode: hostMatchCode, color: newColor });
+                      }
+                    }}
+                    style={{
+                      padding: "8px 16px", borderRadius: 10,
+                      background: "rgba(153,69,255,0.08)",
+                      border: "1px solid rgba(153,69,255,0.2)",
+                      color: "#9945ff", fontSize: 13, fontWeight: 600,
+                      cursor: "pointer", transition: "all 0.2s",
+                      fontFamily: "'Outfit', sans-serif",
+                    }}
+                  >⟳ Flip</button>
+
+                  {/* Black side */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                    <div style={{
+                      width: 44, height: 44, borderRadius: 12,
+                      background: "#1a1a2e", border: hostSelectedColor === 'b' ? "2px solid #00ffa3" : "2px solid rgba(255,255,255,0.15)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      boxShadow: hostSelectedColor === 'b' ? "0 4px 16px rgba(0,255,163,0.2)" : "0 4px 16px rgba(0,0,0,0.3)",
+                    }}>
+                      <img src="/pieces/bK.svg" alt="Black King" style={{ width: 32, height: 32 }} draggable={false} />
+                    </div>
+                    <span style={{
+                      fontSize: 12, fontWeight: 700, fontFamily: "'Space Mono', monospace",
+                      color: hostSelectedColor === 'b' ? '#00ffa3' : '#a0a0b8',
+                    }}>
+                      {hostSelectedColor === 'b' ? 'You' : hostOpponentWallet ? `${hostOpponentWallet.slice(0, 4)}...` : 'Opponent'}
+                    </span>
                   </div>
                 </div>
 
