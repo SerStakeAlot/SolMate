@@ -221,59 +221,41 @@ export class EscrowClient {
         tx.recentBlockhash = blockhash;
         tx.lastValidBlockHeight = lastValidBlockHeight;
 
-        // Debug: log required signers from compiled message BEFORE signing
+        // === TEMP DEBUG: createMatch signer diagnosis ===
+        console.log('[createMatch] wallet:', this.wallet.publicKey?.toBase58());
+        console.log('[createMatch] feePayer:', tx.feePayer?.toBase58());
         const compiledMsg = tx.compileMessage();
-        const numRequired = compiledMsg.header.numRequiredSignatures;
-        console.log('Required signatures (from compiled message):', numRequired);
-        console.log('Fee payer (first account key):', compiledMsg.accountKeys[0]?.toBase58());
-        console.log(
-          'Pre-sign signature slots:',
-          tx.signatures.map(s => ({
-            pubkey: s.publicKey.toBase58(),
-            hasSig: s.signature !== null,
-          }))
-        );
+        console.log('[createMatch] requiredSigners:', compiledMsg.header.numRequiredSignatures);
+        compiledMsg.accountKeys.slice(0, compiledMsg.header.numRequiredSignatures)
+          .forEach((k: PublicKey, i: number) => console.log('[createMatch] reqSigner', i, k.toBase58()));
+        tx.signatures.forEach(s => console.log('[createMatch] PRE-SIGN', s.publicKey.toBase58(), 'hasSig:', !!s.signature));
+        // === END PRE-SIGN DEBUG ===
 
         let signature: string;
 
         if (this.wallet.signTransaction) {
-          console.log('Signing createMatch with wallet.signTransaction...');
+          console.log('[createMatch] calling wallet.signTransaction...');
+          const signedTx = await this.wallet.signTransaction(tx);
 
-          const signed = await this.wallet.signTransaction(tx);
+          // === TEMP DEBUG: post-sign ===
+          signedTx.signatures.forEach(s => console.log('[createMatch] POST-SIGN', s.publicKey.toBase58(), 'hasSig:', !!s.signature));
 
-          // Hard sanity check: signed tx MUST have a non-null signature for our wallet
-          const walletSig = signed.signatures.find(s => s.publicKey.equals(walletPubkey));
+          // Hard assertion: wallet MUST have signed
+          const walletSig = signedTx.signatures.find(s => s.publicKey.equals(walletPubkey));
           if (!walletSig?.signature) {
-            console.error('POST-SIGN: wallet signature is MISSING in createMatch');
-            console.error(
-              'All signatures after signing:',
-              signed.signatures.map(s => ({
-                pubkey: s.publicKey.toBase58(),
-                hasSig: s.signature !== null,
-              }))
-            );
-            throw new Error(
-              `Wallet did not sign the transaction. Expected signature for ${walletPubkey.toBase58()} but it was null/missing. ` +
-              `Please disconnect and reconnect your wallet, then try again.`
-            );
+            throw new Error('[createMatch] Wallet did not sign - missing signature for ' + walletPubkey.toBase58());
           }
 
-          console.log(
-            'Post-sign signatures:',
-            signed.signatures.map(s => ({
-              pubkey: s.publicKey.toBase58(),
-              hasSig: s.signature !== null,
-            }))
-          );
-
-          // CRITICAL: send the SIGNED transaction bytes, not the original `tx`
-          signature = await this.connection.sendRawTransaction(signed.serialize(), {
+          // Serialize the SIGNED tx (not the original `tx`)
+          console.log('[createMatch] serializing signedTx (not tx)');
+          const rawBytes = signedTx.serialize();
+          console.log('[createMatch] serialized length:', rawBytes.length, 'first 64 bytes (sig):', Buffer.from(rawBytes.slice(0, 64)).toString('hex'));
+          signature = await this.connection.sendRawTransaction(rawBytes, {
             skipPreflight: false,
             preflightCommitment: 'confirmed',
           });
         } else if (this.wallet.sendTransaction) {
-          // Fallback: let the wallet adapter handle signing + sending
-          console.log('Using sendTransaction for createMatch (fallback)...');
+          console.log('[createMatch] using sendTransaction fallback');
           signature = await this.wallet.sendTransaction(tx, this.connection, {
             skipPreflight: false,
             preflightCommitment: 'confirmed',
@@ -387,60 +369,42 @@ export class EscrowClient {
     tx.recentBlockhash = blockhash;
     tx.lastValidBlockHeight = lastValidBlockHeight;
 
-    // Debug: log required signers from compiled message BEFORE signing
+    // === TEMP DEBUG: joinMatch signer diagnosis ===
+    console.log('[joinMatch] wallet:', this.wallet.publicKey?.toBase58());
+    console.log('[joinMatch] feePayer:', tx.feePayer?.toBase58());
     const compiledMsg = tx.compileMessage();
-    const numRequired = compiledMsg.header.numRequiredSignatures;
-    console.log('Required signatures (from compiled message):', numRequired);
-    console.log('Fee payer (first account key):', compiledMsg.accountKeys[0]?.toBase58());
-    console.log(
-      'Pre-sign signature slots:',
-      tx.signatures.map(s => ({
-        pubkey: s.publicKey.toBase58(),
-        hasSig: s.signature !== null,
-      }))
-    );
+    console.log('[joinMatch] requiredSigners:', compiledMsg.header.numRequiredSignatures);
+    compiledMsg.accountKeys.slice(0, compiledMsg.header.numRequiredSignatures)
+      .forEach((k: PublicKey, i: number) => console.log('[joinMatch] reqSigner', i, k.toBase58()));
+    tx.signatures.forEach(s => console.log('[joinMatch] PRE-SIGN', s.publicKey.toBase58(), 'hasSig:', !!s.signature));
+    // === END PRE-SIGN DEBUG ===
 
     try {
       let signature: string;
 
       if (this.wallet.signTransaction) {
-        console.log('Signing with wallet.signTransaction...');
+        console.log('[joinMatch] calling wallet.signTransaction...');
+        const signedTx = await this.wallet.signTransaction(tx);
 
-        const signed = await this.wallet.signTransaction(tx);
+        // === TEMP DEBUG: post-sign ===
+        signedTx.signatures.forEach(s => console.log('[joinMatch] POST-SIGN', s.publicKey.toBase58(), 'hasSig:', !!s.signature));
 
-        // Hard sanity check: the signed tx MUST contain a non-null signature for our wallet
-        const walletSig = signed.signatures.find(s => s.publicKey.equals(walletPubkey));
+        // Hard assertion: wallet MUST have signed
+        const walletSig = signedTx.signatures.find(s => s.publicKey.equals(walletPubkey));
         if (!walletSig?.signature) {
-          console.error('POST-SIGN: wallet signature is MISSING');
-          console.error(
-            'All signatures after signing:',
-            signed.signatures.map(s => ({
-              pubkey: s.publicKey.toBase58(),
-              hasSig: s.signature !== null,
-            }))
-          );
-          throw new Error(
-            `Wallet did not sign the transaction. Expected signature for ${walletPubkey.toBase58()} but it was null/missing. ` +
-            `Please disconnect and reconnect your wallet, then try again.`
-          );
+          throw new Error('[joinMatch] Wallet did not sign - missing signature for ' + walletPubkey.toBase58());
         }
 
-        console.log(
-          'Post-sign signatures:',
-          signed.signatures.map(s => ({
-            pubkey: s.publicKey.toBase58(),
-            hasSig: s.signature !== null,
-          }))
-        );
-
-        // CRITICAL: send the SIGNED transaction bytes, not the original `tx`
-        signature = await this.connection.sendRawTransaction(signed.serialize(), {
+        // Serialize the SIGNED tx (not the original `tx`)
+        console.log('[joinMatch] serializing signedTx (not tx)');
+        const rawBytes = signedTx.serialize();
+        console.log('[joinMatch] serialized length:', rawBytes.length, 'first 64 bytes (sig):', Buffer.from(rawBytes.slice(0, 64)).toString('hex'));
+        signature = await this.connection.sendRawTransaction(rawBytes, {
           skipPreflight: false,
           preflightCommitment: 'confirmed',
         });
       } else if (this.wallet.sendTransaction) {
-        // Fallback: let the wallet adapter handle signing + sending
-        console.log('Using sendTransaction for joinMatch (fallback)...');
+        console.log('[joinMatch] using sendTransaction fallback');
         signature = await this.wallet.sendTransaction(tx, this.connection, {
           skipPreflight: false,
           preflightCommitment: 'confirmed',
