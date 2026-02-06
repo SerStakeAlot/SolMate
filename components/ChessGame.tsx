@@ -3101,7 +3101,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             {(() => {
-              const myColor = aiPlayerColor || playerColor || 'w';
+              const myColor = (mode === 'practice' && !isFreePlay) ? aiPlayerColor : (playerColor || 'w');
               const isWinner = gameWinner === myColor;
               const winnerColor = gameWinner || 'w';
               const loserColor = gameWinner === 'w' ? 'b' : 'w';
