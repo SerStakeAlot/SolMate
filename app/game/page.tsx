@@ -2,7 +2,7 @@
 
 import { ChessGame } from "@/components/ChessGame";
 import { WalletButton } from "@/components/WalletButton";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense, useEffect, useRef, useState, useCallback } from "react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
@@ -120,6 +120,7 @@ function ParticleField() {
 }
 
 function GameContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const playMode = normalizeMode(searchParams.get("mode"));
   const matchParam = searchParams.get("match");
@@ -328,8 +329,8 @@ function GameContent() {
     if (hostSocket && hostMatchCode && hostSelectedColor !== 'w') {
       hostSocket.emit('match:setColor', { matchCode: hostMatchCode, color: hostSelectedColor });
     }
-    // Navigate to the game with match params (this page will re-render with match param)
-    window.location.href = `/game?mode=host&match=${hostMatchPubkey.toBase58()}&code=${hostMatchCode}&tier=${selectedTier}`;
+    // Navigate to the game with match params (client-side to preserve wallet state)
+    router.push(`/game?mode=host&match=${hostMatchPubkey.toBase58()}&code=${hostMatchCode}&tier=${selectedTier}`);
   };
 
   // Non-host mode display values
@@ -687,7 +688,7 @@ function GameContent() {
 
               <div style={{ textAlign: "center" }}>
                 <button
-                  onClick={() => window.location.href = "/lobby"}
+                  onClick={() => router.push("/lobby")}
                   style={{
                     padding: "10px 24px", borderRadius: 12,
                     background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
