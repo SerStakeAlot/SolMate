@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { 
@@ -16,6 +16,88 @@ const PROGRAM_ID = new PublicKey('H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV')
 const ADMIN_PUBKEY = new PublicKey('7BKqimAdco1XsknW88N38qf4PgXGieWN8USPgKxcf87B');
 const FEE_VAULT_PDA = new PublicKey('H3y5ST69e5QDVXZsWiNAiDgJfq7eW6GntkvyVxCmq5VX');
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_ENDPOINT || 'https://mainnet.helius-rpc.com/?api-key=REDACTED_HELIUS_API_KEY';
+
+// Particle field matching homepage
+function ParticleField() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    let animId: number;
+    let w = (canvas.width = canvas.offsetWidth);
+    let h = (canvas.height = canvas.offsetHeight);
+
+    const particles = Array.from({ length: 40 }, () => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: (Math.random() - 0.5) * 0.3,
+      r: Math.random() * 2 + 0.5,
+      o: Math.random() * 0.4 + 0.1,
+    }));
+
+    function draw() {
+      if (!ctx) return;
+      ctx.clearRect(0, 0, w, h);
+      particles.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0) p.x = w;
+        if (p.x > w) p.x = 0;
+        if (p.y < 0) p.y = h;
+        if (p.y > h) p.y = 0;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(153, 69, 255, ${p.o})`;
+        ctx.fill();
+      });
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = `rgba(0, 255, 163, ${0.06 * (1 - dist / 120)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      }
+      animId = requestAnimationFrame(draw);
+    }
+    draw();
+
+    const resize = () => {
+      if (!canvas) return;
+      w = canvas.width = canvas.offsetWidth;
+      h = canvas.height = canvas.offsetHeight;
+    };
+    window.addEventListener("resize", resize);
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        pointerEvents: "none",
+        zIndex: 0,
+      }}
+    />
+  );
+}
 
 export default function AdminVaultPage() {
   const { publicKey, sendTransaction, connected } = useWallet();
@@ -153,146 +235,452 @@ export default function AdminVaultPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-purple-400 mb-2">🔐 Fee Vault</h1>
-          <p className="text-gray-400 text-sm">SolMate Platform Fee Management</p>
-        </div>
+    <>
+      <style>{`
+        .vault-card {
+          background: rgba(255,255,255,0.02);
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 20px;
+          padding: 32px 28px;
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          position: relative;
+          overflow: hidden;
+        }
+        .vault-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(153,69,255,0.3), transparent);
+          opacity: 0;
+          transition: opacity 0.4s;
+        }
+        .vault-card:hover {
+          background: rgba(255,255,255,0.04);
+          border-color: rgba(255,255,255,0.1);
+          transform: translateY(-2px);
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .vault-card:hover::before {
+          opacity: 1;
+        }
+        .vault-stat-box {
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.06);
+          border-radius: 16px;
+          padding: 20px;
+          text-align: center;
+          transition: all 0.3s;
+        }
+        .vault-stat-box:hover {
+          background: rgba(255,255,255,0.05);
+          border-color: rgba(255,255,255,0.1);
+        }
+        .vault-input {
+          flex: 1;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 14px;
+          padding: 14px 18px;
+          color: #e8e8f0;
+          font-size: 15px;
+          font-family: 'Space Mono', monospace;
+          outline: none;
+          transition: all 0.3s;
+        }
+        .vault-input:focus {
+          border-color: rgba(153,69,255,0.4);
+          box-shadow: 0 0 20px rgba(153,69,255,0.1);
+        }
+        .vault-input::placeholder {
+          color: #3a3a50;
+        }
+        .btn-vault {
+          padding: 14px 28px;
+          background: linear-gradient(135deg, #9945ff 0%, #7b2fdb 100%);
+          border: none;
+          border-radius: 14px;
+          color: #fff;
+          font-size: 15px;
+          font-weight: 700;
+          font-family: 'Outfit', sans-serif;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          letter-spacing: 0.02em;
+        }
+        .btn-vault:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 8px 30px rgba(153,69,255,0.3);
+        }
+        .btn-vault:disabled {
+          background: rgba(255,255,255,0.04);
+          color: #6b6b80;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+        }
+        .btn-withdraw-all {
+          width: 100%;
+          padding: 16px;
+          background: rgba(0,255,163,0.08);
+          border: 1px solid rgba(0,255,163,0.2);
+          border-radius: 14px;
+          color: #00ffa3;
+          font-size: 15px;
+          font-weight: 700;
+          font-family: 'Outfit', sans-serif;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          letter-spacing: 0.02em;
+        }
+        .btn-withdraw-all:hover {
+          background: rgba(0,255,163,0.15);
+          border-color: rgba(0,255,163,0.4);
+          transform: translateY(-1px);
+          box-shadow: 0 8px 30px rgba(0,255,163,0.15);
+        }
+        .btn-withdraw-all:disabled {
+          background: rgba(255,255,255,0.04);
+          border-color: rgba(255,255,255,0.06);
+          color: #6b6b80;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+        }
+      `}</style>
 
-        {/* Wallet Connection */}
-        <div className="flex justify-center mb-8">
-          <WalletMultiButton />
-        </div>
+      <div
+        style={{
+          minHeight: '100vh',
+          position: 'relative',
+          overflow: 'hidden',
+          fontFamily: "'Outfit', sans-serif",
+          color: '#e8e8f0',
+        }}
+      >
+        <ParticleField />
 
-        {/* Admin Check */}
-        {connected && !isAdmin && (
-          <div className="bg-red-900/50 border border-red-500 rounded-lg p-4 mb-6 text-center">
-            <p className="text-red-300">⚠️ Connected wallet is not the admin</p>
-            <p className="text-sm text-gray-400 mt-1">
-              Expected: {ADMIN_PUBKEY.toString().slice(0, 8)}...
+        {/* Ambient glow effects matching homepage */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '-15%',
+            right: '-10%',
+            width: '500px',
+            height: '500px',
+            background: 'radial-gradient(circle, rgba(153,69,255,0.08) 0%, transparent 70%)',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '-10%',
+            left: '-10%',
+            width: '400px',
+            height: '400px',
+            background: 'radial-gradient(circle, rgba(0,255,163,0.05) 0%, transparent 70%)',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+        />
+
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 1,
+            maxWidth: '720px',
+            margin: '0 auto',
+            padding: '60px 24px 100px',
+          }}
+        >
+          {/* Page Header */}
+          <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+            <div
+              style={{
+                fontSize: '48px',
+                marginBottom: '16px',
+                filter: 'drop-shadow(0 0 20px rgba(153,69,255,0.3))',
+              }}
+            >
+              🔐
+            </div>
+            <h1
+              style={{
+                fontSize: 'clamp(32px, 5vw, 44px)',
+                fontWeight: 800,
+                letterSpacing: '-0.03em',
+                marginBottom: '10px',
+                marginTop: 0,
+                lineHeight: 1.1,
+              }}
+            >
+              <span style={{ color: '#e8e8f0' }}>Fee </span>
+              <span
+                style={{
+                  background: 'linear-gradient(135deg, #9945ff 0%, #00ffa3 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+              >
+                Vault
+              </span>
+            </h1>
+            <p
+              style={{
+                fontFamily: "'Space Mono', monospace",
+                fontSize: '13px',
+                color: '#6b6b80',
+                marginTop: 0,
+              }}
+            >
+              SolMate Platform Fee Management
             </p>
           </div>
-        )}
 
-        {connected && isAdmin && (
-          <div className="bg-green-900/50 border border-green-500 rounded-lg p-4 mb-6 text-center">
-            <p className="text-green-300">✅ Admin wallet connected</p>
+          {/* Wallet Connection */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '28px' }}>
+            <WalletMultiButton />
           </div>
-        )}
 
-        {/* Vault Stats */}
-        <div className="bg-gray-800 rounded-lg p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4 text-purple-300">Vault Statistics</h2>
-          
-          <div className="grid grid-cols-1 gap-4">
-            <div className="bg-gray-700/50 rounded-lg p-4">
-              <p className="text-gray-400 text-sm">Fee Vault Address</p>
-              <p className="font-mono text-sm text-white break-all">{FEE_VAULT_PDA.toString()}</p>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-gray-700/50 rounded-lg p-4 text-center">
-                <p className="text-gray-400 text-sm">Total Balance</p>
-                <p className="text-2xl font-bold text-white">
-                  {vaultBalance !== null ? vaultBalance.toFixed(4) : '...'} 
-                  <span className="text-sm text-gray-400 ml-1">SOL</span>
-                </p>
-              </div>
-              
-              <div className="bg-gray-700/50 rounded-lg p-4 text-center">
-                <p className="text-gray-400 text-sm">Available</p>
-                <p className="text-2xl font-bold text-green-400">
-                  {availableBalance !== null ? availableBalance.toFixed(4) : '...'}
-                  <span className="text-sm text-gray-400 ml-1">SOL</span>
-                </p>
-              </div>
-              
-              <div className="bg-gray-700/50 rounded-lg p-4 text-center">
-                <p className="text-gray-400 text-sm">All-Time Collected</p>
-                <p className="text-2xl font-bold text-purple-400">
-                  {totalCollected !== null ? totalCollected.toFixed(4) : '...'}
-                  <span className="text-sm text-gray-400 ml-1">SOL</span>
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Withdraw Section */}
-        {connected && isAdmin && (
-          <div className="bg-gray-800 rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4 text-purple-300">Withdraw Fees</h2>
-            
-            {/* Custom Amount */}
-            <div className="mb-4">
-              <label className="block text-gray-400 text-sm mb-2">Custom Amount (SOL)</label>
-              <div className="flex gap-3">
-                <input
-                  type="number"
-                  value={withdrawAmount}
-                  onChange={(e) => setWithdrawAmount(e.target.value)}
-                  placeholder="0.00"
-                  step="0.001"
-                  min="0"
-                  max={availableBalance || 0}
-                  className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500"
-                  disabled={loading}
-                />
-                <button
-                  onClick={() => handleWithdraw(false)}
-                  disabled={loading || !withdrawAmount || availableBalance === 0}
-                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors text-white"
-                  style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
-                >
-                  {loading ? 'Processing...' : 'Withdraw'}
-                </button>
-              </div>
-            </div>
-
-            {/* Withdraw All Button */}
-            <button
-              onClick={() => handleWithdraw(true)}
-              disabled={loading || availableBalance === 0}
-              className="w-full py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-semibold transition-colors text-white"
-              style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+          {/* Admin Check */}
+          {connected && !isAdmin && (
+            <div
+              className="vault-card"
+              style={{
+                background: 'rgba(239,68,68,0.06)',
+                borderColor: 'rgba(239,68,68,0.2)',
+                textAlign: 'center',
+                marginBottom: '20px',
+                padding: '20px 28px',
+              }}
             >
-              {loading ? 'Processing...' : `Withdraw All (${availableBalance?.toFixed(4) || 0} SOL)`}
-            </button>
+              <p style={{ color: '#f87171', fontSize: '15px', margin: 0, fontWeight: 600 }}>⚠️ Connected wallet is not the admin</p>
+              <p style={{ fontSize: '12px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", marginTop: '6px', marginBottom: 0 }}>
+                Expected: {ADMIN_PUBKEY.toString().slice(0, 8)}...
+              </p>
+            </div>
+          )}
 
-            {/* Status Messages */}
-            {status && (
-              <div className={`mt-4 p-4 rounded-lg ${
-                status.type === 'success' ? 'bg-green-900/50 border border-green-500 text-green-300' :
-                status.type === 'error' ? 'bg-red-900/50 border border-red-500 text-red-300' :
-                'bg-blue-900/50 border border-blue-500 text-blue-300'
-              }`}>
-                {status.message}
-              </div>
-            )}
+          {connected && isAdmin && (
+            <div
+              className="vault-card"
+              style={{
+                background: 'rgba(0,255,163,0.04)',
+                borderColor: 'rgba(0,255,163,0.2)',
+                textAlign: 'center',
+                marginBottom: '20px',
+                padding: '20px 28px',
+              }}
+            >
+              <p style={{ color: '#00ffa3', fontSize: '15px', margin: 0, fontWeight: 600 }}>✅ Admin wallet connected</p>
+            </div>
+          )}
 
-            {/* Transaction Link */}
-            {txSignature && (
-              <div className="mt-4 p-4 bg-gray-700/50 rounded-lg">
-                <p className="text-gray-400 text-sm mb-1">Transaction:</p>
-                <a
-                  href={`https://solscan.io/tx/${txSignature}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-purple-400 hover:text-purple-300 text-sm break-all"
-                >
-                  {txSignature}
-                </a>
+          {/* Vault Stats */}
+          <div className="vault-card" style={{ marginBottom: '20px' }}>
+            <h2
+              style={{
+                fontSize: '18px',
+                fontWeight: 700,
+                marginBottom: '20px',
+                marginTop: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+              }}
+            >
+              <span
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: '#9945ff',
+                  boxShadow: '0 0 12px rgba(153,69,255,0.5)',
+                  display: 'inline-block',
+                }}
+              />
+              Vault Statistics
+            </h2>
+
+            {/* Fee Vault Address */}
+            <div className="vault-stat-box" style={{ textAlign: 'left', marginBottom: '16px' }}>
+              <p style={{ fontSize: '11px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", marginBottom: '6px', marginTop: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                Fee Vault Address
+              </p>
+              <p
+                style={{
+                  fontFamily: "'Space Mono', monospace",
+                  fontSize: '12px',
+                  color: '#a0a0b8',
+                  wordBreak: 'break-all',
+                  margin: 0,
+                  lineHeight: 1.7,
+                }}
+              >
+                {FEE_VAULT_PDA.toString()}
+              </p>
+            </div>
+
+            {/* Stat Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+              <div className="vault-stat-box">
+                <p style={{ fontSize: '11px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", marginBottom: '8px', marginTop: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  Total Balance
+                </p>
+                <p style={{ fontSize: '22px', fontWeight: 700, color: '#e8e8f0', margin: 0, fontFamily: "'Space Mono', monospace" }}>
+                  {vaultBalance !== null ? vaultBalance.toFixed(4) : '...'}
+                </p>
+                <p style={{ fontSize: '11px', color: '#6b6b80', marginTop: '4px', marginBottom: 0 }}>SOL</p>
               </div>
-            )}
+
+              <div className="vault-stat-box">
+                <p style={{ fontSize: '11px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", marginBottom: '8px', marginTop: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  Available
+                </p>
+                <p style={{ fontSize: '22px', fontWeight: 700, color: '#00ffa3', margin: 0, fontFamily: "'Space Mono', monospace" }}>
+                  {availableBalance !== null ? availableBalance.toFixed(4) : '...'}
+                </p>
+                <p style={{ fontSize: '11px', color: '#6b6b80', marginTop: '4px', marginBottom: 0 }}>SOL</p>
+              </div>
+
+              <div className="vault-stat-box">
+                <p style={{ fontSize: '11px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", marginBottom: '8px', marginTop: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  All-Time
+                </p>
+                <p style={{ fontSize: '22px', fontWeight: 700, color: '#9945ff', margin: 0, fontFamily: "'Space Mono', monospace" }}>
+                  {totalCollected !== null ? totalCollected.toFixed(4) : '...'}
+                </p>
+                <p style={{ fontSize: '11px', color: '#6b6b80', marginTop: '4px', marginBottom: 0 }}>SOL</p>
+              </div>
+            </div>
           </div>
-        )}
 
-        {/* Footer */}
-        <div className="mt-8 text-center text-gray-500 text-sm">
-          <p>Program: {PROGRAM_ID.toString().slice(0, 16)}...</p>
+          {/* Withdraw Section */}
+          {connected && isAdmin && (
+            <div className="vault-card">
+              <h2
+                style={{
+                  fontSize: '18px',
+                  fontWeight: 700,
+                  marginBottom: '20px',
+                  marginTop: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                }}
+              >
+                <span
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#00ffa3',
+                    boxShadow: '0 0 12px rgba(0,255,163,0.5)',
+                    display: 'inline-block',
+                  }}
+                />
+                Withdraw Fees
+              </h2>
+
+              {/* Custom Amount */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '11px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  Custom Amount (SOL)
+                </label>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <input
+                    type="number"
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    placeholder="0.00"
+                    step="0.001"
+                    min="0"
+                    max={availableBalance || 0}
+                    disabled={loading}
+                    className="vault-input"
+                  />
+                  <button
+                    onClick={() => handleWithdraw(false)}
+                    disabled={loading || !withdrawAmount || availableBalance === 0}
+                    className="btn-vault"
+                  >
+                    {loading ? 'Processing...' : 'Withdraw'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Withdraw All Button */}
+              <button
+                onClick={() => handleWithdraw(true)}
+                disabled={loading || availableBalance === 0}
+                className="btn-withdraw-all"
+              >
+                {loading ? 'Processing...' : `Withdraw All (${availableBalance?.toFixed(4) || 0} SOL)`}
+              </button>
+
+              {/* Status Messages */}
+              {status && (
+                <div
+                  style={{
+                    marginTop: '16px',
+                    padding: '16px 20px',
+                    borderRadius: '14px',
+                    fontSize: '14px',
+                    lineHeight: 1.6,
+                    ...(status.type === 'success'
+                      ? { background: 'rgba(0,255,163,0.06)', border: '1px solid rgba(0,255,163,0.2)', color: '#00ffa3' }
+                      : status.type === 'error'
+                      ? { background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }
+                      : { background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.2)', color: '#60a5fa' }),
+                  }}
+                >
+                  {status.message}
+                </div>
+              )}
+
+              {/* Transaction Link */}
+              {txSignature && (
+                <div
+                  className="vault-stat-box"
+                  style={{ textAlign: 'left', marginTop: '12px' }}
+                >
+                  <p style={{ fontSize: '11px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", marginBottom: '6px', marginTop: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    Transaction
+                  </p>
+                  <a
+                    href={`https://solscan.io/tx/${txSignature}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: '#9945ff',
+                      fontSize: '12px',
+                      fontFamily: "'Space Mono', monospace",
+                      wordBreak: 'break-all',
+                      textDecoration: 'none',
+                      transition: 'color 0.2s',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#b366ff')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = '#9945ff')}
+                  >
+                    {txSignature}
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Footer */}
+          <div style={{ marginTop: '40px', textAlign: 'center' }}>
+            <p style={{ fontSize: '12px', color: '#3a3a50', fontFamily: "'Space Mono', monospace", margin: 0 }}>
+              Program: {PROGRAM_ID.toString().slice(0, 16)}...
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

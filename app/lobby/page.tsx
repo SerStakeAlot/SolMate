@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, RefreshCw, Plus, Clock, User, Coins, Search, Wifi, WifiOff } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
 import { io, Socket } from "socket.io-client";
+import Link from "next/link";
+import Image from "next/image";
 
 import { WalletButton } from "@/components/WalletButton";
 import {
@@ -15,7 +16,14 @@ import {
   getStakeTierInfo,
   MatchStatus,
 } from "@/utils/escrow";
+import {
+  getUsernames,
+  getPlayerStats,
+  formatDisplayName,
+  PlayerStats,
+} from "@/utils/username";
 
+// ─── TYPES ───
 interface MatchWithPubkey {
   pubkey: PublicKey;
   account: MatchAccount;
@@ -30,6 +38,75 @@ interface HostedMatch {
   joinDeadline: number;
 }
 
+// ─── TIER COLOR MAP ───
+const TIER_COLORS: Record<number, { bg: string; border: string; text: string }> = {
+  4:  { bg: "rgba(0,212,255,0.08)",   border: "rgba(0,212,255,0.2)",   text: "#00d4ff" },   // 0.05 SOL = cyan
+  5:  { bg: "rgba(0,255,163,0.08)",   border: "rgba(0,255,163,0.2)",   text: "#00ffa3" },   // 0.1 SOL  = green
+  2:  { bg: "rgba(0,255,163,0.08)",   border: "rgba(0,255,163,0.2)",   text: "#00ffa3" },   // 0.1 SOL alt tier id
+  0:  { bg: "rgba(153,69,255,0.08)",  border: "rgba(153,69,255,0.2)",  text: "#9945ff" },   // 0.5 SOL = purple
+  1:  { bg: "rgba(255,107,107,0.08)", border: "rgba(255,107,107,0.2)", text: "#ff6b6b" },   // 1 SOL   = red
+};
+
+const TIER_FILTER_COLORS: Record<string, string> = {
+  "All":      "#e8e8f0",
+  "0.05 SOL": "#00d4ff",
+  "0.1 SOL":  "#00ffa3",
+  "0.5 SOL":  "#9945ff",
+  "1 SOL":    "#ff6b6b",
+};
+
+function getTierColor(tier: number) {
+  return TIER_COLORS[tier] || { bg: "rgba(255,255,255,0.06)", border: "rgba(255,255,255,0.1)", text: "#e8e8f0" };
+}
+
+// ─── PARTICLE BACKGROUND ───
+function ParticleField() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    let animId: number;
+    let w = (canvas.width = canvas.offsetWidth);
+    let h = (canvas.height = canvas.offsetHeight);
+    const particles = Array.from({ length: 35 }, () => ({
+      x: Math.random() * w, y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.2, vy: (Math.random() - 0.5) * 0.2,
+      r: Math.random() * 1.5 + 0.5, o: Math.random() * 0.25 + 0.05,
+    }));
+    function draw() {
+      ctx!.clearRect(0, 0, w, h);
+      particles.forEach((p) => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
+        if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
+        ctx!.beginPath(); ctx!.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx!.fillStyle = `rgba(153,69,255,${p.o})`; ctx!.fill();
+      });
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 100) {
+            ctx!.beginPath(); ctx!.moveTo(particles[i].x, particles[i].y);
+            ctx!.lineTo(particles[j].x, particles[j].y);
+            ctx!.strokeStyle = `rgba(0,255,163,${0.04 * (1 - dist / 100)})`;
+            ctx!.lineWidth = 0.5; ctx!.stroke();
+          }
+        }
+      }
+      animId = requestAnimationFrame(draw);
+    }
+    draw();
+    const resize = () => { w = canvas.width = canvas.offsetWidth; h = canvas.height = canvas.offsetHeight; };
+    window.addEventListener("resize", resize);
+    return () => { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); };
+  }, []);
+  return <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none", zIndex: 0 }} />;
+}
+
 const BACKEND_URL = 'https://solmate-production.up.railway.app';
 
 export default function LobbyPage() {
@@ -42,22 +119,30 @@ export default function LobbyPage() {
   const [matches, setMatches] = useState<MatchWithPubkey[]>([]);
   // WebSocket hosted matches
   const [hostedMatches, setHostedMatches] = useState<HostedMatch[]>([]);
-  
+
   const [loading, setLoading] = useState(true);
   const [selectedTier, setSelectedTier] = useState<number | null>(null);
   const [joiningMatch, setJoiningMatch] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  
+
   // Search by match code
   const [searchCode, setSearchCode] = useState("");
   const [searchResult, setSearchResult] = useState<HostedMatch | null>(null);
   const [searchError, setSearchError] = useState("");
-  
+
   // WebSocket state
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  // Initialize WebSocket connection
+  // Username + stats lookup
+  const [usernames, setUsernames] = useState<Record<string, string>>({});
+  const [playerStats, setPlayerStats] = useState<Record<string, PlayerStats>>({});
+
+  // Visibility animation
+  const [visible, setVisible] = useState(false);
+  useEffect(() => { setTimeout(() => setVisible(true), 100); }, []);
+
+  // ─── WEBSOCKET INIT ───
   useEffect(() => {
     const newSocket = io(BACKEND_URL, {
       transports: ['websocket', 'polling'],
@@ -66,18 +151,15 @@ export default function LobbyPage() {
     newSocket.on('connect', () => {
       console.log('Connected to lobby server');
       setIsConnected(true);
-      
-      // Subscribe to lobby updates immediately
       newSocket.emit('lobby:subscribe');
     });
-    
+
     newSocket.on('disconnect', () => {
       console.log('Disconnected from lobby server');
       setIsConnected(false);
     });
 
-    // Lobby events
-    newSocket.on('lobby:matches', ({ matches }) => {
+    newSocket.on('lobby:matches', ({ matches }: { matches: HostedMatch[] }) => {
       setHostedMatches(matches);
       setLoading(false);
     });
@@ -86,17 +168,23 @@ export default function LobbyPage() {
       setHostedMatches(prev => [match, ...prev]);
     });
 
-    newSocket.on('lobby:matchRemoved', ({ matchCode }) => {
+    newSocket.on('lobby:matchRemoved', ({ matchCode }: { matchCode: string }) => {
       setHostedMatches(prev => prev.filter(m => m.matchCode !== matchCode));
     });
 
-    // Search result
     newSocket.on('match:found', (match: HostedMatch) => {
       setSearchResult(match);
       setSearchError("");
+      // Fetch username + stats for search result host
+      getUsernames([match.hostWallet]).then((names) => {
+        setUsernames((prev) => ({ ...prev, ...names }));
+      });
+      getPlayerStats(match.hostWallet).then((s) => {
+        if (s) setPlayerStats((prev) => ({ ...prev, [match.hostWallet]: s }));
+      });
     });
 
-    newSocket.on('match:notFound', ({ matchCode }) => {
+    newSocket.on('match:notFound', ({ matchCode }: { matchCode: string }) => {
       setSearchResult(null);
       setSearchError(`No match found with code: ${matchCode}`);
     });
@@ -108,7 +196,7 @@ export default function LobbyPage() {
       newSocket.disconnect();
     };
   }, []);
-  
+
   // Register player when wallet connects
   useEffect(() => {
     if (socket && isConnected && publicKey) {
@@ -117,13 +205,39 @@ export default function LobbyPage() {
     }
   }, [socket, isConnected, publicKey]);
 
+  // Fetch usernames + stats for all visible host wallets
+  useEffect(() => {
+    const wallets = new Set<string>();
+    hostedMatches.forEach((m) => wallets.add(m.hostWallet));
+    matches.forEach((m) => wallets.add(m.account.playerA.toString()));
+    const walletArr = Array.from(wallets);
+    if (walletArr.length === 0) return;
+
+    getUsernames(walletArr).then((names) => {
+      setUsernames((prev) => ({ ...prev, ...names }));
+    });
+
+    Promise.all(
+      walletArr.map((w) =>
+        getPlayerStats(w).then((s) => [w, s] as const)
+      )
+    ).then((results) => {
+      const statsMap: Record<string, PlayerStats> = {};
+      results.forEach(([w, s]) => {
+        if (s) statsMap[w] = s;
+      });
+      setPlayerStats((prev) => ({ ...prev, ...statsMap }));
+    });
+  }, [hostedMatches, matches]);
+
   // Load on-chain matches for fallback
   useEffect(() => {
     loadOnChainMatches();
     const interval = setInterval(() => {
       loadOnChainMatches();
-    }, 30000); // Refresh on-chain matches every 30 seconds
+    }, 30000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, refreshKey]);
 
   const loadOnChainMatches = async () => {
@@ -143,7 +257,7 @@ export default function LobbyPage() {
       setSearchError("Please enter a 4-letter match code");
       return;
     }
-    
+
     if (socket && isConnected) {
       socket.emit('match:search', { matchCode: searchCode.toUpperCase() });
     } else {
@@ -159,16 +273,12 @@ export default function LobbyPage() {
 
     setJoiningMatch(match.matchCode);
     try {
-      // First join on-chain
       console.log('Joining match on-chain...', match.matchPubkey);
       const matchPubkey = new PublicKey(match.matchPubkey);
       const client = new EscrowClient(connection, wallet);
       const signature = await client.joinMatch(matchPubkey);
-      
-      console.log('Successfully joined match on-chain! Signature:', signature);
 
-      // Redirect to game as joiner (black)
-      // The ChessGame component will emit match:join to WebSocket
+      console.log('Successfully joined match on-chain! Signature:', signature);
       router.push(`/game?mode=join&match=${match.matchPubkey}&code=${match.matchCode}&tier=${match.stakeTier}`);
     } catch (error) {
       console.error("Error joining match on-chain:", error);
@@ -202,9 +312,8 @@ export default function LobbyPage() {
 
   const getTimeRemaining = (deadline: number, isTimestamp: boolean = false): string => {
     const now = isTimestamp ? Date.now() : Math.floor(Date.now() / 1000);
-    const deadlineValue = isTimestamp ? deadline : deadline;
-    const remaining = isTimestamp 
-      ? Math.floor((deadline - now) / 1000) 
+    const remaining = isTimestamp
+      ? Math.floor((deadline - now) / 1000)
       : deadline - now;
 
     if (remaining <= 0) return "Expired";
@@ -218,14 +327,17 @@ export default function LobbyPage() {
     return `${seconds}s`;
   };
 
-  // Filter matches by tier
-  const filteredHostedMatches = selectedTier !== null
-    ? hostedMatches.filter((m) => m.stakeTier === selectedTier)
-    : hostedMatches;
+  // Filter matches by tier + search code for live filtering
+  const filteredHostedMatches = hostedMatches.filter((m) => {
+    const tierMatch = selectedTier === null || m.stakeTier === selectedTier;
+    const codeMatch = !searchCode || m.matchCode.includes(searchCode.toUpperCase());
+    return tierMatch && codeMatch;
+  });
 
-  const filteredOnChainMatches = selectedTier !== null
-    ? matches.filter((m) => m.account.stakeTier === selectedTier)
-    : matches;
+  const filteredOnChainMatches = matches.filter((m) => {
+    const tierMatch = selectedTier === null || m.account.stakeTier === selectedTier;
+    return tierMatch;
+  });
 
   const isOwnMatch = (hostWallet: string): boolean => {
     return !!publicKey && hostWallet === publicKey.toString();
@@ -243,380 +355,786 @@ export default function LobbyPage() {
     { value: 1, label: "1 SOL" },
   ];
 
-  return (
-    <main className="mx-auto w-full max-w-6xl px-3 sm:px-6 py-6 sm:py-12">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+  const fadeUp = (delay = 0): React.CSSProperties => ({
+    opacity: visible ? 1 : 0,
+    transform: visible ? "translateY(0)" : "translateY(20px)",
+    transition: `all 0.7s cubic-bezier(0.16, 1, 0.3, 1) ${delay}s`,
+  });
+
+  // ─── Row renderer: hosted matches ───
+  const renderHostedRow = (match: HostedMatch, index: number) => {
+    const timeLeft = getTimeRemaining(match.joinDeadline, true);
+    const isExpired = timeLeft === "Expired";
+    const isOwn = isOwnMatch(match.hostWallet);
+    const isJoining = joiningMatch === match.matchCode;
+    const tierInfo = getStakeTierInfo(match.stakeTier);
+    const tc = getTierColor(match.stakeTier);
+
+    return (
+      <div
+        key={match.matchCode}
+        className="match-row"
+        style={{ opacity: isExpired ? 0.4 : 1 }}
       >
-        {/* Header */}
-        <header className="flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-10">
+        <span style={{
+          fontFamily: "'Space Mono', monospace",
+          fontSize: 16, fontWeight: 700, color: "#e8e8f0",
+          letterSpacing: "0.06em",
+        }}>
+          {match.matchCode}
+        </span>
+
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "5px 12px", borderRadius: 8,
+          background: tc.bg, border: `1px solid ${tc.border}`,
+          fontSize: 13, fontWeight: 700, color: tc.text,
+          fontFamily: "'Space Mono', monospace",
+          whiteSpace: "nowrap",
+        }}>
+          ◆ {tierInfo.label}
+        </span>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 8,
+            background: "linear-gradient(135deg, rgba(153,69,255,0.15), rgba(0,255,163,0.1))",
+            border: "1px solid rgba(255,255,255,0.06)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 13, flexShrink: 0,
+          }}>👤</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{
+                fontFamily: "'Space Mono', monospace",
+                fontSize: 13, color: usernames[match.hostWallet] ? "#e8e8f0" : "#6b6b80",
+                fontWeight: usernames[match.hostWallet] ? 600 : 400,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>
+                {formatDisplayName(match.hostWallet, usernames[match.hostWallet])}
+              </span>
+              {isOwn && (
+                <span style={{
+                  fontSize: 11, color: "#00d4ff",
+                  background: "rgba(0,212,255,0.08)", padding: "2px 8px",
+                  borderRadius: 6, border: "1px solid rgba(0,212,255,0.15)",
+                  flexShrink: 0,
+                }}>You</span>
+              )}
+            </div>
+            {playerStats[match.hostWallet] && (
+              <span style={{
+                fontFamily: "'Space Mono', monospace",
+                fontSize: 11, color: "#555",
+              }}>
+                {playerStats[match.hostWallet].gamesWon}W - {playerStats[match.hostWallet].gamesLost}L
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 12, color: isExpired ? "#ff5050" : "#00ffa3" }}>⏱</span>
+          <span style={{
+            fontFamily: "'Space Mono', monospace",
+            fontSize: 13, fontWeight: 600,
+            color: isExpired ? "#ff5050" : "#a0a0b8",
+          }}>
+            {timeLeft}
+          </span>
+        </div>
+
+        <div style={{ textAlign: "right" }}>
+          {!connected ? (
+            <button disabled className="join-btn join-btn-disabled">Connect</button>
+          ) : isOwn ? (
+            <button disabled className="join-btn join-btn-disabled">Your Match</button>
+          ) : isExpired ? (
+            <button disabled className="join-btn join-btn-expired">Expired</button>
+          ) : (
+            <button
+              className="join-btn"
+              disabled={isJoining}
+              onClick={() => handleJoinHostedMatch(match)}
+              style={{ opacity: isJoining ? 0.6 : 1 }}
+            >
+              {isJoining ? (
+                <span style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
+                  <span className="join-spinner" />
+                  Joining
+                </span>
+              ) : "Join"}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // ─── Row renderer: on-chain matches ───
+  const renderOnChainRow = (match: MatchWithPubkey, index: number) => {
+    const tierInfo = getStakeTierInfo(match.account.stakeTier);
+    const deadline = match.account.joinDeadline.toNumber();
+    const timeLeft = getTimeRemaining(deadline);
+    const isExpired = timeLeft === "Expired";
+    const isOwn = isOwnOnChainMatch(match.account);
+    const isJoining = joiningMatch === match.pubkey.toString();
+    const tc = getTierColor(match.account.stakeTier);
+    const code = match.pubkey.toString().slice(0, 4).toUpperCase();
+
+    return (
+      <div
+        key={match.pubkey.toString()}
+        className="match-row"
+        style={{ opacity: isExpired ? 0.4 : 1 }}
+      >
+        <span style={{
+          fontFamily: "'Space Mono', monospace",
+          fontSize: 16, fontWeight: 700, color: "#e8e8f0",
+          letterSpacing: "0.06em",
+        }}>
+          {code}
+        </span>
+
+        <span style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "5px 12px", borderRadius: 8,
+          background: tc.bg, border: `1px solid ${tc.border}`,
+          fontSize: 13, fontWeight: 700, color: tc.text,
+          fontFamily: "'Space Mono', monospace",
+          whiteSpace: "nowrap",
+        }}>
+          ◆ {tierInfo.label}
+        </span>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 8,
+            background: "linear-gradient(135deg, rgba(153,69,255,0.15), rgba(0,255,163,0.1))",
+            border: "1px solid rgba(255,255,255,0.06)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 13, flexShrink: 0,
+          }}>👤</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{
+                fontFamily: "'Space Mono', monospace",
+                fontSize: 13, color: usernames[match.account.playerA.toString()] ? "#e8e8f0" : "#6b6b80",
+                fontWeight: usernames[match.account.playerA.toString()] ? 600 : 400,
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>
+                {formatDisplayName(match.account.playerA.toString(), usernames[match.account.playerA.toString()])}
+              </span>
+              {isOwn && (
+                <span style={{
+                  fontSize: 11, color: "#00d4ff",
+                  background: "rgba(0,212,255,0.08)", padding: "2px 8px",
+                  borderRadius: 6, border: "1px solid rgba(0,212,255,0.15)",
+                  flexShrink: 0,
+                }}>You</span>
+              )}
+            </div>
+            {playerStats[match.account.playerA.toString()] && (
+              <span style={{
+                fontFamily: "'Space Mono', monospace",
+                fontSize: 11, color: "#555",
+              }}>
+                {playerStats[match.account.playerA.toString()].gamesWon}W - {playerStats[match.account.playerA.toString()].gamesLost}L
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 12, color: isExpired ? "#ff5050" : "#00ffa3" }}>⏱</span>
+          <span style={{
+            fontFamily: "'Space Mono', monospace",
+            fontSize: 13, fontWeight: 600,
+            color: isExpired ? "#ff5050" : "#a0a0b8",
+          }}>
+            {timeLeft}
+          </span>
+        </div>
+
+        <div style={{ textAlign: "right" }}>
+          {!connected ? (
+            <button disabled className="join-btn join-btn-disabled">Connect</button>
+          ) : isOwn ? (
+            <button disabled className="join-btn join-btn-disabled">Your Match</button>
+          ) : isExpired ? (
+            <button disabled className="join-btn join-btn-expired">Expired</button>
+          ) : (
+            <button
+              className="join-btn"
+              disabled={isJoining}
+              onClick={() => handleJoinMatch(match.pubkey, match.account.stakeTier)}
+              style={{ opacity: isJoining ? 0.6 : 1 }}
+            >
+              {isJoining ? (
+                <span style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
+                  <span className="join-spinner" />
+                  Joining
+                </span>
+              ) : "Join"}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const totalCount = filteredHostedMatches.length + filteredOnChainMatches.length;
+
+  return (
+    <div style={{
+      minHeight: "100vh", background: "#07070e", color: "#e8e8f0",
+      fontFamily: "'Outfit', 'SF Pro Display', sans-serif",
+      position: "relative", overflow: "hidden",
+    }}>
+      <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+      <ParticleField />
+
+      {/* Ambient glows */}
+      <div style={{ position: "absolute", top: "-10%", right: "10%", width: 500, height: 500, background: "radial-gradient(circle, rgba(153,69,255,0.06) 0%, transparent 70%)", pointerEvents: "none", zIndex: 0 }} />
+      <div style={{ position: "absolute", bottom: "0", left: "-5%", width: 400, height: 400, background: "radial-gradient(circle, rgba(0,255,163,0.04) 0%, transparent 70%)", pointerEvents: "none", zIndex: 0 }} />
+
+      <style>{`
+        @keyframes glow-pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .match-row {
+          display: grid;
+          grid-template-columns: 80px 110px 1fr 100px 120px;
+          align-items: center;
+          gap: 16px;
+          padding: 16px 24px;
+          background: rgba(255,255,255,0.015);
+          border: 1px solid rgba(255,255,255,0.04);
+          border-radius: 14px;
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          cursor: default;
+        }
+        .match-row:hover {
+          background: rgba(255,255,255,0.035);
+          border-color: rgba(153,69,255,0.2);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 30px rgba(0,0,0,0.2), 0 0 20px rgba(153,69,255,0.06);
+        }
+        @media (max-width: 768px) {
+          .match-row {
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 14px 16px;
+          }
+          .col-headers { display: none !important; }
+        }
+        .join-btn {
+          padding: 8px 20px;
+          border-radius: 10px;
+          font-size: 13px;
+          font-weight: 700;
+          font-family: 'Outfit', sans-serif;
+          cursor: pointer;
+          transition: all 0.25s;
+          border: none;
+          background: linear-gradient(135deg, #00ffa3 0%, #00d4ff 50%, #9945ff 100%);
+          color: #07070e;
+          white-space: nowrap;
+        }
+        .join-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 20px rgba(0,255,163,0.3);
+        }
+        .join-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+        }
+        .join-btn-disabled {
+          background: rgba(255,255,255,0.04) !important;
+          color: #444 !important;
+          cursor: not-allowed !important;
+        }
+        .join-btn-expired {
+          background: rgba(255,255,255,0.04) !important;
+          color: #ff5050 !important;
+          cursor: not-allowed !important;
+        }
+        .join-spinner {
+          width: 14px;
+          height: 14px;
+          border: 2px solid #07070e;
+          border-top-color: transparent;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+          display: inline-block;
+        }
+        .tier-filter {
+          padding: 8px 18px;
+          border-radius: 10px;
+          font-size: 13px;
+          font-weight: 600;
+          font-family: 'Outfit', sans-serif;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: 1px solid rgba(255,255,255,0.06);
+          background: rgba(255,255,255,0.02);
+          color: #6b6b80;
+        }
+        .tier-filter:hover {
+          background: rgba(255,255,255,0.05);
+          color: #e8e8f0;
+          border-color: rgba(255,255,255,0.1);
+        }
+        .tier-filter-active {
+          background: rgba(0,255,163,0.08) !important;
+          border-color: rgba(0,255,163,0.25) !important;
+          color: #00ffa3 !important;
+        }
+        .search-result-row {
+          display: grid;
+          grid-template-columns: 80px 110px 1fr 100px 120px;
+          align-items: center;
+          gap: 16px;
+          padding: 16px 24px;
+          background: rgba(153,69,255,0.06);
+          border: 1px solid rgba(153,69,255,0.2);
+          border-radius: 14px;
+        }
+        @media (max-width: 768px) {
+          .search-result-row {
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 14px 16px;
+          }
+        }
+      `}</style>
+
+      {/* ─── NAV (with existing logo image) ─── */}
+      <nav style={{
+        position: "relative", zIndex: 10,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "20px 40px", maxWidth: 1200, margin: "0 auto",
+        ...fadeUp(0),
+      }}>
+        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+          <Image
+            src="/images/solmate-logo.png"
+            alt="SolMate"
+            width={36}
+            height={36}
+            style={{ objectFit: "contain" }}
+          />
+          <span style={{
+            fontFamily: "'Space Mono', monospace", fontWeight: 700, fontSize: 18,
+            letterSpacing: "0.08em",
+            background: "linear-gradient(135deg, #00ffa3, #9945ff)",
+            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+          }}>SOLMATE</span>
+        </Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <Link href="/arena" style={{ color: "#6b6b80", textDecoration: "none", fontSize: 14, fontWeight: 500, padding: "8px 16px", borderRadius: 10, fontFamily: "'Outfit', sans-serif" }}>Arena</Link>
+          <Link href="/learn" style={{ color: "#6b6b80", textDecoration: "none", fontSize: 14, fontWeight: 500, padding: "8px 16px", borderRadius: 10, fontFamily: "'Outfit', sans-serif" }}>Learn</Link>
+          <div style={{ marginLeft: 12 }}>
+            <WalletButton />
+          </div>
+        </div>
+      </nav>
+
+      {/* ─── PAGE CONTENT ─── */}
+      <div style={{
+        position: "relative", zIndex: 1, maxWidth: 960, margin: "0 auto",
+        padding: "20px 40px 80px",
+      }}>
+
+        {/* Header row */}
+        <div style={{
+          display: "flex", alignItems: "flex-start", justifyContent: "space-between",
+          marginBottom: 36, ...fadeUp(0.1),
+        }}>
           <div>
-            <h1 className="font-display text-2xl sm:text-4xl font-bold mb-1 sm:mb-2">
-              Match <span className="text-gradient">Lobby</span>
+            <h1 style={{
+              fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800,
+              letterSpacing: "-0.03em", marginBottom: 8,
+            }}>
+              Match{" "}
+              <span style={{
+                background: "linear-gradient(135deg, #00ffa3, #00d4ff)",
+                WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+              }}>Lobby</span>
             </h1>
-            <p className="text-sm sm:text-base text-neutral-400 font-medium">
-              Join an open match or create your own
+            <p style={{ fontSize: 15, color: "#6b6b80" }}>
+              Browse open matches and join a challenger at your stake level
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {isConnected ? (
-              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <Wifi className="w-3 h-3" />
-                Live
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
-                <WifiOff className="w-3 h-3" />
-                Offline
-              </span>
-            )}
-          </div>
-        </header>
 
-        {/* Navigation & Actions */}
-        <div className="mb-8 flex items-center justify-between">
+          {/* Connection status */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "6px 14px", borderRadius: 100,
+            background: isConnected ? "rgba(0,255,163,0.06)" : "rgba(255,80,80,0.06)",
+            border: `1px solid ${isConnected ? "rgba(0,255,163,0.15)" : "rgba(255,80,80,0.15)"}`,
+            fontSize: 12, fontWeight: 600,
+            fontFamily: "'Space Mono', monospace",
+            color: isConnected ? "#00ffa3" : "#ff5050",
+          }}>
+            <span style={{
+              width: 6, height: 6, borderRadius: "50%",
+              background: isConnected ? "#00ffa3" : "#ff5050",
+              animation: isConnected ? "glow-pulse 2s infinite" : "none",
+            }} />
+            {isConnected ? "Live" : "Offline"}
+          </div>
+        </div>
+
+        {/* ─── UNIFIED SEARCH + FILTER BAR ─── */}
+        <div style={{
+          display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap",
+          alignItems: "center",
+          ...fadeUp(0.2),
+        }}>
+          {/* Search input */}
+          <div style={{ position: "relative", flex: "0 0 auto" }}>
+            <input
+              type="text"
+              value={searchCode}
+              onChange={(e) => {
+                setSearchCode(e.target.value.toUpperCase().slice(0, 4));
+                setSearchError("");
+                setSearchResult(null);
+              }}
+              onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
+              placeholder="Search code..."
+              maxLength={4}
+              style={{
+                width: 160, padding: "10px 16px 10px 38px",
+                borderRadius: 12, fontSize: 14,
+                fontFamily: "'Space Mono', monospace",
+                background: "rgba(255,255,255,0.03)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                color: "#e8e8f0", letterSpacing: "0.08em",
+                outline: "none", textTransform: "uppercase",
+              }}
+            />
+            <span style={{
+              position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)",
+              fontSize: 14, color: "#444",
+            }}>🔍</span>
+          </div>
+
+          {/* Search button */}
           <button
-            onClick={() => router.push("/play")}
-            className="btn-ghost flex items-center gap-2 px-4 py-2 text-sm text-neutral-400 hover:text-white group"
+            onClick={handleSearch}
+            disabled={searchCode.length !== 4}
+            style={{
+              padding: "10px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+              fontFamily: "'Outfit', sans-serif", cursor: searchCode.length === 4 ? "pointer" : "not-allowed",
+              border: "none",
+              background: searchCode.length === 4
+                ? "linear-gradient(135deg, #00ffa3 0%, #9945ff 100%)"
+                : "rgba(255,255,255,0.03)",
+              color: searchCode.length === 4 ? "#07070e" : "#444",
+              opacity: searchCode.length === 4 ? 1 : 0.5,
+              transition: "all 0.2s",
+            }}
           >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            Back to modes
+            Search
           </button>
+
+          {/* Divider */}
+          <div style={{ width: 1, height: 28, background: "rgba(255,255,255,0.06)" }} />
+
+          {/* Tier filters */}
+          {tierOptions.map((tier) => {
+            const filterColor = TIER_FILTER_COLORS[tier.label] || "#e8e8f0";
+            return (
+              <button
+                key={tier.label}
+                onClick={() => setSelectedTier(tier.value)}
+                className={`tier-filter ${selectedTier === tier.value ? "tier-filter-active" : ""}`}
+              >
+                {tier.value !== null && (
+                  <span style={{
+                    display: "inline-block", width: 6, height: 6, borderRadius: "50%",
+                    background: filterColor, marginRight: 6,
+                  }} />
+                )}
+                {tier.label}
+              </button>
+            );
+          })}
+
+          {/* Spacer + Refresh */}
+          <div style={{ flex: 1 }} />
           <button
             onClick={() => setRefreshKey((k) => k + 1)}
-            className="btn-ghost flex items-center gap-2 px-4 py-2 text-sm text-neutral-400 hover:text-white group"
+            style={{
+              padding: "8px 16px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+              fontFamily: "'Outfit', sans-serif", cursor: "pointer",
+              border: "1px solid rgba(255,255,255,0.06)",
+              background: "rgba(255,255,255,0.02)", color: "#6b6b80",
+              display: "flex", alignItems: "center", gap: 6, transition: "all 0.2s",
+            }}
           >
-            <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
-            Refresh
+            ↻ Refresh
           </button>
         </div>
 
-        {/* Search by Match Code */}
-        <div className="glass-card rounded-3xl p-6 mb-6">
-          <h3 className="text-sm font-medium text-neutral-400 mb-4">Search by Match Code</h3>
-          <div className="flex gap-3">
-            <div className="relative flex-1 max-w-xs">
-              <input
-                type="text"
-                value={searchCode}
-                onChange={(e) => {
-                  setSearchCode(e.target.value.toUpperCase().slice(0, 4));
-                  setSearchError("");
-                  setSearchResult(null);
-                }}
-                placeholder="ABCD"
-                maxLength={4}
-                className="w-full px-4 py-3 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-neutral-500 focus:outline-none focus:border-solana-purple/50 focus:ring-2 focus:ring-solana-purple/20 font-mono text-lg tracking-widest text-center uppercase"
-              />
-            </div>
-            <button
-              onClick={handleSearch}
-              disabled={searchCode.length !== 4}
-              className="btn-glow px-6 py-3 rounded-2xl text-sm font-semibold text-white flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Search className="w-4 h-4" />
-              Search
-            </button>
+        {/* Search Error */}
+        {searchError && (
+          <div style={{
+            marginBottom: 16, padding: "10px 20px",
+            borderRadius: 10, fontSize: 13, color: "#ff5050",
+            background: "rgba(255,80,80,0.06)",
+            border: "1px solid rgba(255,80,80,0.12)",
+            fontFamily: "'Space Mono', monospace",
+          }}>
+            {searchError}
           </div>
-          
-          {/* Search Error */}
-          {searchError && (
-            <p className="mt-3 text-sm text-red-400">{searchError}</p>
-          )}
-          
-          {/* Search Result */}
-          <AnimatePresence>
-            {searchResult && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="mt-4 p-4 rounded-xl border border-solana-purple/30 bg-solana-purple/10"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-mono text-lg text-white">{searchResult.matchCode}</span>
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-bold bg-gradient-to-r from-solana-purple/30 to-solana-green/30 text-white">
-                        {searchResult.stakeTier === 0 ? "0.5 SOL" : "1 SOL"}
+        )}
+
+        {/* Search Result */}
+        {searchResult && (() => {
+          const srTierInfo = getStakeTierInfo(searchResult.stakeTier);
+          const srTc = getTierColor(searchResult.stakeTier);
+          const srIsOwn = isOwnMatch(searchResult.hostWallet);
+          const srIsJoining = joiningMatch === searchResult.matchCode;
+          return (
+            <div style={{ marginBottom: 16, ...fadeUp(0.15) }}>
+              <div style={{
+                fontSize: 11, fontWeight: 600, textTransform: "uppercase",
+                letterSpacing: "0.1em", color: "#9945ff", marginBottom: 8,
+                fontFamily: "'Space Mono', monospace",
+              }}>
+                Search Result
+              </div>
+              <div className="search-result-row">
+                <span style={{
+                  fontFamily: "'Space Mono', monospace",
+                  fontSize: 16, fontWeight: 700, color: "#e8e8f0",
+                  letterSpacing: "0.06em",
+                }}>
+                  {searchResult.matchCode}
+                </span>
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "5px 12px", borderRadius: 8,
+                  background: srTc.bg, border: `1px solid ${srTc.border}`,
+                  fontSize: 13, fontWeight: 700, color: srTc.text,
+                  fontFamily: "'Space Mono', monospace", whiteSpace: "nowrap",
+                }}>
+                  ◆ {srTierInfo.label}
+                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                    <span style={{
+                      fontFamily: "'Space Mono', monospace", fontSize: 13,
+                      color: usernames[searchResult.hostWallet] ? "#e8e8f0" : "#6b6b80",
+                      fontWeight: usernames[searchResult.hostWallet] ? 600 : 400,
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>
+                      {formatDisplayName(searchResult.hostWallet, usernames[searchResult.hostWallet])}
+                    </span>
+                    {playerStats[searchResult.hostWallet] && (
+                      <span style={{
+                        fontFamily: "'Space Mono', monospace",
+                        fontSize: 11, color: "#555",
+                      }}>
+                        {playerStats[searchResult.hostWallet].gamesWon}W - {playerStats[searchResult.hostWallet].gamesLost}L
                       </span>
-                    </div>
-                    <p className="text-sm text-neutral-400">
-                      Host: {searchResult.hostWallet.slice(0, 4)}...{searchResult.hostWallet.slice(-4)}
-                    </p>
+                    )}
                   </div>
-                  <button
-                    onClick={() => handleJoinHostedMatch(searchResult)}
-                    disabled={joiningMatch === searchResult.matchCode || isOwnMatch(searchResult.hostWallet)}
-                    className="btn-glow px-5 py-2.5 rounded-xl text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {joiningMatch === searchResult.matchCode ? "Joining..." : "Join Match"}
-                  </button>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 13, color: "#a0a0b8" }}>—</span>
+                <div style={{ textAlign: "right" }}>
+                  {srIsOwn ? (
+                    <button disabled className="join-btn join-btn-disabled">Your Match</button>
+                  ) : (
+                    <button
+                      className="join-btn"
+                      disabled={srIsJoining}
+                      onClick={() => handleJoinHostedMatch(searchResult)}
+                      style={{ opacity: srIsJoining ? 0.6 : 1 }}
+                    >
+                      {srIsJoining ? (
+                        <span style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
+                          <span className="join-spinner" />
+                          Joining
+                        </span>
+                      ) : "Join"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ─── LIVE MATCHES SECTION ─── */}
+        <div style={{ marginBottom: 12, ...fadeUp(0.22) }}>
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8, marginBottom: 14,
+          }}>
+            <span style={{
+              width: 8, height: 8, borderRadius: "50%",
+              background: "#00ffa3",
+              animation: "glow-pulse 2s infinite",
+            }} />
+            <span style={{
+              fontSize: 14, fontWeight: 700, color: "#e8e8f0",
+              fontFamily: "'Outfit', sans-serif",
+            }}>Live Matches</span>
+            <span style={{
+              fontSize: 12, color: "#444",
+              fontFamily: "'Space Mono', monospace",
+            }}>({filteredHostedMatches.length})</span>
+          </div>
         </div>
 
-        {/* Main Content */}
-        <div className="glass-card rounded-3xl overflow-hidden">
-          {/* Tier Filter */}
-          <div className="p-6 border-b border-white/5">
-            <h3 className="text-sm font-medium text-neutral-400 mb-4">Filter by Stake</h3>
-            <div className="flex flex-wrap gap-2">
-              {tierOptions.map((tier) => (
-                <button
-                  key={tier.label}
-                  onClick={() => setSelectedTier(tier.value)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                    selectedTier === tier.value
-                      ? "btn-glow text-white"
-                      : "btn-secondary text-neutral-400 hover:text-white"
-                  }`}
-                >
-                  {tier.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Live Hosted Matches */}
-          <div className="p-6 border-b border-white/5">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <Wifi className="w-4 h-4 text-emerald-400" />
-                Live Matches
-                <span className="ml-2 text-sm font-normal text-neutral-500">
-                  ({filteredHostedMatches.length})
-                </span>
-              </h3>
-            </div>
-
-            {filteredHostedMatches.length === 0 ? (
-              <div className="text-center py-8 bg-white/[0.02] rounded-xl border border-white/5">
-                <p className="text-neutral-400">No live matches available</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredHostedMatches.map((match, index) => {
-                  const timeLeft = getTimeRemaining(match.joinDeadline, true);
-                  const isExpired = timeLeft === "Expired";
-                  const isOwn = isOwnMatch(match.hostWallet);
-                  const isJoining = joiningMatch === match.matchCode;
-
-                  return (
-                    <motion.div
-                      key={match.matchCode}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className="group rounded-xl border border-white/5 bg-white/[0.02] p-5 hover:bg-white/[0.04] hover:border-white/10 transition-all"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex flex-wrap items-center gap-2 mb-3">
-                            <span className="font-mono text-xl font-bold text-white bg-gradient-to-r from-solana-purple/20 to-solana-green/20 px-3 py-1 rounded-xl border border-solana-purple/30">
-                              {match.matchCode}
-                            </span>
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-gradient-to-r from-solana-purple/20 to-solana-green/20 text-white border border-solana-purple/30">
-                              <Coins className="w-3 h-3" />
-                              {match.stakeTier === 0 ? "0.5 SOL" : "1 SOL"}
-                            </span>
-                            {isOwn && (
-                              <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                Your Match
-                              </span>
-                            )}
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium ${
-                                isExpired
-                                  ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                                  : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                              }`}
-                            >
-                              <Clock className="w-3 h-3" />
-                              {isExpired ? "Expired" : timeLeft}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center gap-2 text-neutral-400">
-                              <User className="w-4 h-4" />
-                              <span className="font-mono">
-                                {match.hostWallet.slice(0, 4)}...
-                                {match.hostWallet.slice(-4)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          {!connected ? (
-                            <button
-                              disabled
-                              className="px-5 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-neutral-500 cursor-not-allowed"
-                            >
-                              Connect Wallet
-                            </button>
-                          ) : isOwn ? (
-                            <button
-                              disabled
-                              className="px-5 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-neutral-500 cursor-not-allowed"
-                            >
-                              Your Match
-                            </button>
-                          ) : isExpired ? (
-                            <button
-                              disabled
-                              className="px-5 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-neutral-500 cursor-not-allowed"
-                            >
-                              Expired
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleJoinHostedMatch(match)}
-                              disabled={isJoining}
-                              className="btn-glow px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {isJoining ? "Joining..." : "Join Match"}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* On-Chain Matches (Fallback) */}
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold">
-                On-Chain Matches
-                <span className="ml-2 text-sm font-normal text-neutral-500">
-                  ({filteredOnChainMatches.length})
-                </span>
-              </h3>
-            </div>
-
-            {loading ? (
-              <div className="text-center py-16">
-                <div className="inline-block animate-spin rounded-full h-10 w-10 border-2 border-solana-purple border-t-transparent"></div>
-                <p className="mt-4 text-neutral-400">Loading matches...</p>
-              </div>
-            ) : filteredOnChainMatches.length === 0 ? (
-              <div className="text-center py-16 bg-white/[0.02] rounded-xl border border-white/5">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
-                  <Plus className="w-8 h-8 text-neutral-600" />
-                </div>
-                <p className="text-neutral-400 mb-6">No open matches found</p>
-                <button
-                  onClick={() => router.push("/play")}
-                  className="btn-glow inline-flex items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold text-white"
-                >
-                  Create a Match
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredOnChainMatches.map((match, index) => {
-                  const tierInfo = getStakeTierInfo(match.account.stakeTier);
-                  const deadline = match.account.joinDeadline.toNumber();
-                  const timeLeft = getTimeRemaining(deadline);
-                  const isExpired = timeLeft === "Expired";
-                  const isOwn = isOwnOnChainMatch(match.account);
-                  const isJoining = joiningMatch === match.pubkey.toString();
-
-                  return (
-                    <motion.div
-                      key={match.pubkey.toString()}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: index * 0.05 }}
-                      className="group rounded-xl border border-white/5 bg-white/[0.02] p-5 hover:bg-white/[0.04] hover:border-white/10 transition-all"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex flex-wrap items-center gap-2 mb-3">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-gradient-to-r from-solana-purple/20 to-solana-green/20 text-white border border-solana-purple/30">
-                              <Coins className="w-3 h-3" />
-                              {tierInfo.label}
-                            </span>
-                            {isOwn && (
-                              <span className="inline-flex items-center px-3 py-1 rounded-xl text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                Your Match
-                              </span>
-                            )}
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium ${
-                                isExpired
-                                  ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                                  : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                              }`}
-                            >
-                              <Clock className="w-3 h-3" />
-                              {isExpired ? "Expired" : timeLeft}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center gap-2 text-neutral-400">
-                              <User className="w-4 h-4" />
-                              <span className="font-mono">
-                                {match.account.playerA.toString().slice(0, 4)}...
-                                {match.account.playerA.toString().slice(-4)}
-                              </span>
-                            </div>
-                            <span className="text-neutral-600">•</span>
-                            <span className="text-neutral-500 font-mono text-xs">
-                              {match.pubkey.toString().slice(0, 8)}...
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          {!connected ? (
-                            <button
-                              disabled
-                              className="px-5 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-neutral-500 cursor-not-allowed"
-                            >
-                              Connect Wallet
-                            </button>
-                          ) : isOwn ? (
-                            <button
-                              disabled
-                              className="px-5 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-neutral-500 cursor-not-allowed"
-                            >
-                              Your Match
-                            </button>
-                          ) : isExpired ? (
-                            <button
-                              disabled
-                              className="px-5 py-2.5 rounded-xl text-sm font-medium bg-white/5 text-neutral-500 cursor-not-allowed"
-                            >
-                              Expired
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleJoinMatch(match.pubkey, match.account.stakeTier)}
-                              disabled={isJoining}
-                              className="btn-glow px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {isJoining ? "Joining..." : "Join Match"}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+        {/* Column headers */}
+        <div className="col-headers" style={{
+          display: "grid",
+          gridTemplateColumns: "80px 110px 1fr 100px 120px",
+          gap: 16, padding: "0 24px 12px",
+          fontSize: 11, fontWeight: 600, textTransform: "uppercase" as const,
+          letterSpacing: "0.1em", color: "#444",
+          fontFamily: "'Space Mono', monospace",
+          ...fadeUp(0.25),
+        }}>
+          <span>Code</span>
+          <span>Stake</span>
+          <span>Host</span>
+          <span>Time Left</span>
+          <span style={{ textAlign: "right" }}>Action</span>
         </div>
-      </motion.div>
-    </main>
+
+        {/* Match list */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, ...fadeUp(0.3) }}>
+          {loading && filteredHostedMatches.length === 0 && filteredOnChainMatches.length === 0 ? (
+            <div style={{
+              textAlign: "center", padding: "60px 20px",
+              background: "rgba(255,255,255,0.015)",
+              border: "1px solid rgba(255,255,255,0.04)",
+              borderRadius: 16,
+            }}>
+              <div style={{
+                width: 40, height: 40, margin: "0 auto 16px",
+                border: "2px solid #9945ff", borderTopColor: "transparent",
+                borderRadius: "50%", animation: "spin 1s linear infinite",
+              }} />
+              <p style={{ color: "#6b6b80", fontSize: 15 }}>Loading matches...</p>
+            </div>
+          ) : filteredHostedMatches.length === 0 && filteredOnChainMatches.length === 0 ? (
+            <div style={{
+              textAlign: "center", padding: "60px 20px",
+              background: "rgba(255,255,255,0.015)",
+              border: "1px solid rgba(255,255,255,0.04)",
+              borderRadius: 16,
+            }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: 16, margin: "0 auto 16px",
+                background: "rgba(255,255,255,0.03)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 24,
+              }}>♟</div>
+              <p style={{ color: "#6b6b80", fontSize: 15, marginBottom: 8 }}>
+                No matches found
+              </p>
+              <p style={{ color: "#444", fontSize: 13 }}>
+                {searchCode ? "Try a different code" : "Be the first to create one"}
+              </p>
+              <button
+                onClick={() => router.push("/game?mode=host")}
+                style={{
+                  marginTop: 20, padding: "10px 24px", borderRadius: 12,
+                  background: "linear-gradient(135deg, #00ffa3 0%, #00d4ff 50%, #9945ff 100%)",
+                  color: "#07070e", fontSize: 14, fontWeight: 700, border: "none",
+                  cursor: "pointer", fontFamily: "'Outfit', sans-serif",
+                }}
+              >
+                + Create a Match
+              </button>
+            </div>
+          ) : (
+            <>
+              {filteredHostedMatches.map((match, i) => renderHostedRow(match, i))}
+
+              {filteredOnChainMatches.length > 0 && (
+                <>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    marginTop: 20, marginBottom: 6,
+                  }}>
+                    <span style={{
+                      fontSize: 14, fontWeight: 700, color: "#a0a0b8",
+                      fontFamily: "'Outfit', sans-serif",
+                    }}>On-Chain Matches</span>
+                    <span style={{
+                      fontSize: 12, color: "#444",
+                      fontFamily: "'Space Mono', monospace",
+                    }}>({filteredOnChainMatches.length})</span>
+                  </div>
+                  {filteredOnChainMatches.map((match, i) => renderOnChainRow(match, i))}
+                </>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Match count footer */}
+        {totalCount > 0 && (
+          <div style={{
+            marginTop: 20, padding: "12px 24px",
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            fontSize: 12, color: "#444", fontFamily: "'Space Mono', monospace",
+            ...fadeUp(0.4),
+          }}>
+            <span>
+              {totalCount} match{totalCount !== 1 ? "es" : ""} found
+              {selectedTier !== null && (() => {
+                const tierLabel = tierOptions.find(t => t.value === selectedTier)?.label;
+                return tierLabel ? ` at ${tierLabel}` : "";
+              })()}
+            </span>
+            <span>Auto-refreshes every 30s</span>
+          </div>
+        )}
+
+        {/* Back + Create buttons */}
+        <div style={{
+          display: "flex", gap: 14, justifyContent: "center", marginTop: 40,
+          ...fadeUp(0.45),
+        }}>
+          <button
+            onClick={() => router.push("/play")}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "12px 24px", borderRadius: 14,
+              background: "rgba(255,255,255,0.03)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              color: "#6b6b80", fontSize: 14, fontWeight: 600,
+              fontFamily: "'Outfit', sans-serif", cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+          >
+            ← Back to Modes
+          </button>
+          <button
+            onClick={() => router.push("/game?mode=host")}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "12px 32px", borderRadius: 14,
+              background: "linear-gradient(135deg, #00ffa3 0%, #00d4ff 50%, #9945ff 100%)",
+              color: "#07070e", fontSize: 14, fontWeight: 700, border: "none",
+              fontFamily: "'Outfit', sans-serif", cursor: "pointer",
+              boxShadow: "0 6px 30px rgba(0,255,163,0.2)",
+              transition: "all 0.2s",
+            }}
+          >
+            + Host a Match
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

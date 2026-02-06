@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -28,6 +28,74 @@ interface Lesson {
   moves?: string[];
   keyPoints?: string[];
   videoId?: string; // For future Remotion video integration
+}
+
+/* ── Particle Field ──────────────────────────────────── */
+function ParticleField() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animId: number;
+    const particles: { x: number; y: number; vx: number; vy: number; r: number; color: string }[] = [];
+    const colors = [
+      'rgba(0,255,163,0.12)',
+      'rgba(153,69,255,0.12)',
+      'rgba(0,212,255,0.08)',
+    ];
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    for (let i = 0; i < 20; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.15,
+        vy: (Math.random() - 0.5) * 0.15,
+        r: Math.random() * 1.5 + 0.5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+      });
+    }
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0) p.x = canvas.width;
+        if (p.x > canvas.width) p.x = 0;
+        if (p.y < 0) p.y = canvas.height;
+        if (p.y > canvas.height) p.y = 0;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+      }
+      animId = requestAnimationFrame(draw);
+    };
+    draw();
+
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener('resize', resize);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}
+    />
+  );
 }
 
 const OPENINGS: Lesson[] = [
@@ -350,24 +418,18 @@ const ENDGAMES: Lesson[] = [
 
 const ALL_LESSONS = [...BASICS, ...OPENINGS, ...TACTICS, ...ENDGAMES];
 
-const difficultyColors: Record<Difficulty, string> = {
-  beginner: 'bg-green-500/20 text-green-400 border-green-500/30',
-  intermediate: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  advanced: 'bg-red-500/20 text-red-400 border-red-500/30',
+const categoryLabels: Record<Category, string> = {
+  basics: '📖 Basics',
+  openings: '🏰 Openings',
+  tactics: '🎯 Tactics',
+  endgames: '👑 Endgames',
 };
 
-const categoryIcons: Record<Category, React.ReactNode> = {
-  basics: <BookOpen className="h-5 w-5" />,
-  openings: <Castle className="h-5 w-5" />,
-  tactics: <Target className="h-5 w-5" />,
-  endgames: <Crown className="h-5 w-5" />,
-};
-
-const categoryTitles: Record<Category, string> = {
-  basics: 'Chess Basics',
-  openings: 'Opening Repertoire',
-  tactics: 'Tactical Patterns',
-  endgames: 'Endgame Essentials',
+const categorySectionTitles: Record<Category, string> = {
+  basics: '📖 Chess Basics',
+  openings: '🏰 Opening Repertoire',
+  tactics: '🎯 Tactical Patterns',
+  endgames: '👑 Endgame Essentials',
 };
 
 const categoryDescriptions: Record<Category, string> = {
@@ -422,7 +484,7 @@ function VideoModal({ lesson, onClose }: VideoModalProps) {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '1rem',
-        backgroundColor: 'rgba(0, 0, 0, 0.95)',
+        backgroundColor: 'rgba(7,7,14,0.95)',
       }}
       onClick={onClose}
     >
@@ -434,10 +496,10 @@ function VideoModal({ lesson, onClose }: VideoModalProps) {
           position: 'relative',
           width: '100%',
           maxWidth: '48rem',
-          backgroundColor: '#171717',
-          borderRadius: '1rem',
+          backgroundColor: '#0f0f1a',
+          borderRadius: '20px',
           overflow: 'hidden',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -446,11 +508,17 @@ function VideoModal({ lesson, onClose }: VideoModalProps) {
             onClick={onClose}
             style={{
               padding: '0.5rem',
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              borderRadius: '9999px',
-              border: 'none',
+              backgroundColor: 'rgba(255,255,255,0.06)',
+              borderRadius: '50%',
+              border: '1px solid rgba(255,255,255,0.1)',
               cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background-color 0.2s',
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.06)')}
           >
             <X style={{ height: '1.25rem', width: '1.25rem', color: 'white' }} />
           </button>
@@ -470,25 +538,32 @@ function VideoModal({ lesson, onClose }: VideoModalProps) {
             </video>
           ) : (
             <div style={{ textAlign: 'center' }}>
-              <div style={{ width: '5rem', height: '5rem', margin: '0 auto 1rem', borderRadius: '9999px', backgroundColor: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Play style={{ height: '2.5rem', width: '2.5rem', color: 'white', marginLeft: '0.25rem' }} />
+              <div style={{ width: '5rem', height: '5rem', margin: '0 auto 1rem', borderRadius: '9999px', backgroundColor: 'rgba(153,69,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem' }}>
+                ♟
               </div>
               <p style={{ color: 'white', fontWeight: 600, fontSize: '1.125rem' }}>{lesson.title}</p>
-              <p style={{ color: '#a1a1aa', fontSize: '0.875rem', marginTop: '0.5rem' }}>Video coming soon!</p>
+              <p style={{ color: '#6b6b80', fontSize: '0.875rem', marginTop: '0.5rem' }}>Video coming soon!</p>
             </div>
           )}
         </div>
         
         <div style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'white', marginBottom: '0.5rem' }}>{lesson.title}</h3>
-          <p style={{ color: '#a1a1aa', marginBottom: '1rem' }}>{lesson.description}</p>
+          <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#e8e8f0', marginBottom: '0.75rem', fontFamily: 'Outfit, sans-serif' }}>{lesson.title}</h3>
           
           {lesson.moves && (
             <div style={{ marginBottom: '1rem' }}>
-              <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#14F195', marginBottom: '0.5rem' }}>Key Moves:</p>
+              <p style={{ fontSize: '13px', fontWeight: 700, color: '#00ffa3', marginBottom: '0.5rem', fontFamily: "'Space Mono', monospace" }}>Key Moves:</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                 {lesson.moves.map((move, idx) => (
-                  <span key={idx} style={{ padding: '0.25rem 0.75rem', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '0.5rem', fontFamily: 'monospace', fontSize: '0.875rem', color: 'white' }}>
+                  <span key={idx} style={{
+                    padding: '3px 10px',
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: '6px',
+                    fontFamily: "'Space Mono', monospace",
+                    fontSize: '12px',
+                    color: '#a0a0b8',
+                  }}>
                     {move}
                   </span>
                 ))}
@@ -498,11 +573,11 @@ function VideoModal({ lesson, onClose }: VideoModalProps) {
           
           {lesson.keyPoints && (
             <div>
-              <p style={{ fontSize: '0.875rem', fontWeight: 600, color: '#9945FF', marginBottom: '0.5rem' }}>Key Points:</p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+              <p style={{ fontSize: '13px', fontWeight: 700, color: '#9945ff', marginBottom: '0.5rem', fontFamily: "'Space Mono', monospace" }}>Key Points:</p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
                 {lesson.keyPoints.map((point, idx) => (
-                  <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.875rem', color: '#d4d4d4' }}>
-                    <CheckCircle style={{ height: '1rem', width: '1rem', color: '#14F195', marginTop: '0.125rem', flexShrink: 0 }} />
+                  <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '13px', color: '#a0a0b8' }}>
+                    <CheckCircle style={{ height: '1rem', width: '1rem', color: '#00ffa3', marginTop: '0.125rem', flexShrink: 0 }} />
                     {point}
                   </li>
                 ))}
@@ -524,46 +599,91 @@ interface LessonCardProps {
   onWatch: () => void;
 }
 
+const diffBadgeStyle: Record<Difficulty, React.CSSProperties> = {
+  beginner: { background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#22c55e' },
+  intermediate: { background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.2)', color: '#eab308' },
+  advanced: { background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.2)', color: '#ff5050' },
+};
+
 function LessonCard({ lesson, onWatch }: LessonCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   
   return (
     <motion.div
       layout
-      className="glass-card rounded-xl overflow-hidden hover:border-solana-purple/30 transition-all"
+      style={{
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: '16px',
+        overflow: 'hidden',
+        transition: 'border-color 0.2s, transform 0.2s, box-shadow 0.2s',
+      }}
+      whileHover={{
+        borderColor: 'rgba(153,69,255,0.2)',
+        y: -2,
+        boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
+      }}
     >
       <div 
-        className="p-4 cursor-pointer"
+        style={{ padding: '18px 20px', cursor: 'pointer' }}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <h3 className="font-semibold text-white truncate">{lesson.title}</h3>
-              <span className={`px-2 py-0.5 text-xs font-medium rounded-full border ${difficultyColors[lesson.difficulty]}`}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+              <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#e8e8f0', margin: 0, fontFamily: 'Outfit, sans-serif' }}>{lesson.title}</h3>
+              <span style={{
+                padding: '3px 10px',
+                borderRadius: '6px',
+                fontSize: '11px',
+                fontWeight: 700,
+                fontFamily: "'Space Mono', monospace",
+                textTransform: 'capitalize',
+                ...diffBadgeStyle[lesson.difficulty],
+              }}>
                 {lesson.difficulty}
               </span>
               {lesson.videoId && (
-                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-solana-green/20 text-solana-green border border-solana-green/30 flex items-center gap-1">
-                  <Play className="h-3 w-3" />
-                  Video
+                <span style={{
+                  padding: '3px 10px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  fontFamily: "'Space Mono', monospace",
+                  background: 'rgba(0,255,163,0.08)',
+                  border: '1px solid rgba(0,255,163,0.15)',
+                  color: '#00ffa3',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                }}>
+                  ▶ Video
                 </span>
               )}
             </div>
-            <p className="text-sm text-neutral-400 line-clamp-2">{lesson.description}</p>
+            <p style={{ fontSize: '13px', color: '#6b6b80', lineHeight: 1.5, margin: 0, fontFamily: 'Outfit, sans-serif' }}>{lesson.description}</p>
           </div>
           <motion.div
             animate={{ rotate: isExpanded ? 180 : 0 }}
             transition={{ duration: 0.2 }}
+            style={{ flexShrink: 0 }}
           >
-            <ChevronDown className="h-5 w-5 text-neutral-500" />
+            <ChevronDown style={{ height: '20px', width: '20px', color: '#444' }} />
           </motion.div>
         </div>
         
         {lesson.moves && (
-          <div className="flex flex-wrap gap-1.5 mt-3">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '12px' }}>
             {lesson.moves.slice(0, 3).map((move, idx) => (
-              <span key={idx} className="px-2 py-0.5 bg-white/5 rounded text-xs font-mono text-neutral-300">
+              <span key={idx} style={{
+                padding: '3px 10px',
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: '6px',
+                fontFamily: "'Space Mono', monospace",
+                fontSize: '12px',
+                color: '#a0a0b8',
+              }}>
                 {move}
               </span>
             ))}
@@ -578,14 +698,14 @@ function LessonCard({ lesson, onWatch }: LessonCardProps) {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="overflow-hidden"
+            style={{ overflow: 'hidden' }}
           >
-            <div className="px-4 pb-4 border-t border-white/5 pt-4">
+            <div style={{ padding: '0 20px 18px', borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: '16px' }}>
               {lesson.keyPoints && (
-                <ul className="space-y-2 mb-4">
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {lesson.keyPoints.map((point, idx) => (
-                    <li key={idx} className="flex items-start gap-2 text-sm text-neutral-300">
-                      <CheckCircle className="h-4 w-4 text-solana-green mt-0.5 flex-shrink-0" />
+                    <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: '#a0a0b8', fontFamily: 'Outfit, sans-serif' }}>
+                      <CheckCircle style={{ height: '16px', width: '16px', color: '#00ffa3', marginTop: '1px', flexShrink: 0 }} />
                       {point}
                     </li>
                   ))}
@@ -599,16 +719,24 @@ function LessonCard({ lesson, onWatch }: LessonCardProps) {
                 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl transition-all"
                 style={{
-                  background: 'linear-gradient(to right, #9945FF, #14F195)',
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  padding: '10px',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, #9945ff 0%, #00ffa3 100%)',
                   color: 'white',
-                  WebkitTextFillColor: 'white',
-                  fontWeight: 600,
-                  border: 'none'
+                  fontWeight: 700,
+                  fontSize: '14px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontFamily: 'Outfit, sans-serif',
                 }}
               >
-                <Play className="h-4 w-4" style={{ color: 'white' }} />
+                <Play style={{ height: '16px', width: '16px', color: 'white' }} />
                 Watch Video
               </motion.button>
             </div>
@@ -631,178 +759,250 @@ export default function LearnPage() {
     const difficultyMatch = difficultyFilter === 'all' || lesson.difficulty === difficultyFilter;
     return categoryMatch && difficultyMatch;
   });
+
+  const diffPillStyle = (diff: Difficulty | 'all', isActive: boolean): React.CSSProperties => {
+    if (!isActive) {
+      return {
+        padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+        fontFamily: "'Space Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em',
+        background: 'transparent', border: '1px solid rgba(255,255,255,0.06)', color: '#444',
+        cursor: 'pointer', transition: 'all 0.2s',
+      };
+    }
+    switch (diff) {
+      case 'all': return {
+        padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+        fontFamily: "'Space Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em',
+        background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.1)', color: '#e8e8f0',
+        cursor: 'pointer', transition: 'all 0.2s',
+      };
+      case 'beginner': return {
+        padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+        fontFamily: "'Space Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em',
+        background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.25)', color: '#22c55e',
+        cursor: 'pointer', transition: 'all 0.2s',
+      };
+      case 'intermediate': return {
+        padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+        fontFamily: "'Space Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em',
+        background: 'rgba(234,179,8,0.15)', border: '1px solid rgba(234,179,8,0.25)', color: '#eab308',
+        cursor: 'pointer', transition: 'all 0.2s',
+      };
+      case 'advanced': return {
+        padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600,
+        fontFamily: "'Space Mono', monospace", textTransform: 'uppercase', letterSpacing: '0.05em',
+        background: 'rgba(255,80,80,0.15)', border: '1px solid rgba(255,80,80,0.25)', color: '#ff5050',
+        cursor: 'pointer', transition: 'all 0.2s',
+      };
+    }
+  };
   
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 sm:px-6 py-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
-      >
-        <h1 className="font-display text-2xl sm:text-4xl font-bold mb-2">
-          <span className="text-gradient">Learn Chess</span>
-        </h1>
-        <p className="text-neutral-400 text-sm sm:text-base font-medium">
-          Master the game from openings to endgames
-        </p>
-      </motion.div>
-      
-      {/* Category Tabs */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="mb-6"
-      >
-        <div className="flex flex-wrap gap-2 p-1 rounded-xl w-fit" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
-          {categories.map((category) => (
+    <main style={{ minHeight: '100vh', background: '#07070e', position: 'relative' }}>
+      <ParticleField />
+      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '32px 40px 80px', position: 'relative', zIndex: 1 }}>
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{ marginBottom: '32px' }}
+        >
+          <h1 style={{
+            color: '#e8e8f0',
+            fontSize: 'clamp(28px, 4vw, 42px)',
+            fontWeight: 800,
+            letterSpacing: '-0.03em',
+            margin: '0 0 6px',
+            fontFamily: 'Outfit, sans-serif',
+          }}>
+            Learn Chess
+          </h1>
+          <p style={{ fontSize: '15px', color: '#6b6b80', margin: 0, fontFamily: 'Outfit, sans-serif' }}>
+            Master the game from openings to endgames
+          </p>
+        </motion.div>
+        
+        {/* Category Tabs */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <div style={{
+            display: 'inline-flex',
+            gap: '4px',
+            padding: '4px',
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '14px',
+          }}>
+            {categories.map((category) => {
+              const isActive = activeCategory === category;
+              return (
+                <button
+                  key={category}
+                  onClick={() => setActiveCategory(category)}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: isActive ? 700 : 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    border: 'none',
+                    fontFamily: 'Outfit, sans-serif',
+                    background: isActive ? 'linear-gradient(135deg, #00ffa3 0%, #00d4ff 50%, #9945ff 100%)' : 'transparent',
+                    color: isActive ? '#07070e' : '#6b6b80',
+                    WebkitTextFillColor: isActive ? '#07070e' : undefined,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.color = '#a0a0b8';
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.color = '#6b6b80';
+                      e.currentTarget.style.background = 'transparent';
+                    }
+                  }}
+                >
+                  {categoryLabels[category]}
+                </button>
+              );
+            })}
+          </div>
+        </motion.div>
+        
+        {/* Difficulty Filter */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          style={{ marginTop: '16px', display: 'flex', gap: '6px', marginBottom: '24px' }}
+        >
+          {(['all', 'beginner', 'intermediate', 'advanced'] as const).map((diff) => (
             <button
-              key={category}
-              onClick={() => setActiveCategory(category)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all"
-              style={{
-                background: activeCategory === category ? 'linear-gradient(to right, #9945FF, #14F195)' : 'transparent',
-                color: activeCategory === category ? 'white' : '#a3a3a3',
-                WebkitTextFillColor: activeCategory === category ? 'white' : '#a3a3a3',
-                border: 'none'
-              }}
+              key={diff}
+              onClick={() => setDifficultyFilter(diff)}
+              style={diffPillStyle(diff, difficultyFilter === diff)}
             >
-              {categoryIcons[category]}
-              <span className="hidden sm:inline">{categoryTitles[category]}</span>
+              {diff === 'all' ? 'ALL' : diff.toUpperCase()}
             </button>
           ))}
-        </div>
-      </motion.div>
-      
-      {/* Difficulty Filter */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="mb-6 flex items-center gap-2"
-      >
-        <div className="flex gap-1">
-          {(['all', 'beginner', 'intermediate', 'advanced'] as const).map((diff) => {
-            const isActive = difficultyFilter === diff;
-            const bgColor = isActive 
-              ? diff === 'all' ? 'rgba(255,255,255,0.2)'
-              : diff === 'beginner' ? '#22c55e'
-              : diff === 'intermediate' ? '#eab308'
-              : '#ef4444'
-              : 'transparent';
-            const textColor = isActive ? (diff === 'all' ? 'white' : 'black') : '#737373';
-            return (
-              <button
-                key={diff}
-                onClick={() => setDifficultyFilter(diff)}
-                className="px-3 py-1 text-sm rounded-xl transition-all"
-                style={{
-                  backgroundColor: bgColor,
-                  color: textColor,
-                  WebkitTextFillColor: textColor,
-                  border: 'none'
-                }}
-              >
-                {diff === 'all' ? 'All' : diff.charAt(0).toUpperCase() + diff.slice(1)}
-              </button>
-            );
-          })}
-        </div>
-      </motion.div>
-      
-      {/* Category Header */}
-      <motion.div
-        key={activeCategory}
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="mb-6"
-      >
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          {categoryIcons[activeCategory]}
-          {categoryTitles[activeCategory]}
-        </h2>
-        <p className="text-neutral-400 text-sm mt-1">
-          {categoryDescriptions[activeCategory]}
-        </p>
-      </motion.div>
-      
-      {/* Lessons Grid */}
-      <motion.div
-        key={`${activeCategory}-${difficultyFilter}`}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.1 }}
-        className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-      >
-        {filteredLessons.map((lesson, idx) => (
-          <motion.div
-            key={lesson.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.05 }}
-          >
-            <LessonCard 
-              lesson={lesson} 
-              onWatch={() => setSelectedLesson(lesson)}
-            />
-          </motion.div>
-        ))}
+        </motion.div>
         
-        {filteredLessons.length === 0 && (
-          <div className="col-span-full py-12 text-center">
-            <p className="text-neutral-500">No lessons found for this filter.</p>
-          </div>
-        )}
-      </motion.div>
-      
-      {/* Coming Soon Section */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="mt-12 p-6 glass-card rounded-2xl"
-      >
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-xl bg-yellow-500/20">
-            <Star className="h-5 w-5 text-yellow-400" />
-          </div>
-          <h3 className="text-lg font-bold text-white">Coming Soon</h3>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
-            <Lock className="h-5 w-5 text-neutral-500" />
-            <div>
-              <p className="text-sm font-medium text-neutral-300">Interactive Puzzles</p>
-              <p className="text-xs text-neutral-500">Practice tactics with real puzzles</p>
+        {/* Category Header */}
+        <motion.div
+          key={activeCategory}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          style={{ marginBottom: '20px' }}
+        >
+          <h2 style={{
+            fontSize: '14px',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            color: '#9945ff',
+            fontFamily: "'Space Mono', monospace",
+            margin: 0,
+          }}>
+            {categorySectionTitles[activeCategory]}
+          </h2>
+          <p style={{ fontSize: '13px', color: '#6b6b80', marginTop: '4px', marginBottom: 0, fontFamily: 'Outfit, sans-serif' }}>
+            {categoryDescriptions[activeCategory]}
+          </p>
+        </motion.div>
+        
+        {/* Lessons Grid */}
+        <motion.div
+          key={`${activeCategory}-${difficultyFilter}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+            gap: '12px',
+          }}
+        >
+          {filteredLessons.map((lesson, idx) => (
+            <motion.div
+              key={lesson.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.05 }}
+            >
+              <LessonCard 
+                lesson={lesson} 
+                onWatch={() => setSelectedLesson(lesson)}
+              />
+            </motion.div>
+          ))}
+          
+          {filteredLessons.length === 0 && (
+            <div style={{ gridColumn: '1 / -1', padding: '48px 0', textAlign: 'center' }}>
+              <p style={{ color: '#444', fontFamily: 'Outfit, sans-serif' }}>No lessons found for this filter.</p>
             </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
-            <Lock className="h-5 w-5 text-neutral-500" />
-            <div>
-              <p className="text-sm font-medium text-neutral-300">Progress Tracking</p>
-              <p className="text-xs text-neutral-500">Track your learning journey</p>
+          )}
+        </motion.div>
+        
+        {/* Coming Soon Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          style={{
+            marginTop: '48px',
+            padding: '28px',
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '20px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ padding: '8px', borderRadius: '12px', background: 'rgba(234,179,8,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Star style={{ height: '20px', width: '20px', color: '#eab308' }} />
             </div>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#e8e8f0', margin: 0, fontFamily: 'Outfit, sans-serif' }}>Coming Soon</h3>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
-            <Lock className="h-5 w-5 text-neutral-500" />
-            <div>
-              <p className="text-sm font-medium text-neutral-300">Video Lessons</p>
-              <p className="text-xs text-neutral-500">Animated opening tutorials</p>
-            </div>
+          <div style={{ display: 'grid', gap: '10px', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+            {[
+              { title: 'Interactive Puzzles', subtitle: 'Practice tactics with real puzzles' },
+              { title: 'Progress Tracking', subtitle: 'Track your learning journey' },
+              { title: 'Video Lessons', subtitle: 'Animated opening tutorials' },
+            ].map((item) => (
+              <div key={item.title} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '14px 16px',
+                borderRadius: '12px',
+                background: 'rgba(255,255,255,0.015)',
+                border: '1px solid rgba(255,255,255,0.04)',
+              }}>
+                <Lock style={{ height: '18px', width: '18px', color: '#333', flexShrink: 0 }} />
+                <div>
+                  <p style={{ fontSize: '13px', color: '#a0a0b8', margin: 0, fontFamily: 'Outfit, sans-serif' }}>{item.title}</p>
+                  <p style={{ fontSize: '11px', color: '#444', margin: '2px 0 0', fontFamily: 'Outfit, sans-serif' }}>{item.subtitle}</p>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
-      </motion.div>
-      
-      {/* Video Modal */}
-      <AnimatePresence>
-        {selectedLesson && (
-          <VideoModal 
-            lesson={selectedLesson} 
-            onClose={() => setSelectedLesson(null)} 
-          />
-        )}
-      </AnimatePresence>
+        </motion.div>
+        
+        {/* Video Modal */}
+        <AnimatePresence>
+          {selectedLesson && (
+            <VideoModal 
+              lesson={selectedLesson} 
+              onClose={() => setSelectedLesson(null)} 
+            />
+          )}
+        </AnimatePresence>
+      </div>
     </main>
   );
 }

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { motion } from "framer-motion";
-import { ArrowLeft, RefreshCw, AlertCircle, CheckCircle2, Coins, Trophy } from "lucide-react";
+import { ArrowLeft, RefreshCw, Trophy } from "lucide-react";
 import Link from "next/link";
 
 import { WalletButton } from "@/components/WalletButton";
@@ -218,206 +218,509 @@ export default function RefundPage() {
     }
   };
 
+  // Particle field for background
+  const particles = Array.from({ length: 20 }, (_, i) => ({
+    id: i,
+    left: `${Math.random() * 100}%`,
+    top: `${Math.random() * 100}%`,
+    size: Math.random() * 2 + 1,
+    duration: Math.random() * 8 + 6,
+    delay: Math.random() * 4,
+  }));
+
   return (
-    <main className="mx-auto w-full max-w-4xl px-6 py-12">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        {/* Header */}
-        <header className="mb-10">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-neutral-400 hover:text-white transition-colors mb-6"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Home
-          </Link>
-          <h1 className="text-4xl font-bold mb-2">
-            Claim <span className="text-gradient">Funds</span>
-          </h1>
-          <p className="text-lg text-neutral-400">
-            Claim winnings from won matches or recover funds from stuck matches
-          </p>
-        </header>
+    <main style={{
+      minHeight: '100vh',
+      background: '#07070e',
+      position: 'relative',
+      overflow: 'hidden',
+      fontFamily: "'Outfit', sans-serif",
+    }}>
+      {/* Ambient glow */}
+      <div style={{
+        position: 'fixed',
+        top: '-200px',
+        right: '-200px',
+        width: '600px',
+        height: '600px',
+        borderRadius: '50%',
+        background: 'rgba(0,255,163,0.04)',
+        filter: 'blur(100px)',
+        pointerEvents: 'none',
+        zIndex: 0,
+      }} />
 
-        {/* Wallet Connection */}
-        {!connected ? (
-          <div className="glass-card rounded-2xl p-8 text-center">
-            <Coins className="w-12 h-12 text-solana-purple mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Connect Your Wallet</h2>
-            <p className="text-neutral-400 mb-6">
-              Connect your wallet to check for refundable matches
+      {/* Particle field */}
+      {particles.map(p => (
+        <motion.div
+          key={p.id}
+          style={{
+            position: 'fixed',
+            left: p.left,
+            top: p.top,
+            width: p.size,
+            height: p.size,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.05)',
+            pointerEvents: 'none',
+            zIndex: 0,
+          }}
+          animate={{
+            y: [0, -30, 0],
+            opacity: [0.03, 0.08, 0.03],
+          }}
+          transition={{
+            duration: p.duration,
+            delay: p.delay,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+        />
+      ))}
+
+      <div style={{
+        maxWidth: '800px',
+        margin: '0 auto',
+        padding: '40px 20px',
+        position: 'relative',
+        zIndex: 1,
+      }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          {/* Header */}
+          <header style={{ marginBottom: '40px' }}>
+            <Link
+              href="/"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                color: '#6b6b80',
+                fontSize: '14px',
+                fontWeight: 600,
+                textDecoration: 'none',
+                marginBottom: '20px',
+                transition: 'color 0.2s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = '#e8e8f0')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = '#6b6b80')}
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Home
+            </Link>
+            <h1 style={{
+              fontSize: 'clamp(28px, 4vw, 42px)',
+              fontWeight: 800,
+              marginBottom: '8px',
+              color: '#fff',
+              fontFamily: "'Outfit', sans-serif",
+            }}>
+              Claim{' '}
+              <span style={{
+                background: 'linear-gradient(135deg, #00ffa3, #00d4ff)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}>Funds</span>
+            </h1>
+            <p style={{ fontSize: '15px', color: '#6b6b80', margin: 0 }}>
+              Claim winnings from won matches or recover funds from stuck matches
             </p>
-            <WalletButton />
-          </div>
-        ) : (
-          <>
-            {/* Actions */}
-            <div className="flex justify-between items-center mb-6">
-              <p className="text-sm text-neutral-400">
-                Connected: <span className="text-white font-mono">{publicKey?.toBase58().slice(0, 8)}...</span>
-              </p>
-              <button
-                onClick={loadMatches}
-                disabled={loading}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 transition-colors text-sm text-white border border-white/10"
-                style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
-            </div>
+          </header>
 
-            {/* Result Message */}
-            {result && (
-              <div
-                className={`mb-6 p-4 rounded-2xl border ${
-                  result.success
-                    ? "bg-green-500/10 border-green-500/30 text-green-400"
-                    : "bg-red-500/10 border-red-500/30 text-red-400"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  {result.success ? (
-                    <CheckCircle2 className="w-5 h-5" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5" />
-                  )}
-                  <span>{result.message}</span>
+          {/* Wallet Connection */}
+          {!connected ? (
+            <div style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: '20px',
+              padding: '48px 32px',
+              textAlign: 'center',
+            }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                background: 'rgba(153,69,255,0.08)',
+                border: '1px solid rgba(153,69,255,0.12)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 20px',
+                fontSize: '28px',
+              }}>
+                💰
+              </div>
+              <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>
+                Connect Your Wallet
+              </h2>
+              <p style={{ fontSize: '14px', color: '#6b6b80', marginBottom: '24px' }}>
+                Connect your wallet to check for refundable matches
+              </p>
+              <WalletButton />
+            </div>
+          ) : (
+            <>
+              {/* Actions */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '24px',
+              }}>
+                <p style={{ fontSize: '13px', color: '#6b6b80', margin: 0 }}>
+                  Connected:{' '}
+                  <span style={{ fontFamily: "'Space Mono', monospace", color: '#e8e8f0', fontSize: '13px' }}>
+                    {publicKey?.toBase58().slice(0, 8)}...
+                  </span>
+                </p>
+                <button
+                  onClick={loadMatches}
+                  disabled={loading}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 16px',
+                    borderRadius: '10px',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    color: '#6b6b80',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => { if (!loading) { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#e8e8f0'; }}}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#6b6b80'; }}
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </button>
+              </div>
+
+              {/* Result Message */}
+              {result && (
+                <div style={{
+                  marginBottom: '24px',
+                  padding: '14px 20px',
+                  borderRadius: '14px',
+                  background: result.success ? 'rgba(34,197,94,0.06)' : 'rgba(255,80,80,0.06)',
+                  border: result.success ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(255,80,80,0.2)',
+                  color: result.success ? '#22c55e' : '#ff5050',
+                  fontSize: '14px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '16px' }}>{result.success ? '✓' : '✕'}</span>
+                    <span>{result.message}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Matches List */}
+              {loading ? (
+                <div style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: '20px',
+                  padding: '48px 32px',
+                  textAlign: 'center',
+                }}>
+                  <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin" style={{ color: '#9945ff' }} />
+                  <p style={{ color: '#6b6b80', fontSize: '14px', margin: 0 }}>Searching for refundable matches...</p>
+                </div>
+              ) : matches.length === 0 ? (
+                <div style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: '20px',
+                  padding: '48px 32px',
+                  textAlign: 'center',
+                }}>
+                  <div style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    background: 'rgba(34,197,94,0.08)',
+                    border: '1px solid rgba(34,197,94,0.12)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 20px',
+                    fontSize: '28px',
+                  }}>
+                    ✅
+                  </div>
+                  <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#fff', marginBottom: '8px' }}>
+                    No Funds to Claim
+                  </h2>
+                  <p style={{ fontSize: '14px', color: '#6b6b80', margin: 0 }}>
+                    You don&apos;t have any unclaimed winnings or stuck matches.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {matches.map((match) => {
+                    const tierInfo = getStakeTierInfo(match.account.stakeTier);
+                    const isAbandoning = abandoningMatch === match.pubkey.toBase58();
+                    const potAmount = tierInfo.stake * 2; // Both players' stakes
+                    const isWinnerMatch = match.isWinner || match.isBackendWinner;
+                    const isLoserMatch = match.isBackendLoser;
+
+                    return (
+                      <motion.div
+                        key={match.pubkey.toBase58()}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        style={{
+                          background: isWinnerMatch
+                            ? 'linear-gradient(135deg, rgba(34,197,94,0.04), rgba(34,197,94,0.01))'
+                            : 'rgba(255,255,255,0.02)',
+                          border: isWinnerMatch
+                            ? '1px solid rgba(34,197,94,0.25)'
+                            : isLoserMatch
+                            ? '1px solid rgba(255,80,80,0.15)'
+                            : '1px solid rgba(255,255,255,0.06)',
+                          borderRadius: '16px',
+                          padding: '20px 24px',
+                          opacity: isLoserMatch ? 0.6 : 1,
+                        }}
+                      >
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                              {isWinnerMatch && (
+                                <span style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '8px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  fontFamily: "'Space Mono', monospace",
+                                  background: 'rgba(34,197,94,0.1)',
+                                  border: '1px solid rgba(34,197,94,0.2)',
+                                  color: '#22c55e',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                }}>
+                                  <Trophy className="w-3 h-3" />
+                                  Winner - Claim Your Prize!
+                                </span>
+                              )}
+                              {match.isBackendWinner && !match.isWinner && (
+                                <span style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '8px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  fontFamily: "'Space Mono', monospace",
+                                  background: 'rgba(234,179,8,0.1)',
+                                  border: '1px solid rgba(234,179,8,0.2)',
+                                  color: '#eab308',
+                                }}>
+                                  (Pending on-chain)
+                                </span>
+                              )}
+                              {isLoserMatch && (
+                                <span style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '8px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  fontFamily: "'Space Mono', monospace",
+                                  background: 'rgba(255,80,80,0.1)',
+                                  border: '1px solid rgba(255,80,80,0.2)',
+                                  color: '#ff5050',
+                                }}>
+                                  You Lost - No Refund
+                                </span>
+                              )}
+                              <span style={{
+                                padding: '4px 10px',
+                                borderRadius: '8px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                fontFamily: "'Space Mono', monospace",
+                                background: match.isPlayerA ? 'rgba(0,212,255,0.1)' : 'rgba(153,69,255,0.1)',
+                                border: match.isPlayerA ? '1px solid rgba(0,212,255,0.2)' : '1px solid rgba(153,69,255,0.2)',
+                                color: match.isPlayerA ? '#00d4ff' : '#9945ff',
+                              }}>
+                                {match.isPlayerA ? "Player A" : "Player B"}
+                              </span>
+                              <span style={{
+                                padding: '4px 10px',
+                                borderRadius: '8px',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                fontFamily: "'Space Mono', monospace",
+                                ...(match.account.status === MatchStatus.Open
+                                  ? { background: 'rgba(0,212,255,0.08)', color: '#00d4ff' }
+                                  : match.account.status === MatchStatus.Finished
+                                  ? { background: 'rgba(255,80,80,0.08)', color: '#ff5050' }
+                                  : { background: 'rgba(234,179,8,0.08)', color: '#eab308' }),
+                              }}>
+                                {match.account.status === MatchStatus.Open 
+                                  ? "Open (No Opponent)" 
+                                  : match.account.status === MatchStatus.Finished 
+                                  ? "Payout Failed" 
+                                  : "Active (Stuck)"}
+                              </span>
+                            </div>
+                            <p style={{
+                              fontFamily: "'Space Mono', monospace",
+                              fontSize: '13px',
+                              color: '#6b6b80',
+                              marginBottom: '6px',
+                            }}>
+                              Match: {match.pubkey.toBase58().slice(0, 12)}...
+                            </p>
+                            <p style={{ fontSize: '14px', color: '#6b6b80', margin: 0 }}>
+                              Stake:{' '}
+                              <span style={{ color: '#e8e8f0', fontWeight: 700 }}>{tierInfo.label}</span>
+                              <span style={{ color: '#3a3a4a', margin: '0 8px' }}>•</span>
+                              {isWinnerMatch ? (
+                                <>Prize:{' '}
+                                  <span style={{
+                                    color: '#22c55e',
+                                    fontWeight: 800,
+                                    fontFamily: "'Space Mono', monospace",
+                                  }}>{potAmount.toFixed(2)} SOL</span>
+                                </>
+                              ) : isLoserMatch ? (
+                                <>Lost:{' '}
+                                  <span style={{
+                                    color: '#ff5050',
+                                    fontWeight: 700,
+                                    fontFamily: "'Space Mono', monospace",
+                                  }}>-{tierInfo.stake} SOL</span>
+                                </>
+                              ) : (
+                                <>Your refund:{' '}
+                                  <span style={{ color: '#e8e8f0', fontWeight: 700 }}>{tierInfo.label}</span>
+                                </>
+                              )}
+                            </p>
+                          </div>
+                          {/* Hide button for losers, show for winners and stuck matches */}
+                          {!isLoserMatch && (
+                            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                              <button
+                                onClick={() => handleAbandonMatch(match)}
+                                disabled={isAbandoning}
+                                style={{
+                                  padding: '10px 24px',
+                                  borderRadius: '12px',
+                                  border: 'none',
+                                  fontWeight: isWinnerMatch ? 800 : 700,
+                                  fontSize: '13px',
+                                  color: '#07070e',
+                                  cursor: isAbandoning ? 'not-allowed' : 'pointer',
+                                  opacity: isAbandoning ? 0.6 : 1,
+                                  transition: 'all 0.2s',
+                                  fontFamily: "'Outfit', sans-serif",
+                                  ...(isWinnerMatch
+                                    ? {
+                                        background: 'linear-gradient(135deg, #22c55e, #10b981)',
+                                        boxShadow: '0 4px 20px rgba(34,197,94,0.3)',
+                                      }
+                                    : {
+                                        background: 'linear-gradient(135deg, #00ffa3 0%, #00d4ff 50%, #9945ff 100%)',
+                                      }),
+                                }}
+                                onMouseEnter={(e) => {
+                                  if (!isAbandoning) {
+                                    e.currentTarget.style.transform = 'translateY(-1px)';
+                                    e.currentTarget.style.filter = 'brightness(1.1)';
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.transform = 'translateY(0)';
+                                  e.currentTarget.style.filter = 'brightness(1)';
+                                }}
+                              >
+                                {isAbandoning ? (
+                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                    <RefreshCw className="w-3 h-3 animate-spin" />
+                                    Processing...
+                                  </span>
+                                ) : isWinnerMatch
+                                  ? "🎉 Claim Winnings" 
+                                  : match.account.status === MatchStatus.Open 
+                                    ? "Cancel & Refund" 
+                                    : "Claim Refund"}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* How it works Info Card */}
+              <div style={{
+                background: 'rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: '16px',
+                padding: '20px 24px',
+                marginTop: '32px',
+              }}>
+                <h3 style={{
+                  fontSize: '14px',
+                  fontWeight: 700,
+                  color: '#e8e8f0',
+                  marginBottom: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}>
+                  <span>⚠️</span> How it works
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ padding: '8px 0', display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#22c55e', flexShrink: 0, marginTop: '6px' }}></span>
+                    <span style={{ fontSize: '13px', color: '#6b6b80' }}>
+                      <strong style={{ color: '#22c55e' }}>Won matches:</strong> Claim your winnings if the auto-payout failed
+                    </span>
+                  </div>
+                  <div style={{ padding: '8px 0', display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#ff5050', flexShrink: 0, marginTop: '6px' }}></span>
+                    <span style={{ fontSize: '13px', color: '#6b6b80' }}>
+                      <strong style={{ color: '#ff5050' }}>Lost matches:</strong> No refund — the winner claims the pot
+                    </span>
+                  </div>
+                  <div style={{ padding: '8px 0', display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00d4ff', flexShrink: 0, marginTop: '6px' }}></span>
+                    <span style={{ fontSize: '13px', color: '#6b6b80' }}>
+                      <strong style={{ color: '#00d4ff' }}>Open matches:</strong> No one joined — you get your full stake back
+                    </span>
+                  </div>
+                  <div style={{ padding: '8px 0', display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#eab308', flexShrink: 0, marginTop: '6px' }}></span>
+                    <span style={{ fontSize: '13px', color: '#6b6b80' }}>
+                      <strong style={{ color: '#eab308' }}>Stuck matches:</strong> Either player can abandon and both get refunds
+                    </span>
+                  </div>
+                  <div style={{ padding: '8px 0', display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#9945ff', flexShrink: 0, marginTop: '6px' }}></span>
+                    <span style={{ fontSize: '13px', color: '#6b6b80' }}>
+                      <strong style={{ color: '#9945ff' }}>Failed payouts:</strong> Force refund returns stakes to both players
+                    </span>
+                  </div>
+                  <div style={{ padding: '8px 0' }}>
+                    <span style={{ fontSize: '13px', color: '#6b6b80', paddingLeft: '14px' }}>
+                      The match account is closed and rent returned to you
+                    </span>
+                  </div>
                 </div>
               </div>
-            )}
-
-            {/* Matches List */}
-            {loading ? (
-              <div className="glass-card rounded-2xl p-8 text-center">
-                <RefreshCw className="w-8 h-8 text-solana-purple mx-auto mb-4 animate-spin" />
-                <p className="text-neutral-400">Searching for refundable matches...</p>
-              </div>
-            ) : matches.length === 0 ? (
-              <div className="glass-card rounded-2xl p-8 text-center">
-                <CheckCircle2 className="w-12 h-12 text-green-400 mx-auto mb-4" />
-                <h2 className="text-xl font-semibold mb-2">No Funds to Claim</h2>
-                <p className="text-neutral-400">
-                  You don't have any unclaimed winnings or stuck matches.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {matches.map((match) => {
-                  const tierInfo = getStakeTierInfo(match.account.stakeTier);
-                  const isAbandoning = abandoningMatch === match.pubkey.toBase58();
-                  const potAmount = tierInfo.stake * 2; // Both players' stakes
-
-                  return (
-                    <motion.div
-                      key={match.pubkey.toBase58()}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={`glass-card rounded-2xl p-6 ${(match.isWinner || match.isBackendWinner) ? 'border-2 border-green-500/50' : ''}`}
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                          <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            {(match.isWinner || match.isBackendWinner) && (
-                              <span className="px-2 py-0.5 rounded-lg text-xs font-medium bg-green-500/20 text-green-400 flex items-center gap-1">
-                                <Trophy className="w-3 h-3" />
-                                Winner - Claim Your Prize!
-                              </span>
-                            )}
-                            {match.isBackendWinner && !match.isWinner && (
-                              <span className="px-2 py-0.5 rounded-lg text-xs font-medium bg-yellow-500/20 text-yellow-400">
-                                (Pending on-chain)
-                              </span>
-                            )}
-                            {match.isBackendLoser && (
-                              <span className="px-2 py-0.5 rounded-lg text-xs font-medium bg-red-500/20 text-red-400">
-                                You Lost - No Refund
-                              </span>
-                            )}
-                            <span className={`px-2 py-0.5 rounded-lg text-xs font-medium ${
-                              match.isPlayerA 
-                                ? "bg-blue-500/20 text-blue-400" 
-                                : "bg-purple-500/20 text-purple-400"
-                            }`}>
-                              {match.isPlayerA ? "You created this match" : "You are Player B"}
-                            </span>
-                            <span className={`px-2 py-0.5 rounded-lg text-xs font-medium ${
-                              match.account.status === MatchStatus.Open
-                                ? "bg-blue-500/20 text-blue-400"
-                                : match.account.status === MatchStatus.Finished
-                                ? "bg-red-500/20 text-red-400"
-                                : "bg-yellow-500/20 text-yellow-400"
-                            }`}>
-                              {match.account.status === MatchStatus.Open 
-                                ? "Open (No Opponent)" 
-                                : match.account.status === MatchStatus.Finished 
-                                ? "Payout Failed" 
-                                : "Active (Stuck)"}
-                            </span>
-                          </div>
-                          <p className="font-mono text-sm text-neutral-400 mb-1">
-                            Match: {match.pubkey.toBase58().slice(0, 12)}...
-                          </p>
-                          <p className="text-sm">
-                            Stake: <span className="text-white font-semibold">{tierInfo.label}</span>
-                            <span className="text-neutral-500 mx-2">•</span>
-                            {(match.isWinner || match.isBackendWinner) ? (
-                              <>Prize: <span className="text-green-400 font-bold">{potAmount.toFixed(2)} SOL</span></>
-                            ) : match.isBackendLoser ? (
-                              <>Lost: <span className="text-red-400 font-bold">-{tierInfo.stake} SOL</span></>
-                            ) : (
-                              <>Your refund: <span className="text-solana-green font-semibold">{tierInfo.label}</span></>
-                            )}
-                          </p>
-                        </div>
-                        {/* Hide button for losers, show for winners and stuck matches */}
-                        {!match.isBackendLoser && (
-                          <button
-                            onClick={() => handleAbandonMatch(match)}
-                            disabled={isAbandoning}
-                            className={`px-6 py-3 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                              (match.isWinner || match.isBackendWinner) 
-                                ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 shadow-lg shadow-green-500/30' 
-                                : 'btn-glow'
-                            }`}
-                          >
-                            {isAbandoning 
-                              ? "Processing..." 
-                              : (match.isWinner || match.isBackendWinner)
-                                ? "🎉 Claim Winnings" 
-                                : match.account.status === MatchStatus.Open 
-                                  ? "Cancel & Refund" 
-                                  : "Claim Refund"}
-                          </button>
-                        )}
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Info */}
-            <div className="mt-8 p-4 rounded-2xl bg-white/5 border border-white/10">
-              <h3 className="font-semibold mb-2 flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-yellow-400" />
-                How it works
-              </h3>
-              <ul className="text-sm text-neutral-400 space-y-1">
-                <li>• <strong className="text-green-400">Won matches:</strong> Claim your winnings if the auto-payout failed</li>
-                <li>• <strong className="text-red-400">Lost matches:</strong> No refund - the winner claims the pot</li>
-                <li>• <strong>Open matches:</strong> No one joined - you get your full stake back</li>
-                <li>• <strong>Stuck matches:</strong> Either player can abandon and both get refunds</li>
-                <li>• <strong>Failed payouts:</strong> Force refund returns stakes to both players</li>
-                <li>• The match account is closed and rent returned to you</li>
-              </ul>
-            </div>
-          </>
-        )}
-      </motion.div>
+            </>
+          )}
+        </motion.div>
+      </div>
     </main>
   );
 }

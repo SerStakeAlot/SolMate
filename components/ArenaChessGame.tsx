@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Chess, Square, Move } from 'chess.js';
-import { RotateCcw, Flag, Clock, Cpu, User } from 'lucide-react';
+import { RotateCcw, Flag, Clock, Cpu, User, Bot } from 'lucide-react';
 import { ArenaResultModal } from './ArenaResultModal';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-production.up.railway.app';
@@ -22,6 +22,66 @@ const PIECE_PATHS: Record<string, string> = {
   wB: '/pieces/wB.svg', wN: '/pieces/wN.svg', wP: '/pieces/wP.svg',
   bK: '/pieces/bK.svg', bQ: '/pieces/bQ.svg', bR: '/pieces/bR.svg',
   bB: '/pieces/bB.svg', bN: '/pieces/bN.svg', bP: '/pieces/bP.svg',
+};
+
+// Piece display symbols for captured pieces
+const PIECE_SYMBOLS: Record<string, string> = {
+  P: '♙', N: '♘', B: '♗', R: '♖', Q: '♕',
+  p: '♟', n: '♞', b: '♝', r: '♜', q: '♛',
+};
+
+// Captured pieces tracker
+const getCapturedPieces = (chess: Chess) => {
+  const initialPieces = { w: { p: 8, n: 2, b: 2, r: 2, q: 1 }, b: { p: 8, n: 2, b: 2, r: 2, q: 1 } };
+  const currentPieces = { w: { p: 0, n: 0, b: 0, r: 0, q: 0 }, b: { p: 0, n: 0, b: 0, r: 0, q: 0 } };
+  
+  const board = chess.board();
+  for (const row of board) {
+    for (const piece of row) {
+      if (piece && piece.type !== 'k') {
+        currentPieces[piece.color][piece.type as 'p' | 'n' | 'b' | 'r' | 'q']++;
+      }
+    }
+  }
+  
+  const createPieceGroups = (capturedBy: 'w' | 'b') => {
+    const result: { piece: string; count: number }[] = [];
+    const pieceOrder: ('q' | 'r' | 'b' | 'n' | 'p')[] = ['q', 'r', 'b', 'n', 'p'];
+    const pieceValues: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+    const victimColor = capturedBy === 'w' ? 'b' : 'w';
+    
+    for (const type of pieceOrder) {
+      const initial = capturedBy === 'w' ? initialPieces.b[type] : initialPieces.w[type];
+      const current = capturedBy === 'w' ? currentPieces.b[type] : currentPieces.w[type];
+      const captured = initial - current;
+      if (captured > 0) {
+        result.push({ piece: victimColor === 'w' ? type.toUpperCase() : type, count: captured });
+      }
+    }
+    return result;
+  };
+  
+  const getMaterialTotal = (capturedBy: 'w' | 'b') => {
+    const pieceValues: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9 };
+    const pieceOrder: ('q' | 'r' | 'b' | 'n' | 'p')[] = ['q', 'r', 'b', 'n', 'p'];
+    let total = 0;
+    for (const type of pieceOrder) {
+      const initial = capturedBy === 'w' ? initialPieces.b[type] : initialPieces.w[type];
+      const current = capturedBy === 'w' ? currentPieces.b[type] : currentPieces.w[type];
+      total += (initial - current) * pieceValues[type];
+    }
+    return total;
+  };
+  
+  const wTotal = getMaterialTotal('w');
+  const bTotal = getMaterialTotal('b');
+  
+  return {
+    wGroups: createPieceGroups('w'),
+    bGroups: createPieceGroups('b'),
+    wAdvantage: wTotal - bTotal,
+    bAdvantage: bTotal - wTotal,
+  };
 };
 
 // Sound effects hook
@@ -363,265 +423,590 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
     );
   }
 
+  // Compute captured pieces
+  const captured = useMemo(() => getCapturedPieces(chess), [board]);
+
+  // Build move history pairs
+  const moveHistory = chess.history();
+  const movePairs: { num: number; white: string; black?: string }[] = [];
+  for (let i = 0; i < moveHistory.length; i += 2) {
+    movePairs.push({
+      num: Math.floor(i / 2) + 1,
+      white: moveHistory[i],
+      black: moveHistory[i + 1],
+    });
+  }
+
+  const isPlayerTurn = chess.turn() === playerColor;
+  const isAiTurn = !isPlayerTurn;
+  const moveProgress = Math.min(moveCount, MIN_MOVES_TO_COUNT);
+  const movesCount = moveCount >= MIN_MOVES_TO_COUNT;
+  const gamesPlayedToday = arenaStats ? (MAX_GAMES_PER_DAY - (arenaStats.gamesRemainingToday || 0)) : 0;
+  const winRate = arenaStats && arenaStats.matchesPlayed > 0
+    ? Math.round((arenaStats.wins / arenaStats.matchesPlayed) * 100) : 0;
+
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Game Header */}
-      <div className="flex items-center justify-between mb-4 px-4">
-        {/* AI Info */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-            <Cpu className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <p className="font-semibold">SolMate AI</p>
-            <p className="text-sm text-white/50">Level 20 • {isAiThinking ? 'Thinking...' : 'Ready'}</p>
-          </div>
-        </div>
-        
-        {/* AI Timer */}
-        <div className={`px-4 py-2 rounded-xl font-mono text-lg ${
-          chess.turn() !== playerColor ? 'bg-yellow-500/20 text-yellow-400' : 'bg-white/10 text-white/60'
-        }`}>
-          <Clock className="w-4 h-4 inline-block mr-2" />
-          {formatTime(aiTime)}
-        </div>
-      </div>
+    <div style={{ maxWidth: 920, margin: '0 auto', fontFamily: "'Outfit', 'SF Pro Display', sans-serif" }}>
+      {/* CSS Grid Layout */}
+      <style>{`
+        .arena-chess-grid { display: grid; grid-template-columns: 576px 1fr; gap: 28px; align-items: start; }
+        @media (max-width: 960px) { .arena-chess-grid { grid-template-columns: 1fr; } }
+      `}</style>
 
-      {/* Chess Board */}
-      <div className="relative">
-        <div className="aspect-square max-w-[600px] mx-auto">
-          <div className="w-full h-full overflow-hidden rounded-2xl border-2 border-white/20 shadow-2xl">
-            <div className="grid grid-cols-8 grid-rows-8 h-full w-full">
-            {Array.from({ length: 64 }).map((_, i) => {
-              const row = Math.floor(i / 8);
-              const col = i % 8;
-              const visualRow = row;
-              const visualCol = col;
-              const square = `${FILES[col]}${8 - row}` as Square;
-              const piece = board[row]?.[col] ?? null;
-              const isLight = (row + col) % 2 === 0;
-              const isSelected = selectedSquare === square;
-              const isValidMove = validMoves.includes(square);
-              const isLastMoveSquare = lastMove && (lastMove.from === square || lastMove.to === square);
-              const isCheck = chess.isCheck() && piece?.type === 'k' && piece?.color === chess.turn();
-              
-              // Coordinate labels
-              const showRank = visualCol === 0; // Left edge
-              const showFile = visualRow === 7; // Bottom edge
-              const rank = 8 - visualRow;
-              const file = FILES[visualCol];
-              
-              // Background color with priority
-              let bgColor = isLight ? '#e5e5e5' : '#525252';
-              if (isLastMoveSquare && !isSelected && !isCheck) {
-                bgColor = isLight ? '#fcd34d' : '#b45309'; // amber highlight
-              }
-              if (isSelected) {
-                bgColor = '#34d399'; // emerald
-              }
-              if (isCheck) {
-                bgColor = '#ef4444'; // red
-              }
-              
-              return (
-                <button
-                  key={square}
-                  type="button"
-                  onClick={() => handleSquareClick(square)}
-                  className="relative flex items-center justify-center select-none transition-all hover:brightness-110"
-                  style={{ 
-                    backgroundColor: bgColor,
-                    boxShadow: isSelected ? 'inset 0 0 0 4px #10b981' : isCheck ? 'inset 0 0 0 4px #b91c1c' : undefined,
-                  }}
-                >
-                  {/* Piece */}
-                  {piece && (
-                    <motion.img
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: isSelected ? 1.1 : 1, opacity: 1 }}
-                      src={PIECE_PATHS[`${piece.color}${piece.type.toUpperCase()}`]}
-                      alt={`${piece.color}${piece.type}`}
-                      className="w-[80%] h-[80%] object-contain pointer-events-none drop-shadow-lg"
-                      style={{ zIndex: 1 }}
-                      draggable={false}
-                    />
-                  )}
-                  
-                  {/* Legal move dot (empty square) */}
-                  {isValidMove && !piece && (
-                    <div 
-                      style={{
-                        position: 'absolute',
-                        width: '30%',
-                        height: '30%',
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(0, 0, 0, 0.25)',
-                        zIndex: 10,
-                        pointerEvents: 'none',
-                      }}
-                    />
-                  )}
-                  
-                  {/* Legal capture indicator (square with piece) */}
-                  {isValidMove && piece && (
-                    <div 
-                      style={{
-                        position: 'absolute',
-                        inset: '4px',
-                        borderRadius: '50%',
-                        border: '5px solid rgba(0, 0, 0, 0.25)',
-                        zIndex: 10,
-                        pointerEvents: 'none',
-                      }}
-                    />
-                  )}
-                  
-                  {/* Rank numbers on left edge */}
-                  {showRank && (
-                    <span 
-                      className="pointer-events-none select-none"
-                      style={{ 
-                        position: 'absolute',
-                        top: '2px',
-                        left: '3px',
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        lineHeight: 1,
-                        color: isLight ? '#525252' : '#d4d4d4',
-                        zIndex: 5,
-                      }}
-                    >
-                      {rank}
-                    </span>
-                  )}
-                  
-                  {/* File letters on bottom edge */}
-                  {showFile && (
-                    <span 
-                      className="pointer-events-none select-none"
-                      style={{ 
-                        position: 'absolute',
-                        bottom: '2px',
-                        right: '3px',
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        lineHeight: 1,
-                        color: isLight ? '#525252' : '#d4d4d4',
-                        zIndex: 5,
-                      }}
-                    >
-                      {file}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-            </div>
-          </div>
-        </div>
-        
-        {/* Thinking Overlay */}
-        {isAiThinking && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-2xl">
-            <div className="px-6 py-3 rounded-2xl bg-purple-600 text-white font-semibold animate-pulse">
-              <Cpu className="w-5 h-5 inline-block mr-2 animate-spin" />
-              AI is thinking...
-            </div>
-          </div>
-        )}
-      </div>
+      <div className="arena-chess-grid">
+        {/* ─── LEFT COLUMN: Board + Timers ─── */}
+        <div className="flex flex-col" style={{ width: '100%', maxWidth: 576 }}>
 
-      {/* Player Info */}
-      <div className="flex items-center justify-between mt-4 px-4">
-        {/* Player Info */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-solana-purple to-solana-green flex items-center justify-center">
-            <User className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <p className="font-semibold">You</p>
-            <p className="text-sm text-white/50">Move {Math.ceil(moveCount / 2)}</p>
-          </div>
-        </div>
-        
-        {/* Player Timer */}
-        <div className={`px-4 py-2 rounded-xl font-mono text-lg ${
-          chess.turn() === playerColor ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/60'
-        }`}>
-          <Clock className="w-4 h-4 inline-block mr-2" />
-          {formatTime(playerTime)}
-        </div>
-      </div>
-
-      {/* Controls */}
-      <div className="flex justify-center gap-4 mt-6">
-        <button
-          onClick={handleResign}
-          disabled={gameOver}
-          className="flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold transition-colors disabled:opacity-50 border border-red-500/30"
-          style={{
-            backgroundColor: '#7f1d1d',
-            color: '#fca5a5',
-            WebkitTextFillColor: '#fca5a5',
-            textShadow: '0 1px 2px rgba(0,0,0,0.8)'
-          }}
-        >
-          <Flag className="w-5 h-5" style={{ color: '#fca5a5' }} />
-          Resign
-        </button>
-      </div>
-
-      {/* Game Stats */}
-      <div className="mt-6 text-center text-white/50 text-sm">
-        Moves: {moveCount} {moveCount < MIN_MOVES_TO_COUNT && `(${MIN_MOVES_TO_COUNT - moveCount} more needed to count)`}
-      </div>
-
-      {/* Result Modal - inline with forced visibility */}
-      {gameOver && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.9)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 99998,
-          }}
-        >
+          {/* ─── AI TIMER (top) ─── */}
           <div style={{
-            backgroundColor: result === 'win' ? '#166534' : result === 'loss' ? '#7f1d1d' : '#374151',
+            padding: '12px 20px',
+            background: isAiTurn ? 'rgba(234,179,8,0.06)' : 'rgba(255,255,255,0.02)',
+            border: `1px solid ${isAiTurn ? 'rgba(234,179,8,0.2)' : 'rgba(255,255,255,0.06)'}`,
+            borderRadius: 14,
+            transition: 'all 0.3s',
+            marginBottom: 8,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {/* Active dot */}
+                <div style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: isAiTurn ? '#eab308' : '#333',
+                  boxShadow: isAiTurn ? '0 0 12px rgba(234,179,8,0.5)' : 'none',
+                  transition: 'all 0.3s',
+                }} />
+                {/* Bot icon */}
+                <div style={{
+                  width: 32, height: 32, borderRadius: 10,
+                  background: 'rgba(153,69,255,0.12)',
+                  border: '1px solid rgba(153,69,255,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Bot style={{ width: 16, height: 16, color: '#b388ff' }} />
+                </div>
+                <div>
+                  <div style={{
+                    fontSize: 14, fontWeight: 600,
+                    color: isAiTurn ? '#e8e8f0' : '#6b6b80',
+                    fontFamily: "'Outfit', sans-serif",
+                  }}>
+                    SolMate AI {isAiThinking && <span style={{ color: '#eab308', fontSize: 12 }}>• thinking...</span>}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#444', fontFamily: "'Space Mono', monospace" }}>Level 20</div>
+                </div>
+              </div>
+              {/* Timer */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  width: 14, height: 14, borderRadius: 4,
+                  background: '#1a1a2e',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                }} />
+                <Clock style={{ width: 14, height: 14, color: isAiTurn ? '#eab308' : '#444' }} />
+                <span style={{
+                  fontFamily: "'Space Mono', monospace",
+                  fontSize: 22, fontWeight: 700,
+                  color: isAiTurn ? '#eab308' : '#6b6b80',
+                  letterSpacing: '0.05em',
+                }}>{formatTime(aiTime)}</span>
+              </div>
+            </div>
+            {/* AI Captured Pieces */}
+            {captured.bGroups.length > 0 && (
+              <div style={{
+                marginTop: 8, paddingTop: 8,
+                borderTop: '1px solid rgba(255,255,255,0.04)',
+                display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', minHeight: 24,
+              }}>
+                {captured.bGroups.map((g, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+                    {Array.from({ length: g.count }).map((_, j) => (
+                      <span key={j} style={{
+                        fontSize: 18, lineHeight: 1, color: '#e8e8f0',
+                        filter: 'drop-shadow(0 1px 4px rgba(255,255,255,0.2))',
+                        marginLeft: j > 0 ? -6 : 0,
+                        position: 'relative', zIndex: g.count - j, opacity: 0.9, userSelect: 'none',
+                      }}>{PIECE_SYMBOLS[g.piece]}</span>
+                    ))}
+                  </div>
+                ))}
+                {captured.bAdvantage > 0 && (
+                  <span style={{
+                    fontSize: 12, fontWeight: 700, fontFamily: "'Space Mono', monospace",
+                    color: '#eab308', marginLeft: 6, padding: '2px 6px', borderRadius: 6,
+                    background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.15)',
+                  }}>+{captured.bAdvantage}</span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ─── CHESS BOARD ─── */}
+          <div className="rounded-2xl p-2 sm:p-3" style={{
+            background: 'rgba(14,14,30,0.7)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            backdropFilter: 'blur(12px)',
+          }}>
+            <div className="relative">
+              <div className="aspect-square w-full overflow-hidden rounded-2xl" style={{
+                border: '1px solid rgba(255,255,255,0.08)',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.4), 0 0 80px rgba(234,179,8,0.05)',
+                background: 'linear-gradient(135deg, rgba(234,179,8,0.02), rgba(153,69,255,0.02))',
+              }}>
+                <div className="grid grid-cols-8 grid-rows-8 h-full w-full">
+                  {Array.from({ length: 64 }).map((_, i) => {
+                    const row = Math.floor(i / 8);
+                    const col = i % 8;
+                    const square = `${FILES[col]}${8 - row}` as Square;
+                    const piece = board[row]?.[col] ?? null;
+                    const isLight = (row + col) % 2 === 0;
+                    const isSelected = selectedSquare === square;
+                    const isValidMove = validMoves.includes(square);
+                    const isLastMoveSquare = lastMove && (lastMove.from === square || lastMove.to === square);
+                    const isCheck = chess.isCheck() && piece?.type === 'k' && piece?.color === chess.turn();
+
+                    // Coordinate labels
+                    const showRank = col === 0;
+                    const showFile = row === 7;
+                    const rank = 8 - row;
+                    const file = FILES[col];
+
+                    // Dark themed square colors
+                    let bgColor = isLight ? '#1e1e3a' : '#12122a';
+                    if (isLastMoveSquare && !isSelected && !isCheck) {
+                      bgColor = isLight ? 'rgba(153,69,255,0.18)' : 'rgba(153,69,255,0.28)';
+                    }
+                    if (isSelected) {
+                      bgColor = 'rgba(0,255,163,0.25)';
+                    }
+                    if (isCheck) {
+                      bgColor = 'rgba(239,68,68,0.4)';
+                    }
+
+                    const boxShadow = isSelected
+                      ? 'inset 0 0 0 3px rgba(0,255,163,0.5)'
+                      : isCheck
+                        ? 'inset 0 0 0 3px rgba(239,68,68,0.7)'
+                        : undefined;
+
+                    return (
+                      <button
+                        key={square}
+                        type="button"
+                        onClick={() => handleSquareClick(square)}
+                        className="relative flex items-center justify-center select-none"
+                        style={{
+                          backgroundColor: bgColor,
+                          borderRadius: '2px',
+                          boxShadow,
+                          transition: 'background-color 0.15s',
+                        }}
+                      >
+                        {/* Piece */}
+                        {piece && (
+                          <motion.div
+                            className="relative w-[80%] h-[80%]"
+                            style={{ zIndex: 1 }}
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: isSelected ? 1.08 : 1, opacity: 1 }}
+                          >
+                            <img
+                              src={PIECE_PATHS[`${piece.color}${piece.type.toUpperCase()}`]}
+                              alt={`${piece.color}${piece.type}`}
+                              className="w-full h-full object-contain pointer-events-none"
+                              style={{
+                                filter: piece.color === 'b'
+                                  ? 'drop-shadow(0 2px 8px rgba(153,69,255,0.4))'
+                                  : 'drop-shadow(0 2px 8px rgba(255,255,255,0.2))',
+                              }}
+                              draggable={false}
+                            />
+                          </motion.div>
+                        )}
+
+                        {/* Legal move dot (empty square) */}
+                        {isValidMove && !piece && (
+                          <div style={{
+                            position: 'absolute', width: '30%', height: '30%',
+                            borderRadius: '50%', backgroundColor: 'rgba(0,255,163,0.3)',
+                            zIndex: 10, pointerEvents: 'none',
+                          }} />
+                        )}
+
+                        {/* Legal capture indicator (square with piece) */}
+                        {isValidMove && piece && (
+                          <div style={{
+                            position: 'absolute', inset: '4px', borderRadius: '50%',
+                            border: '4px solid rgba(0,255,163,0.35)',
+                            zIndex: 10, pointerEvents: 'none',
+                          }} />
+                        )}
+
+                        {/* Rank numbers on left edge */}
+                        {showRank && (
+                          <span className="pointer-events-none select-none" style={{
+                            position: 'absolute', top: '2px', left: '3px',
+                            fontSize: '10px', fontWeight: 700, lineHeight: 1,
+                            fontFamily: "'Space Mono', monospace",
+                            color: 'rgba(255,255,255,0.12)', zIndex: 5,
+                          }}>{rank}</span>
+                        )}
+
+                        {/* File letters on bottom edge */}
+                        {showFile && (
+                          <span className="pointer-events-none select-none" style={{
+                            position: 'absolute', bottom: '2px', right: '3px',
+                            fontSize: '10px', fontWeight: 700, lineHeight: 1,
+                            fontFamily: "'Space Mono', monospace",
+                            color: 'rgba(255,255,255,0.12)', zIndex: 5,
+                          }}>{file}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Thinking Overlay */}
+              {isAiThinking && (
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'rgba(0,0,0,0.25)', borderRadius: 16,
+                }}>
+                  <div style={{
+                    padding: '10px 24px', borderRadius: 14,
+                    background: 'rgba(14,14,30,0.9)',
+                    border: '1px solid rgba(234,179,8,0.2)',
+                    color: '#eab308', fontSize: 14, fontWeight: 600,
+                    fontFamily: "'Outfit', sans-serif",
+                    display: 'flex', alignItems: 'center', gap: 8,
+                  }}>
+                    <Cpu style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} />
+                    AI is thinking...
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ─── PLAYER TIMER (bottom) ─── */}
+          <div style={{
+            padding: '12px 20px',
+            background: isPlayerTurn ? 'rgba(234,179,8,0.06)' : 'rgba(255,255,255,0.02)',
+            border: `1px solid ${isPlayerTurn ? 'rgba(234,179,8,0.2)' : 'rgba(255,255,255,0.06)'}`,
+            borderRadius: 14,
+            transition: 'all 0.3s',
+            marginTop: 8,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {/* Active dot */}
+                <div style={{
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: isPlayerTurn ? '#eab308' : '#333',
+                  boxShadow: isPlayerTurn ? '0 0 12px rgba(234,179,8,0.5)' : 'none',
+                  transition: 'all 0.3s',
+                }} />
+                {/* User icon */}
+                <div style={{
+                  width: 32, height: 32, borderRadius: 10,
+                  background: 'rgba(234,179,8,0.12)',
+                  border: '1px solid rgba(234,179,8,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <User style={{ width: 16, height: 16, color: '#eab308' }} />
+                </div>
+                <div>
+                  <div style={{
+                    fontSize: 14, fontWeight: 600,
+                    color: isPlayerTurn ? '#e8e8f0' : '#6b6b80',
+                    fontFamily: "'Outfit', sans-serif",
+                  }}>You</div>
+                  <div style={{ fontSize: 11, color: '#444', fontFamily: "'Space Mono', monospace" }}>
+                    Move {Math.ceil(moveCount / 2)}
+                  </div>
+                </div>
+              </div>
+              {/* Timer */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{
+                  width: 14, height: 14, borderRadius: 4,
+                  background: '#e8e8f0',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                }} />
+                <Clock style={{ width: 14, height: 14, color: isPlayerTurn ? '#eab308' : '#444' }} />
+                <span style={{
+                  fontFamily: "'Space Mono', monospace",
+                  fontSize: 22, fontWeight: 700,
+                  color: isPlayerTurn ? '#eab308' : '#6b6b80',
+                  letterSpacing: '0.05em',
+                }}>{formatTime(playerTime)}</span>
+              </div>
+            </div>
+            {/* Player Captured Pieces */}
+            {captured.wGroups.length > 0 && (
+              <div style={{
+                marginTop: 8, paddingTop: 8,
+                borderTop: '1px solid rgba(255,255,255,0.04)',
+                display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', minHeight: 24,
+              }}>
+                {captured.wGroups.map((g, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+                    {Array.from({ length: g.count }).map((_, j) => (
+                      <span key={j} style={{
+                        fontSize: 18, lineHeight: 1, color: '#b388ff',
+                        filter: 'drop-shadow(0 1px 4px rgba(153,69,255,0.4))',
+                        marginLeft: j > 0 ? -6 : 0,
+                        position: 'relative', zIndex: g.count - j, opacity: 0.9, userSelect: 'none',
+                      }}>{PIECE_SYMBOLS[g.piece]}</span>
+                    ))}
+                  </div>
+                ))}
+                {captured.wAdvantage > 0 && (
+                  <span style={{
+                    fontSize: 12, fontWeight: 700, fontFamily: "'Space Mono', monospace",
+                    color: '#eab308', marginLeft: 6, padding: '2px 6px', borderRadius: 6,
+                    background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.15)',
+                  }}>+{captured.wAdvantage}</span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* ─── MOVE PROGRESS BAR ─── */}
+          <div style={{
+            marginTop: 12,
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: 12,
+            padding: '12px 20px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{
+                fontFamily: "'Space Mono', monospace",
+                fontSize: 13, fontWeight: 600,
+                color: movesCount ? '#22c55e' : '#a0a0b8',
+              }}>
+                {movesCount ? '✓ Game counts toward score' : `Move ${moveCount} / ${MIN_MOVES_TO_COUNT} minimum`}
+              </span>
+            </div>
+            {/* Progress track */}
+            <div style={{
+              width: '100%', height: 3, borderRadius: 2,
+              background: 'rgba(255,255,255,0.04)',
+              overflow: 'hidden',
+            }}>
+              <div style={{
+                width: `${(moveProgress / MIN_MOVES_TO_COUNT) * 100}%`,
+                height: '100%', borderRadius: 2,
+                background: movesCount
+                  ? '#22c55e'
+                  : 'linear-gradient(90deg, #eab308, #f59e0b)',
+                transition: 'width 0.3s ease',
+              }} />
+            </div>
+          </div>
+        </div>
+
+        {/* ─── RIGHT COLUMN: Side Panel ─── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 280 }}>
+
+          {/* Game Status Card */}
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: 16, padding: '20px 24px',
+          }}>
+            <div style={{
+              fontSize: 12, fontWeight: 600, textTransform: 'uppercase',
+              letterSpacing: '0.1em', color: '#eab308', marginBottom: 14,
+              fontFamily: "'Space Mono', monospace",
+            }}>Game Status</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                { label: 'Mode', value: '⚡ Arena' },
+                { label: 'Opponent', value: 'SolMate AI (Lvl 20)' },
+                { label: 'Stakes', value: 'Season Points' },
+                { label: 'Your Color', value: '⬜ White' },
+              ].map((row, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 13, color: '#6b6b80' }}>{row.label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: '#e8e8f0', fontFamily: "'Space Mono', monospace" }}>
+                    {row.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Move History Card */}
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: 16, padding: '20px 24px',
+          }}>
+            <div style={{
+              fontSize: 12, fontWeight: 600, textTransform: 'uppercase',
+              letterSpacing: '0.1em', color: '#6b6b80', marginBottom: 14,
+              fontFamily: "'Space Mono', monospace",
+            }}>Move History</div>
+            <div style={{ maxHeight: 200, overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
+              {movePairs.length === 0 ? (
+                <div style={{ fontSize: 13, color: '#444', fontStyle: 'italic', padding: '8px 0' }}>
+                  No moves yet — make the first move!
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '2px 8px' }}>
+                  {/* Header */}
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#444', paddingBottom: 4, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>#</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#444', paddingBottom: 4, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>White</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#444', paddingBottom: 4, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>Black</span>
+                  {/* Rows */}
+                  {movePairs.map((pair, idx) => {
+                    const isLatest = idx === movePairs.length - 1;
+                    const rowBg = isLatest ? 'rgba(234,179,8,0.08)' : 'transparent';
+                    return (
+                      <React.Fragment key={idx}>
+                        <span style={{
+                          fontSize: 12, fontFamily: "'Space Mono', monospace", color: '#444',
+                          padding: '4px 0', background: rowBg,
+                          borderRadius: isLatest ? '6px 0 0 6px' : 0,
+                        }}>{pair.num}.</span>
+                        <span style={{
+                          fontSize: 13, fontFamily: "'Space Mono', monospace", color: '#e8e8f0',
+                          padding: '4px 0', background: rowBg,
+                        }}>{pair.white}</span>
+                        <span style={{
+                          fontSize: 13, fontFamily: "'Space Mono', monospace", color: '#e8e8f0',
+                          padding: '4px 0', background: rowBg,
+                          borderRadius: isLatest ? '0 6px 6px 0' : 0,
+                        }}>{pair.black || ''}</span>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Arena Stats Card */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(234,179,8,0.04), rgba(234,179,8,0.01))',
+            border: '1px solid rgba(234,179,8,0.12)',
+            borderRadius: 16, padding: '20px 24px',
+            position: 'relative', overflow: 'hidden',
+          }}>
+            {/* Top gold accent line */}
+            <div style={{
+              position: 'absolute', top: 0, left: '30%', width: 120, height: 1,
+              background: 'linear-gradient(90deg, transparent, rgba(234,179,8,0.4), transparent)',
+            }} />
+            <div style={{
+              fontSize: 12, fontWeight: 600, textTransform: 'uppercase',
+              letterSpacing: '0.1em', color: '#eab308', marginBottom: 14,
+              fontFamily: "'Space Mono', monospace",
+            }}>Arena Stats</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {[
+                { label: 'Games Today', value: `${gamesPlayedToday}/${MAX_GAMES_PER_DAY}` },
+                { label: 'Season Score', value: `${arenaStats?.score?.toFixed(1) || '0.0'} pts` },
+                { label: 'Win Rate', value: `${winRate}%` },
+                { label: 'Rank', value: arenaStats?.rank ? `#${arenaStats.rank}` : '—' },
+              ].map((row, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 13, color: '#6b6b80' }}>{row.label}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#eab308', fontFamily: "'Space Mono', monospace" }}>
+                    {row.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Resign Button */}
+          <button
+            onClick={handleResign}
+            disabled={gameOver}
+            className="arena-resign-btn"
+            style={{
+              padding: '10px 20px', borderRadius: 10,
+              fontSize: 13, fontWeight: 600,
+              fontFamily: "'Outfit', sans-serif",
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: '#6b6b80',
+              cursor: gameOver ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              opacity: gameOver ? 0.4 : 1,
+              width: '100%',
+            }}
+            onMouseEnter={(e) => {
+              if (!gameOver) {
+                e.currentTarget.style.background = 'rgba(255,80,80,0.1)';
+                e.currentTarget.style.borderColor = 'rgba(255,80,80,0.3)';
+                e.currentTarget.style.color = '#ff5050';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+              e.currentTarget.style.color = '#6b6b80';
+            }}
+          >
+            <Flag style={{ width: 14, height: 14 }} />
+            Resign Game
+          </button>
+        </div>
+      </div>
+
+      {/* ─── RESULT MODAL ─── */}
+      {gameOver && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 99998,
+        }}>
+          <div style={{
+            background: 'rgba(14,14,30,0.95)',
+            border: `1px solid ${result === 'win' ? 'rgba(234,179,8,0.3)' : result === 'loss' ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.15)'}`,
+            backdropFilter: 'blur(20px)',
+            boxShadow: result === 'win' ? '0 0 60px rgba(234,179,8,0.15)' : '0 0 60px rgba(0,0,0,0.5)',
             padding: '32px',
-            borderRadius: '16px',
-            border: `2px solid ${result === 'win' ? '#4ade80' : result === 'loss' ? '#f87171' : '#9ca3af'}`,
-            maxWidth: '400px',
+            borderRadius: '20px',
+            maxWidth: '420px',
             width: '100%',
-            textAlign: 'center',
+            textAlign: 'center' as const,
           }}>
             <div style={{ fontSize: '64px', marginBottom: '16px' }}>
               {result === 'win' ? '🏆' : result === 'loss' ? '😔' : '🤝'}
             </div>
-            <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: 'white', marginBottom: '8px' }}>
+            <h2 style={{
+              fontSize: '28px', fontWeight: 800, marginBottom: '8px',
+              fontFamily: "'Outfit', sans-serif",
+              color: result === 'win' ? '#eab308' : result === 'loss' ? '#f87171' : '#e8e8f0',
+            }}>
               {result === 'win' ? 'Victory!' : result === 'loss' ? 'Defeat' : 'Draw'}
             </h2>
-            <p style={{ color: 'rgba(255,255,255,0.8)', marginBottom: '16px' }}>
+            <p style={{ color: '#6b6b80', marginBottom: '8px', fontSize: 15 }}>
               {result === 'win' ? 'You defeated the AI!' : result === 'loss' ? 'The AI won this time' : 'The game ended in a draw'}
             </p>
-            <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '24px' }}>Moves played: {moveCount}</p>
+            <p style={{
+              color: '#444', marginBottom: '24px',
+              fontFamily: "'Space Mono', monospace", fontSize: 13,
+            }}>Moves played: {moveCount}</p>
             
             {/* Share bonus indicator */}
             {shareBonus !== null && (
               <div style={{
-                marginBottom: '16px',
-                padding: '8px 16px',
-                backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                borderRadius: '8px',
-                border: '1px solid rgba(34, 197, 94, 0.5)',
+                marginBottom: '16px', padding: '10px 16px',
+                background: 'rgba(34,197,94,0.08)',
+                borderRadius: '12px',
+                border: '1px solid rgba(34,197,94,0.2)',
               }}>
-                <p style={{ color: '#4ade80', fontWeight: '600' }}>
+                <p style={{ color: '#22c55e', fontWeight: 600, fontSize: 14, fontFamily: "'Space Mono', monospace" }}>
                   ✨ +{shareBonus} bonus points awarded!
                 </p>
               </div>
@@ -632,12 +1017,14 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
                 onClick={handleCloseResult}
                 style={{
                   padding: '12px 24px',
-                  backgroundColor: 'rgba(255,255,255,0.2)',
-                  border: 'none',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.1)',
                   borderRadius: '12px',
-                  fontWeight: '600',
+                  fontWeight: 600, fontSize: 14,
                   cursor: 'pointer',
-                  color: 'white',
+                  color: '#e8e8f0',
+                  fontFamily: "'Outfit', sans-serif",
+                  transition: 'all 0.2s',
                 }}
               >
                 Continue
@@ -669,16 +1056,21 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
                 disabled={hasShared}
                 style={{
                   padding: '12px 24px',
-                  backgroundColor: hasShared ? 'rgba(34, 197, 94, 0.3)' : '#3b82f6',
-                  border: 'none',
+                  background: hasShared
+                    ? 'rgba(34,197,94,0.15)'
+                    : 'linear-gradient(135deg, #eab308, #f59e0b)',
+                  border: hasShared ? '1px solid rgba(34,197,94,0.25)' : 'none',
                   borderRadius: '12px',
-                  fontWeight: '600',
+                  fontWeight: 700, fontSize: 14,
                   cursor: hasShared ? 'default' : 'pointer',
-                  color: 'white',
-                  opacity: hasShared ? 0.8 : 1,
+                  color: hasShared ? '#22c55e' : '#07070e',
+                  fontFamily: "'Outfit', sans-serif",
+                  opacity: hasShared ? 0.9 : 1,
+                  boxShadow: hasShared ? 'none' : '0 4px 20px rgba(234,179,8,0.25)',
+                  transition: 'all 0.2s',
                 }}
               >
-                {hasShared ? '✓ Shared (+0.25)' : 'Share on X (+0.25)'}
+                {hasShared ? '✓ Shared (+0.25)' : '𝕏 Share (+0.25)'}
               </button>
             </div>
           </div>

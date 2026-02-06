@@ -65,6 +65,13 @@ const useChessSounds = () => {
   return { playSound };
 };
 
+// Piece display symbols for captured pieces
+const PIECE_SYMBOLS: Record<string, string> = {
+  P: '♙', N: '♘', B: '♗', R: '♖', Q: '♕',
+  p: '♟', n: '♞', b: '♝', r: '♜', q: '♛',
+};
+const PIECE_SORT_ORDER: Record<string, number> = { q: 0, Q: 0, r: 1, R: 1, b: 2, B: 2, n: 3, N: 3, p: 4, P: 4 };
+
 // Captured pieces tracker - returns arrays of SVG paths for display
 const getCapturedPieces = (chess: Chess) => {
   const initialPieces = { w: { p: 8, n: 2, b: 2, r: 2, q: 1 }, b: { p: 8, n: 2, b: 2, r: 2, q: 1 } };
@@ -103,6 +110,24 @@ const getCapturedPieces = (chess: Chess) => {
   return {
     w: createPieceArray('w'), // pieces captured BY white (black piece SVGs)
     b: createPieceArray('b'), // pieces captured BY black (white piece SVGs)
+    wTypes: (() => { // piece type chars captured BY white
+      const result: string[] = [];
+      const pieceOrder: ('q' | 'r' | 'b' | 'n' | 'p')[] = ['q', 'r', 'b', 'n', 'p'];
+      for (const type of pieceOrder) {
+        const captured = initialPieces.b[type] - currentPieces.b[type];
+        for (let i = 0; i < captured; i++) result.push(type); // lowercase = black pieces
+      }
+      return result;
+    })(),
+    bTypes: (() => { // piece type chars captured BY black
+      const result: string[] = [];
+      const pieceOrder: ('q' | 'r' | 'b' | 'n' | 'p')[] = ['q', 'r', 'b', 'n', 'p'];
+      for (const type of pieceOrder) {
+        const captured = initialPieces.w[type] - currentPieces.w[type];
+        for (let i = 0; i < captured; i++) result.push(type.toUpperCase()); // uppercase = white pieces
+      }
+      return result;
+    })(),
   };
 };
 
@@ -120,6 +145,9 @@ type ChessGameProps = {
   matchCode?: string;
   initialStakeTier?: number;
   freePlayJoinCode?: string; // Auto-join free play via shareable link
+  autoCreateFreePlay?: boolean; // Auto-create a free play room on mount
+  onFreePlayCodeGenerated?: (code: string) => void; // Callback when room code is generated
+  onFreePlayGameStarted?: () => void; // Callback when opponent joins and game starts
   spectateRoomId?: string; // Spectate a wager match by room ID
 };
 
@@ -156,6 +184,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   matchCode,
   initialStakeTier = 4,
   freePlayJoinCode,
+  autoCreateFreePlay,
+  onFreePlayCodeGenerated,
+  onFreePlayGameStarted,
   spectateRoomId,
 }) => {
   const wallet = useWallet();
@@ -231,6 +262,26 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [spectatorWhiteTime, setSpectatorWhiteTime] = useState<number>(10 * 60 * 1000);
   const [spectatorBlackTime, setSpectatorBlackTime] = useState<number>(10 * 60 * 1000);
   
+  // Practice tips - rotates each new game
+  const PRACTICE_TIPS = [
+    'Control the center early. Knights and bishops are most effective when placed in the center of the board.',
+    'Develop your pieces before attacking. Get knights and bishops out before launching an assault.',
+    'Castle early to protect your king and connect your rooks.',
+    'Avoid moving the same piece twice in the opening unless there\'s a strong reason.',
+    'Rooks are strongest on open files. Look for columns with no pawns to place them on.',
+    'A knight on the rim is dim. Knights are weakest on the edges of the board.',
+    'Trade pieces when you\'re ahead in material to simplify the position.',
+    'When behind, complicate the position. Create tactical chaos to give yourself chances.',
+    'Passed pawns must be pushed! A pawn with no opposing pawns blocking it is a powerful asset.',
+    'In the endgame, activate your king. It becomes a strong piece when fewer threats exist.',
+    'Don\'t bring your queen out too early — it can become a target for your opponent\'s developing pieces.',
+    'Two bishops (the bishop pair) are usually stronger than two knights in open positions.',
+    'Look for forks, pins, and skewers — basic tactics win most games at every level.',
+    'Before making a move, ask: "What is my opponent\'s threat?" Always check for danger first.',
+    'Connected rooks on an open file or the 7th rank can be devastating.',
+  ];
+  const [tipIndex, setTipIndex] = useState(() => Math.floor(Math.random() * 15));
+
   // AI difficulty: 'novice' (depth 1), 'club' (depth 2), 'master' (depth 3)
   type AIDifficulty = 'novice' | 'club' | 'master';
   const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>('club');
@@ -691,6 +742,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setWhiteRequest(false);
       setWhiteRequestPending(false);
       
+      // Notify parent that game has started (dismiss waiting overlay)
+      if (onFreePlayGameStarted) onFreePlayGameStarted();
+      
       // Store opponent wallet for username lookup
       if (oppWallet) {
         setOpponentWallet(oppWallet);
@@ -1037,6 +1091,22 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     }
   }, [freePlayJoinCode]);
 
+  // Auto-create free play room if prop is set
+  useEffect(() => {
+    if (autoCreateFreePlay && !isFreePlay && !freePlayJoinCode) {
+      console.log('Auto-creating free play room');
+      handleCreateFreePlay();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoCreateFreePlay]);
+
+  // Notify parent when free play code is generated
+  useEffect(() => {
+    if (freePlayCode && onFreePlayCodeGenerated) {
+      onFreePlayCodeGenerated(freePlayCode);
+    }
+  }, [freePlayCode, onFreePlayCodeGenerated]);
+
   // Free play handlers
   const handleCreateFreePlay = () => {
     // Set refs immediately to avoid race condition with socket useEffect
@@ -1159,6 +1229,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     setBlackTimeMs(600000);
     setAiGameStarted(false);
     lastTickRef.current = Date.now();
+    setTipIndex(prev => (prev + 1) % PRACTICE_TIPS.length);
   };
 
   const handleCreateMatch = async () => {
@@ -1818,12 +1889,16 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
   return (
     <>
-      <div className="flex flex-col lg:flex-row gap-4 lg:gap-8 max-w-6xl mx-auto">
-        {/* Chess Board */}
-        <div className="flex-1 flex flex-col items-center w-full min-w-0">
+      <style>{`
+        .chess-grid { display: grid; grid-template-columns: 576px 1fr; gap: 28px; align-items: start; }
+        @media (max-width: 960px) { .chess-grid { grid-template-columns: 1fr; } }
+      `}</style>
+      <div className="chess-grid">
+        {/* Left Column - Board */}
+        <div className="flex flex-col" style={{ width: '100%', maxWidth: 576 }}>
           {/* Match Header */}
           {mode === 'wager' && matchInfo && (
-            <div className="w-full max-w-[min(480px,calc(100vw-1rem))] glass-card border-solana-purple/20 rounded-xl sm:rounded-2xl lg:rounded-3xl p-2 sm:p-3 lg:p-4 shadow-glow-sm mb-3 sm:mb-4">
+            <div className="w-full max-w-[min(480px,calc(100vw-1rem))] rounded-2xl p-2 sm:p-3 mb-3 sm:mb-4" style={{ background: 'rgba(14,14,30,0.7)', border: '1px solid rgba(153,69,255,0.15)', backdropFilter: 'blur(12px)' }}>
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs sm:text-sm">
                 <div className="flex items-center gap-2">
                   <Swords className="h-4 w-4 text-solana-purple" />
@@ -1894,8 +1969,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
             </div>
           )}
 
-          <div className="w-full max-w-[min(480px,calc(100vw-1rem))] space-y-3 sm:space-y-4">
-            <div className="glass-card rounded-xl sm:rounded-2xl lg:rounded-3xl p-2 sm:p-3 lg:p-4 shadow-glow">
+          <div className="w-full space-y-3 sm:space-y-4">
+            <div className="rounded-2xl p-2 sm:p-3" style={{ background: 'rgba(14,14,30,0.7)', border: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
               {/* Opponent info bar for multiplayer/free play (shown at top) */}
               {(isFreePlay || isMultiplayer) && opponentConnected && (
                 <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10">
@@ -1932,73 +2007,82 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       )}
                     </AnimatePresence>
                   </div>
-                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-xl ${
+                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-xl transition-all ${
                     (playerColor === 'w' && chessRef.current?.turn() === 'b') || 
                     (playerColor === 'b' && chessRef.current?.turn() === 'w')
-                      ? 'bg-solana-purple/30 text-white'
-                      : 'bg-white/5 text-neutral-400'
-                  }`}>
-                    <Clock className="w-4 h-4" />
+                      ? 'text-white'
+                      : 'bg-white/5 text-neutral-500'
+                  }`}
+                  style={(
+                    (playerColor === 'w' && chessRef.current?.turn() === 'b') || 
+                    (playerColor === 'b' && chessRef.current?.turn() === 'w')
+                  ) ? { background: 'rgba(0,255,163,0.12)', boxShadow: '0 0 12px rgba(0,255,163,0.15)', border: '1px solid rgba(0,255,163,0.2)' } : {}}
+                  >
+                    <Clock className="w-4 h-4" style={(
+                      (playerColor === 'w' && chessRef.current?.turn() === 'b') || 
+                      (playerColor === 'b' && chessRef.current?.turn() === 'w')
+                    ) ? { color: '#00ffa3' } : {}} />
                     {formatTime(playerColor === 'w' ? blackTimeMs : whiteTimeMs)}
                   </div>
                 </div>
               )}
               
-              {/* AI info bar for practice mode (shown at top) */}
-              {mode === 'practice' && !isFreePlay && (
-                <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${aiPlayerColor === 'w' ? 'bg-neutral-800 border border-neutral-600' : 'bg-white border border-neutral-400'}`} />
-                    <span className="font-semibold text-sm">
-                      🤖 {aiDifficulty === 'novice' ? 'Novice Bot' : aiDifficulty === 'club' ? 'Club Bot' : 'Master Bot'}
-                    </span>
-                    {/* AI's reaction bubble */}
-                    <AnimatePresence>
-                      {incomingReaction && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.5, x: -10 }}
-                          animate={{ opacity: 1, scale: 1, x: 0 }}
-                          exit={{ opacity: 0, scale: 0.5, x: -10 }}
-                        >
-                          <div className="bg-white/20 rounded-full px-2 py-0.5 border border-white/30">
-                            <span className="text-xl">{incomingReaction}</span>
+              {/* AI timer bar for practice mode (shown above board) */}
+              {mode === 'practice' && !isFreePlay && (() => {
+                const aiColor = aiPlayerColor === 'w' ? 'b' : 'w';
+                const isAiTurn = chessRef.current?.turn() === (aiPlayerColor === 'w' ? 'b' : 'w') && aiGameStarted;
+                const aiName = '🤖 ' + (aiDifficulty === 'novice' ? 'Novice Bot' : aiDifficulty === 'club' ? 'Club Bot' : 'Master Bot');
+                // AI's captured pieces (pieces AI took from player)
+                const aiCapturedTypes = aiColor === 'w' ? capturedPieces.wTypes : capturedPieces.bTypes;
+                const aiCapturedValue = aiCapturedTypes.reduce((s, p) => s + ({ p: 1, n: 3, b: 3, r: 5, q: 9, P: 1, N: 3, B: 3, R: 5, Q: 9 }[p] || 0), 0);
+                const playerCapturedValue = (aiColor === 'w' ? capturedPieces.bTypes : capturedPieces.wTypes).reduce((s, p) => s + ({ p: 1, n: 3, b: 3, r: 5, q: 9, P: 1, N: 3, B: 3, R: 5, Q: 9 }[p] || 0), 0);
+                const aiAdvantage = Math.max(0, aiCapturedValue - playerCapturedValue);
+                // Group pieces for display
+                const sorted = [...aiCapturedTypes].sort((a, b) => (PIECE_SORT_ORDER[a] ?? 5) - (PIECE_SORT_ORDER[b] ?? 5));
+                const groups: { piece: string; count: number }[] = [];
+                sorted.forEach(p => { const last = groups[groups.length - 1]; if (last && last.piece === p) last.count++; else groups.push({ piece: p, count: 1 }); });
+                const pieceColor = aiColor === 'b' ? '#b388ff' : '#e8e8f0';
+                return (
+                  <div style={{
+                    display: 'flex', flexDirection: 'column', gap: 0,
+                    padding: '12px 20px',
+                    background: isAiTurn ? 'rgba(0,255,163,0.06)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${isAiTurn ? 'rgba(0,255,163,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                    borderRadius: 14, transition: 'all 0.3s', marginBottom: 8,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: isAiTurn ? '#00ffa3' : '#333', boxShadow: isAiTurn ? '0 0 12px rgba(0,255,163,0.5)' : 'none' }} />
+                        <span style={{ fontSize: 14, fontWeight: 600, color: isAiTurn ? '#e8e8f0' : '#6b6b80', fontFamily: "'Outfit', sans-serif" }}>{aiName}</span>
+                        <div style={{ width: 14, height: 14, borderRadius: 4, background: aiColor === 'w' ? '#e8e8f0' : '#1a1a2e', border: '1px solid rgba(255,255,255,0.15)' }} />
+                      </div>
+                      <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 22, fontWeight: 700, color: isAiTurn ? '#00ffa3' : '#6b6b80', letterSpacing: '0.05em' }}>
+                        {formatTime(aiPlayerColor === 'w' ? blackTimeMs : whiteTimeMs)}
+                      </span>
+                    </div>
+                    {aiCapturedTypes.length > 0 && (
+                      <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', minHeight: 24 }}>
+                        {groups.map((g, i) => (
+                          <div key={`${g.piece}-${i}`} style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+                            {Array.from({ length: g.count }).map((_, j) => (
+                              <span key={j} style={{ fontSize: 18, lineHeight: 1, color: pieceColor, filter: aiColor === 'b' ? 'drop-shadow(0 1px 4px rgba(153,69,255,0.4))' : 'drop-shadow(0 1px 4px rgba(255,255,255,0.2))', marginLeft: j > 0 ? -6 : 0, position: 'relative', zIndex: g.count - j, opacity: 0.9, userSelect: 'none' }}>
+                                {PIECE_SYMBOLS[g.piece]}
+                              </span>
+                            ))}
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                        ))}
+                        {aiAdvantage > 0 && (
+                          <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "'Space Mono', monospace", color: '#00ffa3', marginLeft: 6, padding: '2px 6px', borderRadius: 6, background: 'rgba(0,255,163,0.1)', border: '1px solid rgba(0,255,163,0.15)' }}>+{aiAdvantage}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-xl ${
-                    chessRef.current?.turn() === (aiPlayerColor === 'w' ? 'b' : 'w') && aiGameStarted
-                      ? 'bg-solana-purple/30 text-white'
-                      : 'bg-white/5 text-neutral-400'
-                  }`}>
-                    <Clock className="w-4 h-4" />
-                    {formatTime(aiPlayerColor === 'w' ? blackTimeMs : whiteTimeMs)}
-                  </div>
-                </div>
-              )}
-              
-              {/* Your captured pieces (shown at top near opponent) */}
-              <div className="flex items-center justify-between mb-2 min-h-[24px]">
-                <div className="flex items-center gap-0 flex-wrap">
-                  {/* Show pieces YOU captured - these are opponent's pieces you took */}
-                  {capturedPieces[((mode === 'practice' && !isFreePlay) ? aiPlayerColor : playerColor) === 'w' ? 'w' : 'b'].map((piece, idx) => (
-                    <img
-                      key={idx}
-                      src={piece.svg}
-                      alt="captured piece"
-                      className="w-4 h-4 sm:w-5 sm:h-5 opacity-70 -mr-1"
-                    />
-                  ))}
-                </div>
-                {materialAdvantage > 0 && (
-                  <span className="text-xs font-bold text-solana-green">+{materialAdvantage}</span>
-                )}
-              </div>
+                );
+              })()}
               
               {/* Chess Board with Coordinates */}
               <div className="relative">
-              <div className="aspect-square w-full overflow-hidden rounded-xl sm:rounded-2xl border-2 border-white/10">
+              <div className="aspect-square w-full overflow-hidden rounded-2xl" style={{ border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 0 40px rgba(153,69,255,0.08)' }}>
                 <div className="grid h-full w-full grid-cols-8 grid-rows-8">
               {Array.from({ length: 64 }).map((_, i) => {
                 // Flip board for black player - their pieces should be at bottom
@@ -2027,20 +2111,20 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
                 // Determine background color with priority: check > selected > lastMove > default
                 let bgStyle: React.CSSProperties = {
-                  backgroundColor: isLight ? '#e5e5e5' : '#525252',
+                  backgroundColor: isLight ? '#1e1e3a' : '#12122a',
                   borderRadius: '2px',
                 };
                 
                 if (isLastMove && !isSelected && !isKingInCheck) {
-                  bgStyle.backgroundColor = isLight ? '#fcd34d' : '#b45309'; // amber-300 / amber-700
+                  bgStyle.backgroundColor = isLight ? 'rgba(153,69,255,0.18)' : 'rgba(153,69,255,0.28)';
                 }
                 if (isSelected) {
-                  bgStyle.backgroundColor = '#34d399'; // emerald-400
-                  bgStyle.boxShadow = 'inset 0 0 0 4px #10b981'; // emerald-500
+                  bgStyle.backgroundColor = 'rgba(0,255,163,0.25)';
+                  bgStyle.boxShadow = 'inset 0 0 0 3px rgba(0,255,163,0.5)';
                 }
                 if (isKingInCheck) {
-                  bgStyle.backgroundColor = '#ef4444'; // red-500
-                  bgStyle.boxShadow = 'inset 0 0 0 4px #b91c1c'; // red-700
+                  bgStyle.backgroundColor = 'rgba(239,68,68,0.4)';
+                  bgStyle.boxShadow = 'inset 0 0 0 3px rgba(239,68,68,0.7)';
                 }
 
                 return (
@@ -2065,7 +2149,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                         <img
                           src={svgPath}
                           alt=""
-                          className="w-full h-full object-contain pointer-events-none drop-shadow-lg"
+                          className="w-full h-full object-contain pointer-events-none"
+                          style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.5))' }}
                           draggable={false}
                         />
                       </motion.div>
@@ -2078,7 +2163,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           width: '30%',
                           height: '30%',
                           borderRadius: '50%',
-                          backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                          backgroundColor: 'rgba(0,255,163,0.3)',
                           zIndex: 10,
                           pointerEvents: 'none',
                         }}
@@ -2091,7 +2176,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           position: 'absolute',
                           inset: '4px',
                           borderRadius: '50%',
-                          border: '5px solid rgba(0, 0, 0, 0.25)',
+                          border: '4px solid rgba(0,255,163,0.35)',
                           zIndex: 10,
                           pointerEvents: 'none',
                         }}
@@ -2108,7 +2193,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           fontSize: '10px',
                           fontWeight: 700,
                           lineHeight: 1,
-                          color: isLight ? '#525252' : '#d4d4d4',
+                          fontFamily: "'Space Mono', monospace",
+                          color: isLight ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.2)',
                           zIndex: 5,
                         }}
                       >
@@ -2126,7 +2212,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           fontSize: '10px',
                           fontWeight: 700,
                           lineHeight: 1,
-                          color: isLight ? '#525252' : '#d4d4d4',
+                          fontFamily: "'Space Mono', monospace",
+                          color: isLight ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.2)',
                           zIndex: 5,
                         }}
                       >
@@ -2140,26 +2227,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
           </div>
           </div> {/* End of board with coordinates wrapper */}
           
-              {/* Opponent's captured pieces (shown at bottom near you) */}
-              <div className="flex items-center justify-between mt-2 min-h-[24px]">
-                <div className="flex items-center gap-0 flex-wrap">
-                  {/* Show pieces OPPONENT captured - these are your pieces they took */}
-                  {capturedPieces[((mode === 'practice' && !isFreePlay) ? aiPlayerColor : playerColor) === 'w' ? 'b' : 'w'].map((piece, idx) => (
-                    <img
-                      key={idx}
-                      src={piece.svg}
-                      alt="captured piece"
-                      className="w-4 h-4 sm:w-5 sm:h-5 opacity-70 -mr-1"
-                    />
-                  ))}
-                </div>
-                {materialAdvantage < 0 && (
-                  <span className="text-xs font-bold text-red-400">+{Math.abs(materialAdvantage)}</span>
-                )}
-              </div>
-              
-              {/* Emoji Picker & Chat Buttons - Premium Styled */}
-              {((isFreePlay || isMultiplayer) && opponentConnected) || (mode === 'practice' && !isFreePlay) ? (
+              {/* Emoji Picker & Chat Buttons - Only for multiplayer modes with real opponents */}
+              {((isFreePlay || isMultiplayer) && opponentConnected) ? (
                 <div className="flex items-center gap-2 mt-2">
                   {/* React Button - Premium */}
                   <div className="relative">
@@ -2387,870 +2456,281 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       )}
                     </AnimatePresence>
                   </div>
-                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-xl ${
+                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-xl transition-all ${
                     (playerColor === 'w' && chessRef.current?.turn() === 'w') || 
                     (playerColor === 'b' && chessRef.current?.turn() === 'b')
-                      ? 'bg-solana-purple/30 text-white'
-                      : 'bg-white/5 text-neutral-400'
-                  }`}>
-                    <Clock className="w-4 h-4" />
+                      ? 'text-white'
+                      : 'bg-white/5 text-neutral-500'
+                  }`}
+                  style={(
+                    (playerColor === 'w' && chessRef.current?.turn() === 'w') || 
+                    (playerColor === 'b' && chessRef.current?.turn() === 'b')
+                  ) ? { background: 'rgba(0,255,163,0.12)', boxShadow: '0 0 12px rgba(0,255,163,0.15)', border: '1px solid rgba(0,255,163,0.2)' } : {}}
+                  >
+                    <Clock className="w-4 h-4" style={(
+                      (playerColor === 'w' && chessRef.current?.turn() === 'w') || 
+                      (playerColor === 'b' && chessRef.current?.turn() === 'b')
+                    ) ? { color: '#00ffa3' } : {}} />
                     {formatTime(playerColor === 'w' ? whiteTimeMs : blackTimeMs)}
                   </div>
                 </div>
               )}
               
-              {/* Player info bar for AI practice mode (shown at bottom) */}
-              {mode === 'practice' && !isFreePlay && (
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/10">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${aiPlayerColor === 'w' ? 'bg-white border border-neutral-400' : 'bg-neutral-800 border border-neutral-600'}`} />
-                    <span className="font-semibold text-sm truncate max-w-[120px]">
-                      {myUsername || (publicKey ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}` : 'You')}
-                    </span>
-                    {/* Your reaction bubble */}
-                    <AnimatePresence>
-                      {outgoingReaction && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.5, x: -10 }}
-                          animate={{ opacity: 1, scale: 1, x: 0 }}
-                          exit={{ opacity: 0, scale: 0.5, x: -10 }}
-                        >
-                          <div className="bg-solana-purple/40 rounded-full px-2 py-0.5 border border-solana-purple/50">
-                            <span className="text-xl">{outgoingReaction}</span>
+              {/* Player timer bar for AI practice mode (shown below board) */}
+              {mode === 'practice' && !isFreePlay && (() => {
+                const isMyTurn = chessRef.current?.turn() === aiPlayerColor && aiGameStarted;
+                const myName = myUsername || (publicKey ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}` : 'You');
+                // Player's captured pieces (pieces player took from AI)
+                const myCapturedTypes = aiPlayerColor === 'w' ? capturedPieces.wTypes : capturedPieces.bTypes;
+                const myCapturedValue = myCapturedTypes.reduce((s, p) => s + ({ p: 1, n: 3, b: 3, r: 5, q: 9, P: 1, N: 3, B: 3, R: 5, Q: 9 }[p] || 0), 0);
+                const opponentCapturedValue = (aiPlayerColor === 'w' ? capturedPieces.bTypes : capturedPieces.wTypes).reduce((s, p) => s + ({ p: 1, n: 3, b: 3, r: 5, q: 9, P: 1, N: 3, B: 3, R: 5, Q: 9 }[p] || 0), 0);
+                const myAdvantage = Math.max(0, myCapturedValue - opponentCapturedValue);
+                // Group pieces for display
+                const sorted = [...myCapturedTypes].sort((a, b) => (PIECE_SORT_ORDER[a] ?? 5) - (PIECE_SORT_ORDER[b] ?? 5));
+                const groups: { piece: string; count: number }[] = [];
+                sorted.forEach(p => { const last = groups[groups.length - 1]; if (last && last.piece === p) last.count++; else groups.push({ piece: p, count: 1 }); });
+                // Player captures opponent pieces, so show opponent's piece color
+                const pieceColor = aiPlayerColor === 'w' ? '#b388ff' : '#e8e8f0';
+                return (
+                  <div style={{
+                    display: 'flex', flexDirection: 'column', gap: 0,
+                    padding: '12px 20px',
+                    background: isMyTurn ? 'rgba(0,255,163,0.06)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${isMyTurn ? 'rgba(0,255,163,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                    borderRadius: 14, transition: 'all 0.3s', marginTop: 8,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: isMyTurn ? '#00ffa3' : '#333', boxShadow: isMyTurn ? '0 0 12px rgba(0,255,163,0.5)' : 'none' }} />
+                        <span style={{ fontSize: 14, fontWeight: 600, color: isMyTurn ? '#e8e8f0' : '#6b6b80', fontFamily: "'Outfit', sans-serif" }}>{myName}</span>
+                        <div style={{ width: 14, height: 14, borderRadius: 4, background: aiPlayerColor === 'w' ? '#e8e8f0' : '#1a1a2e', border: '1px solid rgba(255,255,255,0.15)' }} />
+                      </div>
+                      <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 22, fontWeight: 700, color: isMyTurn ? '#00ffa3' : '#6b6b80', letterSpacing: '0.05em' }}>
+                        {formatTime(aiPlayerColor === 'w' ? whiteTimeMs : blackTimeMs)}
+                      </span>
+                    </div>
+                    {myCapturedTypes.length > 0 && (
+                      <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', minHeight: 24 }}>
+                        {groups.map((g, i) => (
+                          <div key={`${g.piece}-${i}`} style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+                            {Array.from({ length: g.count }).map((_, j) => (
+                              <span key={j} style={{ fontSize: 18, lineHeight: 1, color: pieceColor, filter: aiPlayerColor === 'w' ? 'drop-shadow(0 1px 4px rgba(153,69,255,0.4))' : 'drop-shadow(0 1px 4px rgba(255,255,255,0.2))', marginLeft: j > 0 ? -6 : 0, position: 'relative', zIndex: g.count - j, opacity: 0.9, userSelect: 'none' }}>
+                                {PIECE_SYMBOLS[g.piece]}
+                              </span>
+                            ))}
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                        ))}
+                        {myAdvantage > 0 && (
+                          <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "'Space Mono', monospace", color: '#00ffa3', marginLeft: 6, padding: '2px 6px', borderRadius: 6, background: 'rgba(0,255,163,0.1)', border: '1px solid rgba(0,255,163,0.15)' }}>+{myAdvantage}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-xl ${
-                    chessRef.current?.turn() === aiPlayerColor && aiGameStarted
-                      ? 'bg-solana-purple/30 text-white'
-                      : 'bg-white/5 text-neutral-400'
-                  }`}>
-                    <Clock className="w-4 h-4" />
-                    {formatTime(aiPlayerColor === 'w' ? whiteTimeMs : blackTimeMs)}
-                  </div>
-                </div>
-              )}
+                );
+              })()}
         </div>
         
         <div className="text-center py-3">
-          <p className="text-sm font-medium text-neutral-400">
+          <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.5)', fontFamily: "'Space Mono', monospace" }}>
             {statusText}
           </p>
         </div>
-      </div>
+      </div> {/* End w-full space-y-3 */}
+      </div> {/* End left column */}
 
-      {/* Game Controls */}
-      <div className="w-full lg:w-80 space-y-4 mt-2 lg:mt-0">
-        <div className="glass-card rounded-2xl lg:rounded-3xl p-3 sm:p-4 lg:p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold">Game Mode</h3>
-              {showModeSelector && (
-                <div className="flex rounded-2xl border border-white/10 bg-neutral-900 p-1">
-                  <button
-                    type="button"
-                    onClick={() => setMode('practice')}
-                    className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all ${
-                      mode === 'practice'
-                        ? 'bg-gradient-to-r from-solana-purple to-solana-green text-white'
-                        : 'bg-neutral-800 text-white hover:bg-neutral-700'
-                    }`}
-                    style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
-                  >
-                    Practice
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMode('wager')}
-                    className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all ${
-                      mode === 'wager'
-                        ? 'bg-gradient-to-r from-solana-purple to-solana-green text-white'
-                        : 'bg-neutral-800 text-white hover:bg-neutral-700'
-                    }`}
-                    style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
-                  >
-                    Wager
-                  </button>
-                </div>
-              )}
+      {/* Right Column - Side Panel */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 280 }}>
+
+        {/* Card 1 - Game Status */}
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: '20px 24px' }}>
+          <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b80', marginBottom: 14, fontFamily: "'Space Mono', monospace" }}>Game Status</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 13, color: '#6b6b80' }}>Mode</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#00ffa3', fontFamily: "'Space Mono', monospace" }}>
+                {mode === 'practice' && !isFreePlay ? 'Practice' : isFreePlay ? 'Free Play' : 'Wager'}
+              </span>
             </div>
-
-            {mode === 'practice' ? (
-              <div className="space-y-4">
-                {!isFreePlay ? (
-                  <>
-                    <p className="text-sm text-neutral-400">
-                      Train against AI or play online for free.
-                    </p>
-                    
-                    {/* AI Difficulty Selector */}
-                    <div className="bg-white/5 rounded-xl p-3 border border-white/10">
-                      <p className="text-xs font-medium uppercase tracking-wider text-neutral-500 mb-2">
-                        AI Difficulty
-                      </p>
-                      <div className="flex rounded-xl border border-white/10 bg-black/40 p-1">
-                        <button
-                          type="button"
-                          onClick={() => { setAiDifficulty('novice'); resetPractice(); }}
-                          className="flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all text-white"
-                          style={{
-                            background: aiDifficulty === 'novice' 
-                              ? 'linear-gradient(to right, #16a34a, #22c55e)' 
-                              : 'transparent',
-                            color: aiDifficulty === 'novice' ? 'white' : '#a3a3a3'
-                          }}
-                        >
-                          Novice
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setAiDifficulty('club'); resetPractice(); }}
-                          className="flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all text-white"
-                          style={{
-                            background: aiDifficulty === 'club' 
-                              ? 'linear-gradient(to right, #ca8a04, #eab308)' 
-                              : 'transparent',
-                            color: aiDifficulty === 'club' ? 'white' : '#a3a3a3'
-                          }}
-                        >
-                          Club
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setAiDifficulty('master'); resetPractice(); }}
-                          className="flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all text-white"
-                          style={{
-                            background: aiDifficulty === 'master' 
-                              ? 'linear-gradient(to right, #dc2626, #ef4444)' 
-                              : 'transparent',
-                            color: aiDifficulty === 'master' ? 'white' : '#a3a3a3'
-                          }}
-                        >
-                          Master
-                        </button>
-                      </div>
-                      <p className="text-[10px] text-neutral-500 mt-2 text-center">
-                        {aiDifficulty === 'novice' && '~1000 ELO • Great for beginners'}
-                        {aiDifficulty === 'club' && '~1400 ELO • Intermediate challenge'}
-                        {aiDifficulty === 'master' && '~1800 ELO • Advanced play'}
-                      </p>
-                    </div>
-                    
-                    {/* AI Color Selector */}
-                    <div className="bg-white/5 rounded-xl p-3 border border-white/10">
-                      <p className="text-xs font-medium uppercase tracking-wider text-neutral-500 mb-2">
-                        Play As
-                      </p>
-                      <div className="flex rounded-xl border border-white/10 bg-black/40 p-1">
-                        <button
-                          type="button"
-                          onClick={() => { setAiPlayerColor('w'); resetPractice(); }}
-                          className="flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-2"
-                          style={{
-                            background: aiPlayerColor === 'w' ? '#ffffff' : 'transparent',
-                            color: aiPlayerColor === 'w' ? '#000000' : '#a3a3a3'
-                          }}
-                        >
-                          <div className="w-3 h-3 rounded-full bg-white border border-neutral-300" />
-                          White
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setAiPlayerColor('b'); resetPractice(); }}
-                          className="flex-1 px-3 py-2 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-2"
-                          style={{
-                            background: aiPlayerColor === 'b' ? '#262626' : 'transparent',
-                            color: aiPlayerColor === 'b' ? '#ffffff' : '#a3a3a3'
-                          }}
-                        >
-                          <div className="w-3 h-3 rounded-full bg-neutral-800 border border-neutral-600" />
-                          Black
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <motion.button
-                      type="button"
-                      onClick={resetPractice}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white font-semibold py-3 px-6 rounded-xl transition-all border border-white/10"
-                      style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                      New Game vs AI
-                    </motion.button>
-                    
-                    <div className="border-t border-white/10 pt-4 mt-4">
-                      <p className="text-xs font-medium uppercase tracking-wider text-neutral-500 mb-3">
-                        Free Online Play
-                      </p>
-                      <div className="space-y-2">
-                        <motion.button
-                          type="button"
-                          onClick={handleCreateFreePlay}
-                          disabled={isCreatingFreePlay}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="w-full flex items-center justify-center gap-2 btn-glow text-white font-semibold py-3 px-6 rounded-xl disabled:opacity-50"
-                        >
-                          <Users className="h-4 w-4" />
-                          {isCreatingFreePlay ? 'Creating...' : 'Create Room'}
-                        </motion.button>
-                        
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={joinFreePlayCode}
-                            onChange={(e) => setJoinFreePlayCode(e.target.value.toUpperCase().slice(0, 4))}
-                            placeholder="CODE"
-                            maxLength={4}
-                            className="flex-1 px-3 py-3 bg-neutral-800 border border-white/20 rounded-xl focus:outline-none focus:ring-2 focus:ring-solana-purple text-white text-center font-mono uppercase"
-                          />
-                          <motion.button
-                            type="button"
-                            onClick={handleJoinFreePlay}
-                            disabled={isJoiningFreePlay || joinFreePlayCode.length !== 4}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="px-4 py-3 bg-neutral-800 hover:bg-neutral-700 text-white font-semibold rounded-xl disabled:opacity-50 transition-all border border-white/10"
-                            style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
-                          >
-                            {isJoiningFreePlay ? '...' : 'Join'}
-                          </motion.button>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                ) : isSpectating ? (
-                  // Spectator Mode UI
-                  <div className="space-y-4">
-                    <div className="p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-xl border border-yellow-500/30">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Eye className="h-5 w-5 text-yellow-400" />
-                        <p className="text-sm font-semibold text-yellow-400">
-                          {spectatorStakeTier !== null ? 'Spectating Wager Match' : 'Spectating'}
-                        </p>
-                      </div>
-                      {spectatorStakeTier !== null && (
-                        <p className="text-xs text-solana-green font-semibold mb-2">
-                          💰 {spectatorStakeTier === 0 ? '0.5' : spectatorStakeTier === 1 ? '1' : spectatorStakeTier === 4 ? '0.01' : '?'} SOL per player
-                        </p>
-                      )}
-                      <p className="text-xs text-neutral-400 mb-3">
-                        This game is already in progress. You are watching as a spectator.
-                      </p>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2 justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full bg-white border border-neutral-300" />
-                            <span className="text-white">{spectatorWhitePlayer}</span>
-                          </div>
-                          {spectatorStakeTier !== null && (
-                            <span className="text-neutral-400 text-xs font-mono">
-                              {formatTime(spectatorWhiteTime)}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 rounded-full bg-neutral-800 border border-neutral-600" />
-                            <span className="text-white">{spectatorBlackPlayer}</span>
-                          </div>
-                          {spectatorStakeTier !== null && (
-                            <span className="text-neutral-400 text-xs font-mono">
-                              {formatTime(spectatorBlackTime)}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {spectatorCount > 0 && (
-                        <p className="text-xs text-neutral-500 mt-2">
-                          👀 {spectatorCount} watching
-                        </p>
-                      )}
-                    </div>
-                    
-                    <motion.button
-                      type="button"
-                      onClick={() => {
-                        setIsSpectating(false);
-                        setIsFreePlay(false);
-                        setFreePlayCode('');
-                        setSpectatorStakeTier(null);
-                        chessRef.current = new Chess();
-                        setFen(chessRef.current.fen());
-                        setLastMove(null);
-                        // Redirect back home for wager spectators
-                        if (spectateRoomId) {
-                          window.location.href = '/';
-                        }
-                      }}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white font-semibold py-3 px-6 rounded-xl transition-all border border-white/10"
-                      style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
-                    >
-                      <X className="h-4 w-4" />
-                      Stop Watching
-                    </motion.button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Lobby State - Color Selection */}
-                    {inLobby && !opponentConnected && (
-                      <div className="p-4 bg-gradient-to-r from-solana-purple/20 to-solana-green/20 rounded-xl border border-solana-purple/30">
-                        <p className="text-xs font-medium uppercase tracking-wider text-neutral-400 mb-2">
-                          Pre-Game Lobby
-                        </p>
-                        <p className="text-sm text-white mb-3">
-                          {(dynamicPlayerRole === 'host' || isCreatingFreePlay) ? (
-                            <><span className="font-semibold">{lobbyOpponentName}</span> has joined!</>
-                          ) : (
-                            <>You joined <span className="font-semibold">{lobbyOpponentName}</span>'s game</>
-                          )}
-                        </p>
-                        
-                        {/* Color Selection UI */}
-                        <div className="space-y-3">
-                          <p className="text-xs text-neutral-400">Choose your color:</p>
-                          
-                          {/* Host can swap colors */}
-                          {(dynamicPlayerRole === 'host' || isCreatingFreePlay) && (
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => socket?.emit('freeplay:swapColors', { code: freePlayCode })}
-                                className={`flex-1 py-2 px-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-                                  lobbyHostColor === 'w' 
-                                    ? 'bg-white text-black ring-2 ring-solana-green' 
-                                    : 'bg-white/20 text-white hover:bg-white/30'
-                                }`}
-                              >
-                                <div className="w-4 h-4 rounded-full bg-white border border-neutral-300" />
-                                White
-                              </button>
-                              <button
-                                onClick={() => socket?.emit('freeplay:swapColors', { code: freePlayCode })}
-                                className={`flex-1 py-2 px-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
-                                  lobbyHostColor === 'b' 
-                                    ? 'bg-neutral-800 text-white ring-2 ring-solana-green' 
-                                    : 'bg-white/20 text-white hover:bg-white/30'
-                                }`}
-                              >
-                                <div className="w-4 h-4 rounded-full bg-neutral-800 border border-neutral-600" />
-                                Black
-                              </button>
-                            </div>
-                          )}
-                          
-                          {/* Guest sees current assignment with request option */}
-                          {dynamicPlayerRole === 'join' && (
-                            <>
-                              <p className="text-xs text-neutral-500 mb-1">
-                                Host controls color selection. You can request to swap:
-                              </p>
-                              <div className="flex gap-2">
-                                <div className={`flex-1 py-2 px-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 ${
-                                  playerColor === 'w' 
-                                    ? 'bg-white text-black ring-2 ring-solana-green' 
-                                    : 'bg-white/10 text-neutral-500'
-                                }`}>
-                                  <div className="w-4 h-4 rounded-full bg-white border border-neutral-300" />
-                                  White {playerColor === 'w' && '(You)'}
-                                </div>
-                                <div className={`flex-1 py-2 px-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 ${
-                                  playerColor === 'b' 
-                                    ? 'bg-neutral-800 text-white ring-2 ring-solana-green' 
-                                    : 'bg-white/10 text-neutral-500'
-                                }`}>
-                                  <div className="w-4 h-4 rounded-full bg-neutral-800 border border-neutral-600" />
-                                  Black {playerColor === 'b' && '(You)'}
-                                </div>
-                              </div>
-                              
-                              {!whiteRequestPending && (
-                                <button
-                                  onClick={() => {
-                                    socket?.emit('freeplay:requestSwap', { code: freePlayCode, wantColor: playerColor === 'w' ? 'b' : 'w' });
-                                    setWhiteRequestPending(true);
-                                  }}
-                                  className="w-full py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm transition-all"
-                                >
-                                  Request to play as {playerColor === 'w' ? 'Black' : 'White'}
-                                </button>
-                              )}
-                              {whiteRequestPending && (
-                                <p className="text-xs text-yellow-400 text-center">⏳ Waiting for host to respond...</p>
-                              )}
-                            </>
-                          )}
-                          
-                          {/* Swap Request from Guest (Host sees this) */}
-                          {whiteRequest && (dynamicPlayerRole === 'host' || isCreatingFreePlay) && (
-                            <div className="p-3 bg-yellow-500/20 rounded-xl border border-yellow-500/30">
-                              <p className="text-sm text-yellow-300 mb-2">
-                                {lobbyOpponentName} wants to play as {swapRequestWantColor === 'w' ? 'White' : 'Black'}
-                              </p>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => {
-                                    socket?.emit('freeplay:respondSwapRequest', { code: freePlayCode, accepted: true });
-                                    setWhiteRequest(false);
-                                    setSwapRequestWantColor(null);
-                                  }}
-                                  className="flex-1 py-1.5 px-3 rounded-xl bg-green-500/30 hover:bg-green-500/40 text-green-400 text-sm font-semibold transition-all flex items-center justify-center gap-1"
-                                >
-                                  <CheckCircle2 className="w-4 h-4" />
-                                  Accept
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    socket?.emit('freeplay:respondSwapRequest', { code: freePlayCode, accepted: false });
-                                    setWhiteRequest(false);
-                                    setSwapRequestWantColor(null);
-                                  }}
-                                  className="flex-1 py-1.5 px-3 rounded-xl bg-red-500/30 hover:bg-red-500/40 text-red-400 text-sm font-semibold transition-all flex items-center justify-center gap-1"
-                                >
-                                  <XCircle className="w-4 h-4" />
-                                  Decline
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Start Game Button (Host only) */}
-                        {(dynamicPlayerRole === 'host' || isCreatingFreePlay) && (
-                          <motion.button
-                            type="button"
-                            onClick={() => {
-                              console.log('Start Game clicked. Socket:', socket?.id, 'Code:', freePlayCode, 'Connected:', socket?.connected);
-                              socket?.emit('freeplay:startGame', { code: freePlayCode });
-                            }}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="mt-4 w-full flex items-center justify-center gap-2 bg-gradient-to-r from-solana-purple to-solana-green text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all"
-                          >
-                            <Swords className="h-5 w-5" />
-                            Start Game
-                          </motion.button>
-                        )}
-                        
-                        {/* Waiting message for guest */}
-                        {dynamicPlayerRole === 'join' && (
-                          <p className="mt-4 text-sm text-neutral-400 text-center">
-                            Waiting for host to start the game...
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    
-                    {/* Regular waiting/playing state */}
-                    {!inLobby && (
-                      <div className="p-4 bg-gradient-to-r from-solana-purple/20 to-solana-green/20 rounded-xl border border-solana-purple/30">
-                        <p className="text-xs font-medium uppercase tracking-wider text-neutral-400 mb-1">
-                          {opponentConnected ? 'Game In Progress' : 'Room Code'}
-                        </p>
-                        {freePlayCode && (
-                          <p className="text-3xl font-bold font-mono text-white">{freePlayCode}</p>
-                        )}
-                        <div className="flex items-center gap-2 mt-2">
-                          <Users className={`h-4 w-4 ${opponentConnected ? 'text-green-400' : 'text-yellow-400'}`} />
-                          <span className={`text-sm ${opponentConnected ? 'text-green-400' : 'text-yellow-400'}`}>
-                            {opponentConnected ? `Playing as ${playerColor === 'w' ? 'White' : 'Black'}` : 'Waiting for opponent...'}
-                          </span>
-                          {opponentConnected && spectatorCount > 0 && (
-                            <div className="flex items-center gap-1 ml-2 bg-solana-purple/20 px-2 py-0.5 rounded-full">
-                              <Eye className="h-3.5 w-3.5 text-solana-purple" />
-                              <span className="text-xs text-solana-purple font-medium">{spectatorCount}</span>
-                            </div>
-                          )}
-                        </div>
-                        {freePlayCode && (
-                          <motion.button
-                            type="button"
-                            onClick={() => {
-                              const shareUrl = `${window.location.origin}/game?freeplay=${freePlayCode}`;
-                              if (navigator.share) {
-                                navigator.share({
-                                  title: opponentConnected ? 'Watch our chess game on SolMate!' : 'Play Chess with me on SolMate!',
-                                  text: opponentConnected 
-                                    ? `Watch our live chess game! Room code: ${freePlayCode}` 
-                                    : `Join my chess game! Room code: ${freePlayCode}`,
-                                  url: shareUrl,
-                                }).catch(() => {});
-                              } else {
-                                navigator.clipboard.writeText(shareUrl);
-                                alert(opponentConnected 
-                                  ? 'Spectator link copied! Share it so others can watch.' 
-                                  : 'Link copied! Share it with your friend.');
-                              }
-                            }}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="mt-3 w-full flex items-center justify-center gap-2 bg-solana-green/20 hover:bg-solana-green/30 text-solana-green font-semibold py-2 px-4 rounded-xl border border-solana-green/30 transition-all text-sm"
-                          >
-                            <Share2 className="h-4 w-4" />
-                            {opponentConnected ? 'Share Spectator Link' : 'Share Invite Link'}
-                          </motion.button>
-                        )}
-                      </div>
-                    )}
-                    
-                    <motion.button
-                      type="button"
-                      onClick={handleCancelFreePlay}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full flex items-center justify-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-semibold py-3 px-6 rounded-xl border border-red-500/30 transition-all"
-                    >
-                      <X className="h-4 w-4" />
-                      {opponentConnected ? 'Leave Game' : 'Cancel'}
-                    </motion.button>
-                  </div>
-                )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 13, color: '#6b6b80' }}>Opponent</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#e8e8f0' }}>
+                {mode === 'practice' && !isFreePlay
+                  ? `🤖 ${aiDifficulty === 'novice' ? 'Novice Bot' : aiDifficulty === 'club' ? 'Club Bot' : 'Master Bot'}`
+                  : opponentUsername || (opponentWallet ? `${opponentWallet.slice(0, 4)}...${opponentWallet.slice(-4)}` : 'Waiting...')}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 13, color: '#6b6b80' }}>Stakes</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#e8e8f0' }}>
+                {mode === 'practice' || isFreePlay ? 'None' : `${getStakeTierInfo(selectedStakeTier).stake} SOL`}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 13, color: '#6b6b80' }}>Your Color</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{
+                  width: 14, height: 14, borderRadius: 4,
+                  background: ((mode === 'practice' && !isFreePlay) ? aiPlayerColor : playerColor) === 'w' ? '#e8e8f0' : '#1a1a2e',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#e8e8f0' }}>
+                  {((mode === 'practice' && !isFreePlay) ? aiPlayerColor : playerColor) === 'w' ? 'White' : 'Black'}
+                </span>
               </div>
-            ) : (
-              <>
-                {connected ? (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-medium uppercase tracking-wider text-neutral-500 mb-3">
-                        Stake Amount
-                      </label>
-                      <select
-                        value={selectedStakeTier}
-                        onChange={(e) => setSelectedStakeTier(Number(e.target.value))}
-                        disabled={matchCreated}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-solana-purple text-white disabled:opacity-50 transition-all"
-                      >
-                        {STAKE_TIERS.map((tier) => (
-                          <option key={tier.tier} value={tier.tier}>
-                            {tier.label}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-xs text-neutral-500 mt-2">
-                        10% platform fee on payout
-                      </p>
-                    </div>
-
-                    {payoutComplete ? (
-                      <div className="bg-solana-green/10 border border-solana-green/30 rounded-xl p-4">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Trophy className="h-5 w-5 text-solana-green" />
-                          <p className="text-solana-green font-semibold">Payout Complete</p>
-                        </div>
-                        <p className="text-xs text-neutral-400 break-all font-mono">
-                          {txSignature.slice(0, 8)}...{txSignature.slice(-8)}
-                        </p>
-                      </div>
-                    ) : gameWinner ? (
-                      <div className="bg-solana-purple/10 border border-solana-purple/30 rounded-xl p-4">
-                        <p className="text-solana-purple font-semibold">
-                          {isSubmittingResult ? 'Finalizing...' : 'Processing...'}
-                        </p>
-                      </div>
-                    ) : actualPlayerRole === 'join' && currentMatchPubkey && !hasJoinerStaked ? (
-                      /* Joiner needs to stake before joining the game */
-                      <div className="bg-gradient-to-r from-solana-purple/20 to-solana-green/20 rounded-xl p-4 border border-solana-purple/30">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Coins className="h-5 w-5 text-solana-purple" />
-                          <p className="text-white font-semibold">Join Wager Match</p>
-                        </div>
-                        
-                        <div className="bg-black/20 rounded-xl p-3 mb-3">
-                          <p className="text-sm text-neutral-400">Your Stake</p>
-                          <p className="text-xl font-bold text-white">{getStakeTierInfo(selectedStakeTier).label}</p>
-                        </div>
-                        
-                        <p className="text-sm text-neutral-400 mb-4">
-                          You must stake {getStakeTierInfo(selectedStakeTier).label} to join this match. The winner takes 90% of the pot.
-                        </p>
-                        
-                        {joinerStakeError && (
-                          <div className="mb-3 p-2 bg-red-500/20 border border-red-500/30 rounded-xl">
-                            <p className="text-sm text-red-400">{joinerStakeError}</p>
-                          </div>
-                        )}
-                        
-                        <motion.button
-                          type="button"
-                          onClick={handleJoinOnChain}
-                          disabled={isJoiningMatch}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-solana-purple to-solana-green text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all disabled:opacity-50"
-                        >
-                          {isJoiningMatch ? (
-                            <>
-                              <Loader2 className="h-5 w-5 animate-spin" />
-                              Staking...
-                            </>
-                          ) : (
-                            <>
-                              <Coins className="h-5 w-5" />
-                              Stake & Join Match
-                            </>
-                          )}
-                        </motion.button>
-                        
-                        <p className="text-xs text-neutral-500 mt-3 text-center">
-                          Match Code: <span className="font-mono text-white">{matchCode}</span>
-                        </p>
-                      </div>
-                    ) : inWagerLobby ? (
-                      /* Wager Lobby - Color selection before game starts */
-                      <div className="bg-gradient-to-r from-solana-purple/20 to-solana-green/20 rounded-xl p-4 border border-solana-purple/30">
-                        <div className="flex items-center justify-between mb-3">
-                          <p className="text-xs font-medium uppercase tracking-wider text-neutral-400">Match Lobby</p>
-                          {wagerMatchCode && (
-                            <span className="font-mono text-lg text-white">{wagerMatchCode}</span>
-                          )}
-                        </div>
-                        
-                        {/* Stake display */}
-                        <div className="bg-black/20 rounded-xl p-3 mb-3">
-                          <p className="text-sm text-neutral-400">Stake</p>
-                          <p className="text-lg font-bold text-white">{getStakeTierInfo(selectedStakeTier).label}</p>
-                        </div>
-                        
-                        {/* Opponent joined indicator */}
-                        <div className="flex items-center gap-2 mb-4">
-                          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                          <span className="text-sm text-green-400">
-                            {lobbyOpponentName || 'Opponent'} joined
-                          </span>
-                        </div>
-                        
-                        {/* Color selection (host only) */}
-                        {actualPlayerRole === 'host' && (
-                          <div className="mb-4">
-                            <p className="text-xs font-medium uppercase tracking-wider text-neutral-400 mb-2">Your Color</p>
-                            <div className="grid grid-cols-2 gap-2">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setWagerLobbyHostColor('w');
-                                  socket?.emit('match:setColor', { matchCode: wagerMatchCode, color: 'w' });
-                                }}
-                                className="py-2 px-4 rounded-xl flex items-center justify-center gap-2 transition-all"
-                                style={{
-                                  backgroundColor: wagerLobbyHostColor === 'w' ? '#ffffff' : '#262626',
-                                  color: wagerLobbyHostColor === 'w' ? '#000000' : '#ffffff',
-                                  WebkitTextFillColor: wagerLobbyHostColor === 'w' ? '#000000' : '#ffffff',
-                                  fontWeight: wagerLobbyHostColor === 'w' ? 700 : 400,
-                                  border: wagerLobbyHostColor === 'w' ? '2px solid #14F195' : '1px solid rgba(255,255,255,0.2)'
-                                }}
-                              >
-                                <span className="text-xl">♔</span>
-                                White
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setWagerLobbyHostColor('b');
-                                  socket?.emit('match:setColor', { matchCode: wagerMatchCode, color: 'b' });
-                                }}
-                                className="py-2 px-4 rounded-xl flex items-center justify-center gap-2 transition-all"
-                                style={{
-                                  backgroundColor: wagerLobbyHostColor === 'b' ? '#171717' : '#262626',
-                                  color: '#ffffff',
-                                  WebkitTextFillColor: '#ffffff',
-                                  fontWeight: wagerLobbyHostColor === 'b' ? 700 : 400,
-                                  border: wagerLobbyHostColor === 'b' ? '2px solid #14F195' : '1px solid rgba(255,255,255,0.2)'
-                                }}
-                              >
-                                <span className="text-xl">♚</span>
-                                Black
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* Color display (guest only) */}
-                        {actualPlayerRole === 'join' && (
-                          <div className="mb-4 text-center">
-                            <p className="text-sm text-neutral-400 mb-1">You will play as</p>
-                            <p className="text-xl font-bold text-white">
-                              {wagerLobbyHostColor === 'w' ? '♚ Black' : '♔ White'}
-                            </p>
-                          </div>
-                        )}
-                        
-                        {/* Start Game Button (Host only) */}
-                        {actualPlayerRole === 'host' && (
-                          <motion.button
-                            type="button"
-                            onClick={() => socket?.emit('match:startGame', { matchCode: wagerMatchCode })}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="w-full flex items-center justify-center gap-2 py-3 px-6 rounded-xl shadow-lg transition-all"
-                            style={{
-                              background: 'linear-gradient(to right, #9945FF, #14F195)',
-                              color: '#ffffff',
-                              WebkitTextFillColor: '#ffffff',
-                              fontWeight: 700,
-                              border: 'none'
-                            }}
-                          >
-                            <Swords className="h-5 w-5" style={{ color: '#ffffff' }} />
-                            Start Game
-                          </motion.button>
-                        )}
-                        
-                        {/* Waiting message for guest */}
-                        {actualPlayerRole === 'join' && (
-                          <p className="text-sm text-neutral-400 text-center py-2">
-                            Waiting for host to start the game...
-                          </p>
-                        )}
-                      </div>
-                    ) : matchCreated && !opponentConnected ? (
-                      /* Waiting for opponent to join */
-                      <div className="bg-solana-purple/10 border border-solana-purple/30 rounded-xl p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-white font-semibold">Waiting for Opponent</p>
-                          {wagerMatchCode && (
-                            <span className="font-mono text-lg text-solana-purple">{wagerMatchCode}</span>
-                          )}
-                        </div>
-                        <p className="text-sm text-neutral-300 mb-2">
-                          {getStakeTierInfo(selectedStakeTier).label}
-                        </p>
-                        <div className="flex items-center gap-2 mb-3">
-                          <Loader2 className="h-4 w-4 text-solana-purple animate-spin" />
-                          <span className="text-xs text-neutral-400">Share the match code with your opponent</span>
-                        </div>
-                        {/* Share invite link */}
-                        {wagerMatchCode && (
-                          <motion.button
-                            type="button"
-                            onClick={() => {
-                              const shareUrl = `${window.location.origin}/game?mode=join&code=${wagerMatchCode}&tier=${selectedStakeTier}`;
-                              if (navigator.share) {
-                                navigator.share({
-                                  title: 'Play Chess with me on SolMate!',
-                                  text: `Join my chess match! Code: ${wagerMatchCode}`,
-                                  url: shareUrl,
-                                }).catch(() => {});
-                              } else {
-                                navigator.clipboard.writeText(shareUrl);
-                                alert('Link copied! Share it with your friend.');
-                              }
-                            }}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="w-full flex items-center justify-center gap-2 bg-solana-green/20 hover:bg-solana-green/30 text-solana-green font-semibold py-2 px-4 rounded-xl border border-solana-green/30 transition-all text-sm"
-                          >
-                            <Share2 className="h-4 w-4" />
-                            Share Invite Link
-                          </motion.button>
-                        )}
-                      </div>
-                    ) : matchCreated && opponentConnected ? (
-                      /* Game in progress */
-                      <div className="bg-solana-purple/10 border border-solana-purple/30 rounded-xl p-4">
-                        <div className="flex items-center justify-between mb-1">
-                          <p className="text-white font-semibold">Game In Progress</p>
-                          {spectatorCount > 0 && (
-                            <div className="flex items-center gap-1 bg-solana-purple/20 px-2 py-0.5 rounded-full">
-                              <Eye className="h-3.5 w-3.5 text-solana-purple" />
-                              <span className="text-xs text-solana-purple font-medium">{spectatorCount}</span>
-                            </div>
-                          )}
-                        </div>
-                        <p className="text-sm text-neutral-300">
-                          {getStakeTierInfo(selectedStakeTier).label}
-                        </p>
-                        <p className="text-xs text-neutral-400 mt-2">
-                          Playing as {playerColor === 'w' ? 'White' : 'Black'}
-                        </p>
-                        {/* Share spectator link */}
-                        {gameRoomId && (
-                          <motion.button
-                            type="button"
-                            onClick={() => {
-                              const shareUrl = `${window.location.origin}/game?mode=spectate&room=${gameRoomId}`;
-                              if (navigator.share) {
-                                navigator.share({
-                                  title: 'Watch our chess game on SolMate!',
-                                  text: `Watch our live chess match!`,
-                                  url: shareUrl,
-                                }).catch(() => {});
-                              } else {
-                                navigator.clipboard.writeText(shareUrl);
-                                alert('Spectator link copied! Share it so others can watch.');
-                              }
-                            }}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="mt-3 w-full flex items-center justify-center gap-2 bg-solana-green/20 hover:bg-solana-green/30 text-solana-green font-semibold py-2 px-4 rounded-xl border border-solana-green/30 transition-all text-sm"
-                          >
-                            <Share2 className="h-4 w-4" />
-                            Share Spectator Link
-                          </motion.button>
-                        )}
-                      </div>
-                    ) : (
-                      <>
-                        <motion.button
-                          onClick={handleCreateMatch}
-                          disabled={isCreatingMatch}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="w-full btn-glow text-white font-semibold py-3 px-6 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {isCreatingMatch ? 'Creating...' : 'Create Match'}
-                        </motion.button>
-
-                        <motion.button
-                          onClick={handleJoinMatch}
-                          disabled={isJoiningMatch || !currentMatchPubkey}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="w-full bg-white/5 hover:bg-white/10 text-white font-semibold py-3 px-6 rounded-xl border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                        >
-                          {isJoiningMatch ? 'Joining...' : 'Join Match'}
-                        </motion.button>
-
-                        {/* Recover Match Section */}
-                        <div className="mt-4 pt-4 border-t border-white/10">
-                          <p className="text-xs text-neutral-500 mb-2">Have an existing match?</p>
-                          <input
-                            type="text"
-                            value={pendingMatchPubkey}
-                            onChange={(e) => setPendingMatchPubkey(e.target.value)}
-                            placeholder="Enter Match PDA"
-                            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-mono text-white placeholder-neutral-600 focus:outline-none focus:ring-1 focus:ring-solana-purple"
-                          />
-                          <button
-                            onClick={handleRecoverMatch}
-                            disabled={!pendingMatchPubkey}
-                            className="mt-2 w-full py-2 px-4 bg-yellow-600/20 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-600/30 rounded-xl text-xs font-medium transition-all disabled:opacity-50"
-                          >
-                            Recover Match
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <p className="text-neutral-500 text-sm">
-                      Connect wallet to stake
-                    </p>
-                  </div>
-                )}
-              </>
-            )}
+            </div>
           </div>
         </div>
+
+        {/* Card 2 - Move History */}
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: '20px 24px' }}>
+          <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b80', marginBottom: 14, fontFamily: "'Space Mono', monospace" }}>Move History</div>
+          <div style={{ maxHeight: 200, overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
+            {(() => {
+              const history = chessRef.current?.history() || [];
+              if (history.length === 0) {
+                return <p style={{ fontSize: 13, textAlign: 'center', padding: '16px 0', color: '#6b6b80' }}>No moves yet</p>;
+              }
+              const pairs: { num: number; white: string; black?: string }[] = [];
+              for (let i = 0; i < history.length; i += 2) {
+                pairs.push({ num: Math.floor(i / 2) + 1, white: history[i], black: history[i + 1] });
+              }
+              return (
+                <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 1fr', gap: '2px 8px' }}>
+                  {/* Header */}
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#444', paddingBottom: 4, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>#</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#444', paddingBottom: 4, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>White</span>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#444', paddingBottom: 4, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>Black</span>
+                  {pairs.map((pair, idx) => {
+                    const isLatest = idx === pairs.length - 1;
+                    const rowBg = isLatest ? 'rgba(0,255,163,0.08)' : 'transparent';
+                    return (
+                      <React.Fragment key={pair.num}>
+                        <span style={{ fontSize: 12, fontFamily: "'Space Mono', monospace", color: '#444', padding: '4px 0', background: rowBg, borderRadius: isLatest ? '6px 0 0 6px' : 0 }}>{pair.num}.</span>
+                        <span style={{ fontSize: 13, fontFamily: "'Space Mono', monospace", color: '#e8e8f0', padding: '4px 0', background: rowBg }}>{pair.white}</span>
+                        <span style={{ fontSize: 13, fontFamily: "'Space Mono', monospace", color: '#e8e8f0', padding: '4px 0', background: rowBg, borderRadius: isLatest ? '0 6px 6px 0' : 0 }}>{pair.black || ''}</span>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* Card 3 - Actions */}
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: '20px 24px' }}>
+          <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b80', marginBottom: 14, fontFamily: "'Space Mono', monospace" }}>Actions</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* New Game - only show for practice mode (not multiplayer/wager) */}
+            {mode === 'practice' && !isFreePlay && !isMultiplayer && (
+            <button
+              type="button"
+              onClick={() => {
+                if (mode === 'practice' && !isFreePlay) resetPractice();
+              }}
+              style={{
+                padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+                fontFamily: "'Outfit', sans-serif", cursor: 'pointer',
+                background: 'rgba(0,255,163,0.08)', border: '1px solid rgba(0,255,163,0.2)', color: '#00ffa3',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,255,163,0.15)'; e.currentTarget.style.borderColor = 'rgba(0,255,163,0.35)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(0,255,163,0.08)'; e.currentTarget.style.borderColor = 'rgba(0,255,163,0.2)'; }}
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              New Game
+            </button>
+            )}
+            {/* Flip Board + Undo side by side - only show for practice mode (not multiplayer/wager) */}
+            {mode === 'practice' && !isFreePlay && !isMultiplayer && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (mode === 'practice' && !isFreePlay) {
+                    setAiPlayerColor(prev => prev === 'w' ? 'b' : 'w');
+                  }
+                }}
+                style={{
+                  flex: 1, padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+                  fontFamily: "'Outfit', sans-serif", cursor: 'pointer',
+                  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#a0a0b8',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#e8e8f0'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#a0a0b8'; }}
+              >
+                ⟳ Flip Board
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (mode === 'practice' && !isFreePlay && !chessRef.current?.isGameOver()) {
+                    chessRef.current?.undo();
+                    chessRef.current?.undo();
+                    setFen(chessRef.current!.fen());
+                    setSelectedSquare(null);
+                    setLastMove(null);
+                  }
+                }}
+                style={{
+                  flex: 1, padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+                  fontFamily: "'Outfit', sans-serif", cursor: 'pointer',
+                  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#a0a0b8',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#e8e8f0'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#a0a0b8'; }}
+              >
+                ↩ Undo
+              </button>
+            </div>
+            )}
+            {/* Resign - full width */}
+            <button
+                type="button"
+                onClick={() => {
+                  if (isMultiplayer && socket && !chessRef.current?.isGameOver()) {
+                    // Multiplayer resign: notify server
+                    const loser = playerColor || 'w';
+                    const winner = loser === 'w' ? 'b' : 'w';
+                    socket.emit('game:resign', { loser });
+                    setGameWinner(winner);
+                    setShowResultModal(true);
+                  } else if (mode === 'practice' && !isFreePlay && !chessRef.current?.isGameOver()) {
+                    setGameWinner(chessRef.current?.turn() === 'w' ? 'b' : 'w');
+                    setShowResultModal(true);
+                  }
+                }}
+                style={{
+                  padding: '10px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+                  fontFamily: "'Outfit', sans-serif", cursor: 'pointer',
+                  background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#a0a0b8',
+                  transition: 'all 0.2s', width: '100%',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.25)'; e.currentTarget.style.color = '#ef4444'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#a0a0b8'; }}
+              >
+                ⚑ Resign
+              </button>
+          </div>
+        </div>
+
+        {/* Card 4 - Tip (practice mode only) */}
+        {mode === 'practice' && !isFreePlay && (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(0,255,163,0.03), rgba(153,69,255,0.03))',
+            border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: '20px 24px',
+          }}>
+            <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9945ff', marginBottom: 10, fontFamily: "'Space Mono', monospace" }}>💡 TIP</div>
+            <p style={{ fontSize: 13, lineHeight: 1.6, color: '#6b6b80' }}>
+              {PRACTICE_TIPS[tipIndex]}
+            </p>
+          </div>
+        )}
       </div>
     </div>
-
-    {/* Result Modal */}
     <AnimatePresence>
       {showResultModal && gameWinner && (
         <motion.div
@@ -3273,7 +2753,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="glass-card border-solana-purple/30 rounded-2xl p-6 w-[320px] shadow-glow relative"
+            className="rounded-2xl p-6 w-[320px] relative"
+            style={{ background: 'rgba(14,14,30,0.95)', border: '1px solid rgba(153,69,255,0.2)', backdropFilter: 'blur(20px)', boxShadow: '0 0 60px rgba(153,69,255,0.15)' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Determine if current player won */}

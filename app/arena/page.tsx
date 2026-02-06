@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Trophy, Zap, Shield, Crown, ExternalLink, Loader2, DollarSign, Gift, Calendar, Copy, Check } from 'lucide-react';
@@ -69,13 +69,11 @@ export default function ArenaPage() {
   // Locked state - wallet not connected
   if (!connected) {
     return (
-      <div className="min-h-screen pt-20 pb-12 px-4">
-        <div className="max-w-4xl mx-auto">
-          <LockedHero 
-            reason="wallet"
-            onConnect={() => {}}
-          />
-        </div>
+      <div className="min-h-screen relative overflow-hidden" style={{ background: '#07070e' }}>
+        <LockedHero 
+          reason="wallet"
+          onConnect={() => {}}
+        />
       </div>
     );
   }
@@ -95,98 +93,112 @@ export default function ArenaPage() {
   // Locked state - insufficient tokens
   if (!accessStatus.hasAccess) {
     return (
-      <div className="min-h-screen pt-20 pb-12 px-4">
-        <div className="max-w-4xl mx-auto">
-          <LockedHero 
-            reason="tokens"
-            mateBalance={accessStatus.mateBalance}
-            skrBalance={accessStatus.skrBalance}
-          />
-        </div>
+      <div className="min-h-screen relative overflow-hidden" style={{ background: '#07070e' }}>
+        <LockedHero 
+          reason="tokens"
+          mateBalance={accessStatus.mateBalance}
+          skrBalance={accessStatus.skrBalance}
+        />
       </div>
     );
   }
 
   // Access granted - show arena
   return (
-    <div className="min-h-screen pt-20 pb-12 px-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
-        >
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Crown className="w-8 h-8 text-yellow-400" />
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 bg-clip-text text-transparent">
-              Holder Arena
-            </h1>
-            <Crown className="w-8 h-8 text-yellow-400" />
-          </div>
-          <p className="text-white/60 text-lg">
-            Exclusive AI challenge for $MATE & $SKR token holders
-          </p>
-          
-          {/* Prize Banner */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.2 }}
-            className="mt-4 inline-flex items-center gap-3 px-6 py-3 rounded-[32px] bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-green-500/20 border-2 border-green-400/50 shadow-lg shadow-green-500/20"
-          >
-            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-green-500 animate-pulse">
-              <DollarSign className="w-6 h-6 text-white" />
-            </div>
-            <div className="text-left">
-              <p className="text-2xl font-bold text-green-400">$500 PRIZE</p>
-              <p className="text-sm text-white/70">Top scorer wins at season end!</p>
-            </div>
-            <Gift className="w-8 h-8 text-green-400 animate-bounce" />
-          </motion.div>
-          
-          <div className="mt-4 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-500/10 border border-green-500/30">
-            <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-green-400 text-sm font-medium">
-              Access Granted • {formatTokenBalance(accessStatus.balance)}
-            </span>
-          </div>
-        </motion.div>
+    <div className="min-h-screen relative overflow-hidden" style={{ background: '#07070e', color: '#e8e8f0', fontFamily: "'Outfit', 'SF Pro Display', sans-serif" }}>
+      <ParticleField />
 
-        {/* Tab Navigation */}
-        <div className="flex justify-center gap-4 mb-8">
-          <button
-            onClick={() => { setShowLeaderboard(false); setIsPlaying(false); }}
-            className="px-6 py-3 rounded-2xl font-semibold transition-all border border-white/10"
-            style={{
-              background: !showLeaderboard && !isPlaying 
-                ? 'linear-gradient(to right, #eab308, #f59e0b)' 
-                : '#262626',
-              color: !showLeaderboard && !isPlaying ? '#000000' : '#ffffff',
-              textShadow: !showLeaderboard && !isPlaying ? 'none' : '0 1px 2px rgba(0,0,0,0.8)',
-              WebkitTextFillColor: !showLeaderboard && !isPlaying ? '#000000' : '#ffffff'
-            }}
-          >
-            <Zap className="w-5 h-5 inline-block mr-2" />
-            Play Arena
-          </button>
-          <button
-            onClick={() => { setShowLeaderboard(true); setIsPlaying(false); }}
-            className="px-6 py-3 rounded-2xl font-semibold transition-all border border-white/10"
-            style={{
-              background: showLeaderboard 
-                ? 'linear-gradient(to right, #eab308, #f59e0b)' 
-                : '#262626',
-              color: showLeaderboard ? '#000000' : '#ffffff',
-              textShadow: showLeaderboard ? 'none' : '0 1px 2px rgba(0,0,0,0.8)',
-              WebkitTextFillColor: showLeaderboard ? '#000000' : '#ffffff'
-            }}
-          >
-            <Trophy className="w-5 h-5 inline-block mr-2" />
-            Leaderboard
-          </button>
+      {/* Ambient glows */}
+      <div style={{ position: 'absolute', top: '-10%', left: '30%', width: 500, height: 500, background: 'radial-gradient(circle, rgba(234,179,8,0.05) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'absolute', bottom: '-5%', right: '5%', width: 350, height: 350, background: 'radial-gradient(circle, rgba(153,69,255,0.03) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
+
+      <style>{`
+        @keyframes arena-glow-pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+        @keyframes arena-shimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
+        }
+        .arena-gold-shimmer {
+          background: linear-gradient(90deg, #eab308 0%, #fde68a 25%, #eab308 50%, #fde68a 75%, #eab308 100%);
+          background-size: 200% auto;
+          animation: arena-shimmer 3s linear infinite;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+      `}</style>
+
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: isPlaying ? 960 : 760, margin: '0 auto', padding: isPlaying ? '12px 24px 40px' : '20px 24px 80px', textAlign: 'center', transition: 'max-width 0.3s' }}>
+
+        {/* Header — compact when game is active */}
+        <div style={{ marginBottom: isPlaying ? 4 : 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: isPlaying ? 4 : 8 }}>
+            <span style={{ fontSize: isPlaying ? 20 : 28 }}>👑</span>
+            <h1 style={{ fontSize: isPlaying ? 24 : 36, fontWeight: 800, letterSpacing: '-0.03em' }}>
+              <span className="arena-gold-shimmer">Holder Arena</span>
+            </h1>
+            <span style={{ fontSize: isPlaying ? 20 : 28 }}>👑</span>
+          </div>
+          {!isPlaying && (
+            <p style={{ fontSize: 15, color: '#6b6b80' }}>
+              Exclusive AI challenge for $MATE & $SKR token holders
+            </p>
+          )}
         </div>
 
+        {/* Access badge */}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          padding: '6px 16px', borderRadius: 100, marginBottom: isPlaying ? 12 : 28,
+          background: 'rgba(34,197,94,0.06)',
+          border: '1px solid rgba(34,197,94,0.2)',
+        }}>
+          <span style={{
+            width: 6, height: 6, borderRadius: '50%', display: 'inline-block',
+            background: '#22c55e',
+            animation: 'arena-glow-pulse 2s infinite',
+          }} />
+          <span style={{
+            fontSize: 13, fontWeight: 600, color: '#22c55e',
+            fontFamily: "'Space Mono', monospace",
+          }}>
+            Access Granted • {formatTokenBalance(accessStatus.balance)}
+          </span>
+        </div>
+
+        {/* Tab Navigation — hidden when game active */}
+        {!isPlaying && (
+          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 32 }}>
+            {[
+              { id: 'play', label: '⚡ Play Arena', active: !showLeaderboard && !isPlaying },
+              { id: 'leaderboard', label: '🏆 Leaderboard', active: showLeaderboard },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  if (tab.id === 'play') { setShowLeaderboard(false); setIsPlaying(false); }
+                  else { setShowLeaderboard(true); setIsPlaying(false); }
+                }}
+                style={{
+                  padding: '12px 28px', borderRadius: 12,
+                  fontSize: 14, fontWeight: 700,
+                  fontFamily: "'Outfit', sans-serif",
+                  cursor: 'pointer', transition: 'all 0.25s',
+                  border: tab.active ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                  background: tab.active
+                    ? 'linear-gradient(135deg, #eab308, #f59e0b)'
+                    : 'rgba(255,255,255,0.02)',
+                  color: tab.active ? '#07070e' : '#6b6b80',
+                  WebkitTextFillColor: tab.active ? '#07070e' : '#6b6b80',
+                  boxShadow: tab.active
+                    ? '0 4px 20px rgba(234,179,8,0.25)'
+                    : 'none',
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
         {/* Content */}
         <AnimatePresence mode="wait">
           {showLeaderboard ? (
@@ -314,6 +326,54 @@ function CopyableAddress({ label, address }: { label: string; address: string })
   );
 }
 
+// ─── PARTICLE BACKGROUND ───
+function ParticleField() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    let animId: number;
+    let w = (canvas.width = canvas.offsetWidth);
+    let h = (canvas.height = canvas.offsetHeight);
+    const particles = Array.from({ length: 45 }, () => ({
+      x: Math.random() * w, y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.2, vy: (Math.random() - 0.5) * 0.2,
+      r: Math.random() * 1.5 + 0.5, o: Math.random() * 0.25 + 0.05,
+    }));
+    function draw() {
+      ctx!.clearRect(0, 0, w, h);
+      particles.forEach((p) => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0) p.x = w; if (p.x > w) p.x = 0;
+        if (p.y < 0) p.y = h; if (p.y > h) p.y = 0;
+        ctx!.beginPath(); ctx!.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx!.fillStyle = `rgba(234,179,8,${p.o})`; ctx!.fill();
+      });
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 100) {
+            ctx!.beginPath(); ctx!.moveTo(particles[i].x, particles[i].y);
+            ctx!.lineTo(particles[j].x, particles[j].y);
+            ctx!.strokeStyle = `rgba(234,179,8,${0.03 * (1 - dist / 100)})`;
+            ctx!.lineWidth = 0.5; ctx!.stroke();
+          }
+        }
+      }
+      animId = requestAnimationFrame(draw);
+    }
+    draw();
+    const resize = () => { w = canvas.width = canvas.offsetWidth; h = canvas.height = canvas.offsetHeight; };
+    window.addEventListener('resize', resize);
+    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize); };
+  }, []);
+  return <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0 }} />;
+}
+
 // Locked Hero Component
 function LockedHero({ reason, mateBalance, skrBalance, onConnect }: { 
   reason: 'wallet' | 'tokens';
@@ -321,218 +381,514 @@ function LockedHero({ reason, mateBalance, skrBalance, onConnect }: {
   skrBalance?: number;
   onConnect?: () => void;
 }) {
+  const [visible, setVisible] = useState(false);
+  const [hoveredBenefit, setHoveredBenefit] = useState<number | null>(null);
+
+  useEffect(() => { setTimeout(() => setVisible(true), 100); }, []);
+
+  const fadeUp = (delay = 0): React.CSSProperties => ({
+    opacity: visible ? 1 : 0,
+    transform: visible ? 'translateY(0)' : 'translateY(20px)',
+    transition: `all 0.7s cubic-bezier(0.16, 1, 0.3, 1) ${delay}s`,
+  });
+
+  const BENEFITS = [
+    { icon: '⚡', title: 'Unlimited AI Matches', desc: 'Challenge our high-ELO bot anytime' },
+    { icon: '🏆', title: 'All-Time Leaderboard', desc: 'Compete for the #1 spot' },
+    { icon: '🛡️', title: 'Exclusive Access', desc: 'Token holders only arena' },
+  ];
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="text-center py-12"
-    >
-      {/* Locked Icon */}
-      <div className="relative inline-block mb-8">
-        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-yellow-500/20 to-amber-500/20 flex items-center justify-center border border-yellow-500/30">
-          <Lock className="w-16 h-16 text-yellow-400" />
-        </div>
-        <div className="absolute -top-2 -right-2 w-12 h-12 rounded-full bg-yellow-500 flex items-center justify-center">
-          <Crown className="w-6 h-6 text-black" />
-        </div>
-      </div>
+    <div style={{
+      position: 'relative', overflow: 'hidden',
+      color: '#e8e8f0', fontFamily: "'Outfit', 'SF Pro Display', sans-serif",
+    }}>
+      {/* Fonts */}
+      <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
 
-      <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 bg-clip-text text-transparent">
-        Holder Arena
-      </h1>
-      
-      {/* Prize Banner for locked users */}
-      <div className="mb-6 flex flex-col items-center gap-2 px-6 py-4 rounded-3xl bg-gradient-to-r from-green-500/20 via-emerald-500/20 to-green-500/20 border-2 border-green-400/50 w-full max-w-sm mx-auto">
-        <div className="flex items-center gap-2">
-          <DollarSign className="w-7 h-7 text-green-400" />
-          <p className="text-xl font-bold text-green-400">$500 PRIZE POOL</p>
-        </div>
-        <p className="text-sm text-white/70 text-center">Compete for the top spot!</p>
-      </div>
-      
-      <p className="text-xl text-white/60 mb-8 max-w-md mx-auto">
-        {reason === 'wallet' 
-          ? 'Connect your wallet to access the exclusive Holder Arena'
-          : 'Hold $MATE or $SKR tokens to unlock the exclusive Holder Arena'
+      {/* Particle field */}
+      <ParticleField />
+
+      {/* Ambient glows — gold theme */}
+      <div style={{ position: 'absolute', top: '-15%', left: '20%', width: 600, height: 600, background: 'radial-gradient(circle, rgba(234,179,8,0.06) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
+      <div style={{ position: 'absolute', bottom: '-10%', right: '10%', width: 400, height: 400, background: 'radial-gradient(circle, rgba(153,69,255,0.04) 0%, transparent 70%)', pointerEvents: 'none', zIndex: 0 }} />
+
+      <style>{`
+        @keyframes glow-pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-6px); } }
+        @keyframes shimmer {
+          0% { background-position: -200% center; }
+          100% { background-position: 200% center; }
         }
-      </p>
+        .gold-shimmer {
+          background: linear-gradient(90deg, #eab308 0%, #fde68a 25%, #eab308 50%, #fde68a 75%, #eab308 100%);
+          background-size: 200% auto;
+          animation: shimmer 3s linear infinite;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+      `}</style>
 
-      {/* Benefits */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
-        <div className="p-4 rounded-2xl bg-neutral-900 border border-white/10">
-          <Zap className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-          <h3 className="font-semibold mb-1 text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>Unlimited AI Matches</h3>
-          <p className="text-sm text-neutral-300">Challenge our high-ELO bot</p>
+      {/* ─── MAIN CONTENT ─── */}
+      <div style={{
+        position: 'relative', zIndex: 1, maxWidth: 700, margin: '0 auto',
+        padding: '40px 24px 80px', textAlign: 'center',
+      }}>
+
+        {/* Lock icon */}
+        <div style={{ marginBottom: 28, ...fadeUp(0.1) }}>
+          <div style={{
+            width: 100, height: 100, borderRadius: '50%', margin: '0 auto',
+            background: 'linear-gradient(135deg, rgba(234,179,8,0.1), rgba(234,179,8,0.03))',
+            border: '1px solid rgba(234,179,8,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            position: 'relative',
+            animation: 'float 4s ease-in-out infinite',
+          }}>
+            <Lock style={{ width: 42, height: 42, color: '#eab308' }} />
+            {/* Crown badge */}
+            <div style={{
+              position: 'absolute', top: -6, right: -6,
+              width: 36, height: 36, borderRadius: '50%',
+              background: 'linear-gradient(135deg, #eab308, #f59e0b)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 4px 16px rgba(234,179,8,0.4)',
+            }}>
+              <Crown style={{ width: 18, height: 18, color: '#07070e' }} />
+            </div>
+          </div>
         </div>
-        <div className="p-4 rounded-2xl bg-neutral-900 border border-white/10">
-          <Trophy className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-          <h3 className="font-semibold mb-1 text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>All-Time Leaderboard</h3>
-          <p className="text-sm text-neutral-300">Compete for top ranks</p>
+
+        {/* Title */}
+        <h1 style={{
+          fontSize: 'clamp(32px, 5vw, 48px)', fontWeight: 800,
+          letterSpacing: '-0.03em', marginBottom: 12,
+          ...fadeUp(0.15),
+        }}>
+          <span className="gold-shimmer">Holder Arena</span>
+        </h1>
+
+        {/* Subtitle */}
+        <p style={{
+          fontSize: 16, color: '#6b6b80', maxWidth: 400, margin: '0 auto 32px',
+          lineHeight: 1.6, ...fadeUp(0.2),
+        }}>
+          {reason === 'wallet'
+            ? 'Connect your wallet to access the exclusive Holder Arena'
+            : 'Hold $MATE or $SKR tokens to unlock the exclusive Holder Arena'
+          }
+        </p>
+
+        {/* Prize Banner */}
+        <div style={{
+          margin: '0 auto 40px', maxWidth: 420,
+          padding: '20px 28px',
+          background: 'linear-gradient(135deg, rgba(34,197,94,0.08), rgba(16,185,129,0.04))',
+          border: '1px solid rgba(34,197,94,0.25)',
+          borderRadius: 20, position: 'relative', overflow: 'hidden',
+          ...fadeUp(0.25),
+        }}>
+          {/* Top glow line */}
+          <div style={{
+            position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+            width: 150, height: 1,
+            background: 'linear-gradient(90deg, transparent, rgba(34,197,94,0.6), transparent)',
+          }} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: 14,
+              background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.25)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <DollarSign style={{ width: 22, height: 22, color: '#22c55e' }} />
+            </div>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{
+                fontSize: 28, fontWeight: 800,
+                fontFamily: "'Space Mono', monospace",
+                color: '#22c55e', letterSpacing: '-0.02em',
+              }}>$500</div>
+              <div style={{ fontSize: 13, color: '#6b6b80', fontWeight: 500 }}>
+                Prize pool — top scorer wins!
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="p-4 rounded-2xl bg-neutral-900 border border-white/10">
-          <Shield className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-          <h3 className="font-semibold mb-1 text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>Exclusive Access</h3>
-          <p className="text-sm text-neutral-300">Token holders only</p>
+
+        {/* Benefits */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: 14, marginBottom: 40,
+        }}>
+          {BENEFITS.map((b, i) => (
+            <div
+              key={i}
+              onMouseEnter={() => setHoveredBenefit(i)}
+              onMouseLeave={() => setHoveredBenefit(null)}
+              style={{
+                background: hoveredBenefit === i
+                  ? 'rgba(234,179,8,0.04)'
+                  : 'rgba(255,255,255,0.02)',
+                border: `1px solid ${hoveredBenefit === i
+                  ? 'rgba(234,179,8,0.15)'
+                  : 'rgba(255,255,255,0.06)'}`,
+                borderRadius: 18, padding: '28px 20px',
+                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                transform: hoveredBenefit === i ? 'translateY(-3px)' : 'translateY(0)',
+                cursor: 'default',
+                ...fadeUp(0.3 + i * 0.06),
+              }}
+            >
+              <div style={{
+                width: 44, height: 44, borderRadius: 12,
+                background: 'rgba(234,179,8,0.08)',
+                border: '1px solid rgba(234,179,8,0.12)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 20, margin: '0 auto 14px',
+                transition: 'transform 0.3s',
+                transform: hoveredBenefit === i ? 'scale(1.1)' : 'scale(1)',
+              }}>{b.icon}</div>
+              <h3 style={{
+                fontSize: 15, fontWeight: 700, marginBottom: 5, color: '#e8e8f0',
+              }}>{b.title}</h3>
+              <p style={{
+                fontSize: 13, color: '#6b6b80', lineHeight: 1.5,
+              }}>{b.desc}</p>
+            </div>
+          ))}
         </div>
+
+        {/* Action section */}
+        {reason === 'wallet' ? (
+          <>
+            {/* Connect Wallet CTA */}
+            <div style={{ ...fadeUp(0.5) }}>
+              <WalletButton />
+              <p style={{
+                marginTop: 14, fontSize: 12, color: '#444',
+                fontFamily: "'Space Mono', monospace",
+              }}>
+                Requires $MATE or $SKR tokens
+              </p>
+            </div>
+
+            {/* Divider */}
+            <div style={{
+              width: 60, height: 1, margin: '40px auto',
+              background: 'linear-gradient(90deg, transparent, rgba(234,179,8,0.2), transparent)',
+              ...fadeUp(0.55),
+            }} />
+
+            {/* Token info for users who don't have tokens yet */}
+            <div style={{ ...fadeUp(0.6) }}>
+              <p style={{
+                fontSize: 12, fontWeight: 600, textTransform: 'uppercase',
+                letterSpacing: '0.1em', color: '#444', marginBottom: 16,
+                fontFamily: "'Space Mono', monospace",
+              }}>Don&apos;t have tokens yet?</p>
+
+              <div style={{
+                display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap',
+              }}>
+                <a
+                  href={`https://pump.fun/coin/${SOLMATE_TOKEN_MINT}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '12px 24px', borderRadius: 14,
+                    background: 'linear-gradient(135deg, rgba(234,179,8,0.1), rgba(234,179,8,0.04))',
+                    border: '1px solid rgba(234,179,8,0.2)',
+                    color: '#eab308', fontSize: 14, fontWeight: 700,
+                    textDecoration: 'none', fontFamily: "'Outfit', sans-serif",
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  Get $MATE
+                  <ExternalLink style={{ width: 12, height: 12 }} />
+                </a>
+                <a
+                  href="https://solanamobile.com/skr"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '12px 24px', borderRadius: 14,
+                    background: 'linear-gradient(135deg, rgba(153,69,255,0.1), rgba(153,69,255,0.04))',
+                    border: '1px solid rgba(153,69,255,0.2)',
+                    color: '#9945ff', fontSize: 14, fontWeight: 700,
+                    textDecoration: 'none', fontFamily: "'Outfit', sans-serif",
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  Get $SKR
+                  <ExternalLink style={{ width: 12, height: 12 }} />
+                </a>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Token Balance Display */}
+            <div style={{ ...fadeUp(0.5) }}>
+              <div style={{
+                display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap',
+                marginBottom: 28,
+              }}>
+                {/* MATE Balance */}
+                <div style={{
+                  padding: '24px 28px', borderRadius: 18, textAlign: 'center',
+                  minWidth: 180,
+                  background: 'rgba(234,179,8,0.04)',
+                  border: '1px solid rgba(234,179,8,0.15)',
+                }}>
+                  <p style={{ fontSize: 13, color: '#6b6b80', marginBottom: 8, fontWeight: 600 }}>$MATE</p>
+                  <p style={{
+                    fontSize: 22, color: '#eab308', fontWeight: 800,
+                    fontFamily: "'Space Mono', monospace", marginBottom: 8,
+                  }}>{formatTokenBalance(mateBalance || 0)}</p>
+                  <p style={{ fontSize: 11, color: '#444' }}>Need: {getMinimumRequiredDisplay()}</p>
+                </div>
+
+                {/* SKR Balance */}
+                <div style={{
+                  padding: '24px 28px', borderRadius: 18, textAlign: 'center',
+                  minWidth: 180,
+                  background: 'rgba(153,69,255,0.04)',
+                  border: '1px solid rgba(153,69,255,0.15)',
+                }}>
+                  <p style={{ fontSize: 13, color: '#6b6b80', marginBottom: 8, fontWeight: 600 }}>$SKR</p>
+                  <p style={{
+                    fontSize: 22, color: '#9945ff', fontWeight: 800,
+                    fontFamily: "'Space Mono', monospace", marginBottom: 8,
+                  }}>{formatSkrBalance(skrBalance || 0)}</p>
+                  <p style={{ fontSize: 11, color: '#444' }}>Need: {getSkrMinimumRequiredDisplay()}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Get Tokens Buttons */}
+            <div style={{ ...fadeUp(0.55) }}>
+              <div style={{
+                display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap',
+                marginBottom: 28,
+              }}>
+                <a
+                  href={`https://pump.fun/coin/${SOLMATE_TOKEN_MINT}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '14px 28px', borderRadius: 14,
+                    background: 'linear-gradient(135deg, #eab308 0%, #f59e0b 50%, #eab308 100%)',
+                    color: '#07070e', fontSize: 15, fontWeight: 800,
+                    textDecoration: 'none', fontFamily: "'Outfit', sans-serif",
+                    boxShadow: '0 8px 32px rgba(234,179,8,0.25)',
+                    transition: 'all 0.3s',
+                  }}
+                >
+                  Get $MATE
+                  <ExternalLink style={{ width: 14, height: 14 }} />
+                </a>
+                <a
+                  href="https://solanamobile.com/skr"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '14px 28px', borderRadius: 14,
+                    background: 'linear-gradient(135deg, rgba(153,69,255,0.15), rgba(153,69,255,0.08))',
+                    border: '1px solid rgba(153,69,255,0.3)',
+                    color: '#9945ff', fontSize: 15, fontWeight: 800,
+                    textDecoration: 'none', fontFamily: "'Outfit', sans-serif",
+                    transition: 'all 0.3s',
+                  }}
+                >
+                  Get $SKR
+                  <ExternalLink style={{ width: 14, height: 14 }} />
+                </a>
+              </div>
+            </div>
+
+            {/* Token Addresses */}
+            <div style={{ ...fadeUp(0.6), maxWidth: 480, margin: '0 auto' }}>
+              <div className="flex flex-col gap-4 w-full px-4">
+                <CopyableAddress label="$MATE" address={SOLMATE_TOKEN_MINT} />
+                <CopyableAddress label="$SKR" address={SKR_TOKEN_MINT} />
+              </div>
+            </div>
+          </>
+        )}
       </div>
-
-      {/* Action */}
-      {reason === 'wallet' ? (
-        <div className="flex justify-center">
-          <WalletButton />
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {/* Token Balance Display */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {/* MATE Balance */}
-            <div className="px-6 py-5 rounded-2xl bg-red-500/10 border border-red-500/30 text-center min-w-[180px]">
-              <p className="text-sm text-white/50 mb-2">$MATE</p>
-              <p className="text-xl text-red-400 font-bold mb-4">{formatTokenBalance(mateBalance || 0)}</p>
-              <p className="text-xs text-white/40">Need: {getMinimumRequiredDisplay()}</p>
-            </div>
-            
-            {/* SKR Balance */}
-            <div className="px-6 py-5 rounded-2xl bg-red-500/10 border border-red-500/30 text-center min-w-[180px]">
-              <p className="text-sm text-white/50 mb-2">$SKR</p>
-              <p className="text-xl text-red-400 font-bold mb-4">{formatSkrBalance(skrBalance || 0)}</p>
-              <p className="text-xs text-white/40">Need: {getSkrMinimumRequiredDisplay()}</p>
-            </div>
-          </div>
-          
-          {/* Get Tokens Buttons */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a
-              href={`https://pump.fun/coin/${SOLMATE_TOKEN_MINT}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-yellow-500 to-amber-500 text-black font-bold hover:from-yellow-400 hover:to-amber-400 transition-all"
-            >
-              Get $MATE
-              <ExternalLink className="w-4 h-4" />
-            </a>
-            <a
-              href="https://solanamobile.com/skr"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-500 to-violet-500 text-white font-bold hover:from-purple-400 hover:to-violet-400 transition-all"
-            >
-              Get $SKR
-              <ExternalLink className="w-4 h-4" />
-            </a>
-          </div>
-          
-          <div className="flex flex-col gap-4 w-full max-w-lg mx-auto px-4">
-            <CopyableAddress label="$MATE" address={SOLMATE_TOKEN_MINT} />
-            <CopyableAddress label="$SKR" address={SKR_TOKEN_MINT} />
-          </div>
-        </div>
-      )}
-    </motion.div>
+    </div>
   );
 }
 
 // Arena Lobby Component
 function ArenaLobby({ onStartGame }: { onStartGame: () => void }) {
-  return (
-    <div className="max-w-2xl mx-auto">
-      {/* Prize Card */}
-      <motion.div 
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="p-4 sm:p-6 rounded-3xl sm:rounded-[32px] bg-gradient-to-br from-green-500/20 via-emerald-500/10 to-green-500/20 border-2 border-green-400/50 mb-6 relative overflow-hidden shadow-xl"
-      >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-green-400/10 rounded-full blur-3xl" />
-        <div className="relative flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-green-400 flex items-center gap-2">
-              <Trophy className="w-7 h-7" />
-              Season 1 Prize
-            </h2>
-            <p className="text-white/70 mt-1">Top scorer wins!</p>
-          </div>
-          <div className="text-right">
-            <p className="text-5xl font-bold text-green-400">$500</p>
-            <p className="text-sm text-white/50">USD Prize</p>
-          </div>
-        </div>
-        <div className="mt-4 pt-4 border-t border-green-400/20 flex items-center justify-center gap-2">
-          <Calendar className="w-5 h-5 text-yellow-400" />
-          <p className="text-yellow-400 font-semibold">
-            Season ends February 20, 2026
-          </p>
-        </div>
-      </motion.div>
+  const [hoveredRule, setHoveredRule] = useState<number | null>(null);
 
-      {/* Rules Card */}
-      <div className="p-4 sm:p-6 rounded-3xl sm:rounded-[32px] bg-gradient-to-br from-neutral-900 to-neutral-800 border border-white/10 mb-6 shadow-xl">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
-          <Shield className="w-6 h-6 text-yellow-400" />
-          Arena Rules
-        </h2>
-        <ul className="space-y-3 text-neutral-300">
-          <li className="flex items-start gap-3 p-3 rounded-2xl bg-white/5">
-            <span className="text-yellow-400">•</span>
-            Play against SolMate AI (~1500 ELO with opening book)
-          </li>
-          <li className="flex items-start gap-3 p-3 rounded-2xl bg-white/5">
-            <span className="text-yellow-400">•</span>
-            Maximum 20 games per day per wallet
-          </li>
-          <li className="flex items-start gap-3 p-3 rounded-2xl bg-white/5">
-            <span className="text-yellow-400">•</span>
-            Games must have at least 10 moves to count
-          </li>
-          <li className="flex items-start gap-3 p-3 rounded-2xl bg-white/5">
-            <span className="text-yellow-400">•</span>
-            Resignation is allowed - losses still count toward participation
-          </li>
-          <li className="flex items-start gap-3 p-3 rounded-2xl bg-white/5">
-            <span className="text-yellow-400">•</span>
-            All-time leaderboard - your progress is permanent!
-          </li>
-        </ul>
+  const RULES = [
+    'Play against SolMate AI (~1500 ELO with opening book)',
+    'Maximum 20 games per day per wallet',
+    'Games must have at least 10 moves to count',
+    'Resignation is allowed \u2014 losses still count toward participation',
+    'All-time leaderboard \u2014 your progress is permanent!',
+  ];
+
+  const SCORING = [
+    { label: 'Each match played', points: '+1.0 pts', color: '#eab308' },
+    { label: 'Win bonus', points: '+0.5 pts', color: '#22c55e' },
+    { label: 'Share on X bonus', points: '+0.25 pts', color: '#3b82f6' },
+  ];
+
+  return (
+    <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'left' }}>
+      {/* Season Prize Card */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(34,197,94,0.06), rgba(16,185,129,0.02))',
+        border: '1px solid rgba(34,197,94,0.2)',
+        borderRadius: 20, padding: '24px 28px', marginBottom: 20,
+        position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', top: 0, left: '30%', width: 200, height: 1,
+          background: 'linear-gradient(90deg, transparent, rgba(34,197,94,0.4), transparent)',
+        }} />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+              <span style={{ fontSize: 22 }}>🏆</span>
+              <span style={{ fontSize: 20, fontWeight: 800, color: '#22c55e' }}>Season 1 Prize</span>
+            </div>
+            <p style={{ fontSize: 14, color: '#6b6b80' }}>Top scorer wins!</p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{
+              fontSize: 42, fontWeight: 800,
+              fontFamily: "'Space Mono', monospace",
+              color: '#22c55e', letterSpacing: '-0.03em', lineHeight: 1,
+            }}>$500</div>
+            <div style={{
+              fontSize: 12, color: '#6b6b80', fontWeight: 500, marginTop: 4,
+              fontFamily: "'Space Mono', monospace",
+            }}>USD Prize</div>
+          </div>
+        </div>
+        <div style={{
+          marginTop: 16, paddingTop: 14,
+          borderTop: '1px solid rgba(34,197,94,0.1)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+        }}>
+          <span style={{ fontSize: 14 }}>📅</span>
+          <span style={{
+            fontSize: 13, fontWeight: 700, color: '#eab308',
+            fontFamily: "'Space Mono', monospace",
+          }}>Season ends February 20, 2026</span>
+        </div>
       </div>
 
-      {/* Scoring Card */}
-      <div className="p-4 sm:p-6 rounded-3xl sm:rounded-[32px] bg-gradient-to-br from-neutral-900 to-neutral-800 border border-white/10 mb-8 shadow-xl">
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
-          <Trophy className="w-6 h-6 text-yellow-400" />
-          Scoring System
-        </h2>
-        <div className="space-y-3 mb-4">
-          <div className="flex justify-between items-center p-4 rounded-2xl bg-white/5 border border-white/5">
-            <span className="text-neutral-300">Each match played</span>
-            <span className="text-yellow-400 font-bold text-lg">+1.0 pts</span>
-          </div>
-          <div className="flex justify-between items-center p-4 rounded-2xl bg-white/5 border border-white/5">
-            <span className="text-neutral-300">Win bonus</span>
-            <span className="text-green-400 font-bold text-lg">+0.5 pts</span>
-          </div>
-          <div className="flex justify-between items-center p-4 rounded-2xl bg-blue-500/10 border border-blue-500/30">
-            <span className="text-neutral-300">Share on X bonus</span>
-            <span className="text-blue-400 font-bold text-lg">+0.25 pts</span>
-          </div>
+      {/* Rules Card */}
+      <div style={{
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 20, padding: '24px 28px', marginBottom: 20,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+          <span style={{ fontSize: 18 }}>🛡️</span>
+          <span style={{
+            fontSize: 14, fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: '0.08em', color: '#eab308',
+            fontFamily: "'Space Mono', monospace",
+          }}>Arena Rules</span>
         </div>
-        <p className="text-neutral-400 text-sm text-center">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {RULES.map((rule, i) => (
+            <div
+              key={i}
+              onMouseEnter={() => setHoveredRule(i)}
+              onMouseLeave={() => setHoveredRule(null)}
+              style={{
+                display: 'flex', alignItems: 'flex-start', gap: 12,
+                padding: '12px 16px', borderRadius: 12,
+                background: hoveredRule === i
+                  ? 'rgba(234,179,8,0.04)'
+                  : 'rgba(255,255,255,0.015)',
+                border: `1px solid ${hoveredRule === i
+                  ? 'rgba(234,179,8,0.1)'
+                  : 'rgba(255,255,255,0.03)'}`,
+                transition: 'all 0.2s',
+              }}
+            >
+              <span style={{ fontSize: 8, color: '#eab308', marginTop: 6, flexShrink: 0 }}>●</span>
+              <span style={{ fontSize: 14, color: '#a0a0b8', lineHeight: 1.5 }}>{rule}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Scoring System Card */}
+      <div style={{
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 20, padding: '24px 28px', marginBottom: 20,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
+          <span style={{ fontSize: 18 }}>🏆</span>
+          <span style={{
+            fontSize: 14, fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: '0.08em', color: '#eab308',
+            fontFamily: "'Space Mono', monospace",
+          }}>Scoring System</span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {SCORING.map((s, i) => (
+            <div key={i} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '14px 18px', borderRadius: 12,
+              background: s.color === '#3b82f6'
+                ? 'rgba(59,130,246,0.06)'
+                : 'rgba(255,255,255,0.015)',
+              border: `1px solid ${s.color === '#3b82f6'
+                ? 'rgba(59,130,246,0.15)'
+                : 'rgba(255,255,255,0.04)'}`,
+            }}>
+              <span style={{ fontSize: 14, color: '#a0a0b8' }}>{s.label}</span>
+              <span style={{
+                fontFamily: "'Space Mono', monospace",
+                fontSize: 15, fontWeight: 700, color: s.color,
+              }}>{s.points}</span>
+            </div>
+          ))}
+        </div>
+        <p style={{
+          marginTop: 14, textAlign: 'center',
+          fontSize: 12, color: '#444',
+          fontFamily: "'Space Mono', monospace",
+        }}>
           Min 10 moves per game • Share after each match for extra points!
         </p>
       </div>
 
-      {/* Start Button */}
-      <div className="text-center">
+      {/* Start Match Button */}
+      <div style={{ textAlign: 'center' }}>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={onStartGame}
-          className="px-12 py-5 rounded-3xl font-bold text-xl shadow-lg shadow-yellow-500/30 hover:shadow-yellow-500/50 transition-all"
           style={{
-            background: 'linear-gradient(to right, #eab308, #f59e0b, #eab308)',
-            color: '#000000',
-            WebkitTextFillColor: '#000000'
+            padding: '18px 56px', borderRadius: 16,
+            background: 'linear-gradient(135deg, #eab308 0%, #f59e0b 50%, #eab308 100%)',
+            color: '#07070e', fontSize: 18, fontWeight: 800, border: 'none',
+            cursor: 'pointer', fontFamily: "'Outfit', sans-serif",
+            letterSpacing: '0.01em',
+            boxShadow: '0 8px 40px rgba(234,179,8,0.3), 0 0 60px rgba(234,179,8,0.08)',
+            transition: 'all 0.3s',
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+            WebkitTextFillColor: '#07070e',
           }}
         >
-          <Zap className="w-6 h-6 inline-block mr-3" />
+          <span style={{ fontSize: 20 }}>⚡</span>
           Start Arena Match
         </motion.button>
       </div>

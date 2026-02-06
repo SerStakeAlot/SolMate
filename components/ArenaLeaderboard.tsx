@@ -29,6 +29,7 @@ export function ArenaLeaderboard({ walletAddress }: ArenaLeaderboardProps) {
   const [data, setData] = useState<LeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hoveredRow, setHoveredRow] = useState<number | null>(null);
 
   const fetchLeaderboard = async () => {
     setLoading(true);
@@ -61,37 +62,39 @@ export function ArenaLeaderboard({ walletAddress }: ArenaLeaderboardProps) {
     return `${address.slice(0, 4)}...${address.slice(-4)}`;
   };
 
-  const getRankIcon = (rank: number) => {
-    if (rank === 1) return <Trophy className="w-5 h-5 text-yellow-400" />;
-    if (rank === 2) return <Medal className="w-5 h-5 text-gray-300" />;
-    if (rank === 3) return <Medal className="w-5 h-5 text-amber-600" />;
-    return <span className="text-white/40 font-mono">#{rank}</span>;
-  };
-
-  const getRankStyle = (rank: number) => {
-    if (rank === 1) return 'bg-gradient-to-r from-yellow-500/20 to-amber-500/20 border-yellow-500/40';
-    if (rank === 2) return 'bg-gradient-to-r from-gray-400/20 to-gray-500/20 border-gray-400/40';
-    if (rank === 3) return 'bg-gradient-to-r from-amber-600/20 to-orange-600/20 border-amber-600/40';
-    return 'bg-white/5 border-white/10';
+  const getMedalEmoji = (rank: number) => {
+    if (rank === 1) return '🥇';
+    if (rank === 2) return '🥈';
+    if (rank === 3) return '🥉';
+    return null;
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <RefreshCw className="w-8 h-8 text-yellow-400 animate-spin" />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 0' }}>
+        <RefreshCw style={{ width: 32, height: 32, color: '#eab308', animation: 'spin 1s linear infinite' }} />
+        <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="text-center py-12">
-        <p className="text-red-400 mb-4">{error}</p>
+      <div style={{ textAlign: 'center', padding: '48px 0' }}>
+        <p style={{ color: '#f87171', marginBottom: 16, fontSize: 14 }}>{error}</p>
         <button
           onClick={fetchLeaderboard}
-          className="px-6 py-3 rounded-2xl bg-white/10 hover:bg-white/20 text-white transition-colors"
+          style={{
+            padding: '10px 24px', borderRadius: 12,
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: '#e8e8f0', fontSize: 14, fontWeight: 600,
+            cursor: 'pointer', fontFamily: "'Outfit', sans-serif",
+            display: 'inline-flex', alignItems: 'center', gap: 8,
+            transition: 'all 0.2s',
+          }}
         >
-          <RefreshCw className="w-5 h-5 inline-block mr-2" />
+          <RefreshCw style={{ width: 16, height: 16 }} />
           Retry
         </button>
       </div>
@@ -100,138 +103,211 @@ export function ArenaLeaderboard({ walletAddress }: ArenaLeaderboardProps) {
 
   if (!data) {
     return (
-      <div className="text-center py-12 text-white/60">
+      <div style={{ textAlign: 'center', padding: '48px 0', color: '#6b6b80', fontSize: 14 }}>
         No leaderboard data available.
       </div>
     );
   }
 
+  const totalPlayers = data.entries.length;
+
   return (
-    <div className="max-w-3xl mx-auto">
-      {/* Header Info */}
-      <div className="flex items-center justify-between mb-6 px-4">
-        <div className="flex items-center gap-2 text-white/60">
-          <Trophy className="w-5 h-5 text-yellow-400" />
-          <span>All-Time Leaderboard</span>
-        </div>
-        <button
-          onClick={fetchLeaderboard}
-          className="p-2 rounded-2xl hover:bg-neutral-700 transition-colors bg-neutral-800 border border-white/10"
-          title="Refresh"
-        >
-          <RefreshCw className="w-5 h-5 text-white" />
-        </button>
-      </div>
-
-      {/* User's Position (if not in top 20) */}
-      {data.userEntry && data.userEntry.rank > 20 && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-3 sm:p-4 rounded-3xl sm:rounded-[32px] bg-gradient-to-r from-solana-purple/20 to-solana-green/20 border border-solana-purple/40"
-        >
-          <p className="text-sm text-white/60 mb-2">Your Position</p>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <span className="text-2xl font-bold">#{data.userEntry.rank}</span>
-              <div>
-                <p className="font-semibold">
-                  {data.userEntry.username || formatAddress(data.userEntry.walletAddress)}
-                </p>
-                <p className="text-sm text-white/50">
-                  {data.userEntry.matchesPlayed} matches • {data.userEntry.wins} wins
-                </p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold text-yellow-400">{data.userEntry.score.toFixed(1)}</p>
-              <p className="text-xs text-white/50">SCORE</p>
-            </div>
+    <div style={{ maxWidth: 700, margin: '0 auto' }}>
+      {/* Main leaderboard card */}
+      <div style={{
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 20, padding: '24px 28px',
+      }}>
+        {/* Header row */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          marginBottom: 20,
+        }}>
+          <span style={{
+            fontSize: 12, fontWeight: 600, textTransform: 'uppercase',
+            letterSpacing: '0.1em', color: '#eab308',
+            fontFamily: "'Space Mono', monospace",
+          }}>Season 1 Rankings</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{
+              fontSize: 12, color: '#444',
+              fontFamily: "'Space Mono', monospace",
+            }}>Ends Feb 20, 2026</span>
+            <button
+              onClick={fetchLeaderboard}
+              style={{
+                padding: 6, borderRadius: 8,
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.2s',
+              }}
+              title="Refresh"
+            >
+              <RefreshCw style={{ width: 14, height: 14, color: '#6b6b80' }} />
+            </button>
           </div>
-        </motion.div>
-      )}
+        </div>
 
-      {/* Leaderboard Table */}
-      <div className="rounded-3xl overflow-hidden border border-white/10 bg-neutral-900/50">
-        {/* Header */}
-        <div className="grid grid-cols-12 gap-4 px-8 py-4 bg-white/5 text-white/60 text-sm font-semibold border-b border-white/10">
-          <div className="col-span-1">Rank</div>
-          <div className="col-span-5">Player</div>
-          <div className="col-span-2 text-center">Matches</div>
-          <div className="col-span-2 text-center">Wins</div>
-          <div className="col-span-2 text-right">Score</div>
+        {/* Column headers */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '50px 1fr 80px 80px 90px',
+          gap: 12, padding: '0 20px 10px',
+          fontSize: 10, fontWeight: 600, textTransform: 'uppercase',
+          letterSpacing: '0.1em', color: '#333',
+          fontFamily: "'Space Mono', monospace",
+        }}>
+          <span>Rank</span>
+          <span>Player</span>
+          <span style={{ textAlign: 'center' }}>Played</span>
+          <span style={{ textAlign: 'center' }}>Wins</span>
+          <span style={{ textAlign: 'right' }}>Score</span>
         </div>
 
         {/* Entries */}
         {data.entries.length === 0 ? (
-          <div className="px-6 py-12 text-center text-white/40">
-            No entries yet. Be the first to play!
+          <div style={{ textAlign: 'center', padding: '48px 20px' }}>
+            <div style={{
+              width: 64, height: 64, borderRadius: '50%', margin: '0 auto 16px',
+              background: 'rgba(234,179,8,0.06)',
+              border: '1px solid rgba(234,179,8,0.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 28,
+            }}>♟</div>
+            <p style={{ color: '#6b6b80', fontSize: 15, fontWeight: 600, marginBottom: 6 }}>
+              No players yet
+            </p>
+            <p style={{ color: '#444', fontSize: 13 }}>
+              Be the first to compete!
+            </p>
           </div>
         ) : (
-          <div className="divide-y divide-white/5">
+          <div>
             {data.entries.map((entry, index) => {
               const isCurrentUser = walletAddress === entry.walletAddress;
-              
+              const medal = getMedalEmoji(entry.rank);
+              const isHovered = hoveredRow === index;
+
               return (
                 <motion.div
                   key={entry.walletAddress}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className={`
-                    grid grid-cols-12 gap-4 px-8 py-4 items-center transition-colors
-                    ${getRankStyle(entry.rank)}
-                    ${isCurrentUser ? 'ring-2 ring-solana-purple ring-inset' : ''}
-                    hover:bg-white/5
-                  `}
+                  onMouseEnter={() => setHoveredRow(index)}
+                  onMouseLeave={() => setHoveredRow(null)}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '50px 1fr 80px 80px 90px',
+                    gap: 12, alignItems: 'center',
+                    padding: '14px 20px', borderRadius: 14,
+                    marginBottom: 6,
+                    background: isCurrentUser
+                      ? 'linear-gradient(135deg, rgba(234,179,8,0.06), rgba(234,179,8,0.02))'
+                      : isHovered
+                        ? 'rgba(255,255,255,0.03)'
+                        : 'rgba(255,255,255,0.015)',
+                    border: `1px solid ${isCurrentUser
+                      ? 'rgba(234,179,8,0.15)'
+                      : isHovered
+                        ? 'rgba(255,255,255,0.08)'
+                        : 'rgba(255,255,255,0.04)'}`,
+                    transition: 'all 0.2s',
+                  }}
                 >
                   {/* Rank */}
-                  <div className="col-span-1 flex items-center justify-center">
-                    {getRankIcon(entry.rank)}
-                  </div>
+                  <span style={{
+                    fontSize: medal ? 20 : 15,
+                    fontWeight: 700,
+                    fontFamily: "'Space Mono', monospace",
+                    color: entry.rank <= 3 ? '#eab308' : '#6b6b80',
+                  }}>
+                    {medal || `#${entry.rank}`}
+                  </span>
 
                   {/* Player */}
-                  <div className="col-span-5 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-solana-purple/30 to-solana-green/30 flex items-center justify-center">
-                      <User className="w-4 h-4 text-white/60" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className={`font-medium truncate ${isCurrentUser ? 'text-yellow-400' : 'text-white'}`}>
-                        {entry.username || formatAddress(entry.walletAddress)}
-                        {isCurrentUser && <span className="ml-2 text-xs">(You)</span>}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Matches */}
-                  <div className="col-span-2 text-center">
-                    <span className="text-white/80">{entry.matchesPlayed}</span>
-                  </div>
-
-                  {/* Wins */}
-                  <div className="col-span-2 text-center">
-                    <span className="text-green-400">{entry.wins}</span>
-                  </div>
-
-                  {/* Score */}
-                  <div className="col-span-2 text-right">
-                    <span className={`font-bold ${entry.rank <= 3 ? 'text-yellow-400 text-lg' : 'text-white'}`}>
-                      {entry.score.toFixed(1)}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                      background: isCurrentUser
+                        ? 'linear-gradient(135deg, rgba(234,179,8,0.2), rgba(234,179,8,0.1))'
+                        : 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${isCurrentUser ? 'rgba(234,179,8,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 13,
+                    }}>👤</div>
+                    <span style={{
+                      fontFamily: "'Space Mono', monospace",
+                      fontSize: 13, fontWeight: isCurrentUser ? 700 : 400,
+                      color: isCurrentUser ? '#eab308' : '#a0a0b8',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {entry.username || formatAddress(entry.walletAddress)}
+                      {isCurrentUser && (
+                        <span style={{
+                          marginLeft: 8, fontSize: 10, padding: '2px 8px',
+                          borderRadius: 6, background: 'rgba(234,179,8,0.1)',
+                          border: '1px solid rgba(234,179,8,0.15)',
+                          color: '#eab308', fontWeight: 700,
+                          display: 'inline-block', verticalAlign: 'middle',
+                        }}>YOU</span>
+                      )}
                     </span>
                   </div>
+
+                  {/* Played */}
+                  <span style={{
+                    textAlign: 'center', fontFamily: "'Space Mono', monospace",
+                    fontSize: 13, color: '#6b6b80',
+                  }}>{entry.matchesPlayed}</span>
+
+                  {/* Wins */}
+                  <span style={{
+                    textAlign: 'center', fontFamily: "'Space Mono', monospace",
+                    fontSize: 13, color: '#22c55e',
+                  }}>{entry.wins}</span>
+
+                  {/* Score */}
+                  <span style={{
+                    textAlign: 'right', fontFamily: "'Space Mono', monospace",
+                    fontSize: 15, fontWeight: 700,
+                    color: entry.rank <= 3 ? '#eab308' : '#e8e8f0',
+                  }}>{entry.score.toFixed(1)}</span>
                 </motion.div>
               );
             })}
           </div>
         )}
-      </div>
 
-      {/* Scoring Info */}
-      <div className="mt-6 p-3 sm:p-4 rounded-3xl sm:rounded-[32px] bg-white/5 border border-white/10 text-center">
-        <p className="text-white/50 text-sm">
-          <TrendingUp className="w-4 h-4 inline-block mr-2" />
-          Score = (Matches × 1.0) + (Wins × 0.5)
-        </p>
+        {/* User's Position (if not in top entries) */}
+        {data.userEntry && data.userEntry.rank > 20 && (
+          <div style={{
+            marginTop: 12, padding: '14px 20px', borderRadius: 14,
+            background: 'linear-gradient(135deg, rgba(234,179,8,0.04), rgba(234,179,8,0.01))',
+            border: '1px solid rgba(234,179,8,0.1)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            fontSize: 13, color: '#eab308',
+            fontFamily: "'Space Mono', monospace", fontWeight: 600,
+          }}>
+            Your rank: #{data.userEntry.rank}{totalPlayers > 0 ? ` of ${totalPlayers} players` : ''} • Keep climbing!
+          </div>
+        )}
+
+        {/* Score formula footer */}
+        <div style={{
+          paddingTop: 14, marginTop: 12,
+          borderTop: '1px solid rgba(255,255,255,0.04)',
+          textAlign: 'center',
+        }}>
+          <span style={{
+            fontSize: 12, color: '#444',
+            fontFamily: "'Space Mono', monospace",
+          }}>
+            Score = (Matches × 1.0) + (Wins × 0.5)
+          </span>
+        </div>
       </div>
     </div>
   );

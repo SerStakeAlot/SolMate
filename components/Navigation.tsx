@@ -5,134 +5,152 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletButton } from './WalletButton';
-import { BookOpen, Crown } from 'lucide-react';
 
 export function Navigation() {
   const pathname = usePathname();
   const { connected } = useWallet();
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-white/5 bg-black/40 backdrop-blur-xl">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="flex h-16 items-center justify-between">
-          <Link 
-            href="/" 
-            className="flex items-center gap-2 group"
+    <nav
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        background: 'rgba(7,7,14,0.85)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '20px 40px',
+          maxWidth: 1200,
+          margin: '0 auto',
+        }}
+      >
+        {/* Left: Logo + SOLMATE text */}
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+          <Image
+            src="/images/solmate-logo.png"
+            alt="SolMate"
+            width={36}
+            height={36}
+            style={{ objectFit: 'contain' }}
+          />
+          <span
+            style={{
+              fontFamily: "'Space Mono', monospace",
+              fontWeight: 700,
+              fontSize: 18,
+              letterSpacing: '0.08em',
+              background: 'linear-gradient(135deg, #00ffa3, #9945ff)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
           >
-            <div className="relative">
-              <div className="absolute inset-0 bg-solana-purple/30 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-              <Image 
-                src="/images/solmate-logo.png" 
-                alt="SolMate" 
-                width={40} 
-                height={40}
-                className="h-9 w-9 sm:h-10 sm:w-10 object-contain relative z-10"
-              />
-            </div>
-            <span className="hidden xs:inline font-display text-lg font-bold tracking-tight text-gradient">SolMate</span>
+            SOLMATE
+          </span>
+        </Link>
+
+        {/* Right: Nav links + Wallet */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          {/* Mobile-only compact nav */}
+          <Link
+            href="/arena"
+            className="sm:hidden"
+            style={{
+              color: pathname === '/arena' ? '#e8e8f0' : '#6b6b80',
+              textDecoration: 'none',
+              fontSize: 14,
+              fontWeight: 500,
+              padding: '8px 12px',
+              borderRadius: 10,
+              fontFamily: "'Outfit', sans-serif",
+              transition: 'all 0.2s',
+            }}
+          >
+            Arena
           </Link>
-          
-          <div className="flex items-center gap-1.5 sm:gap-3">
-            {/* X (Twitter) button */}
-            <a
-              href="https://x.com/SolMateChess"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-secondary flex items-center justify-center p-2 sm:p-2.5 rounded-xl text-white hover:text-white transition-all relative z-10"
-              aria-label="Follow on X (Twitter)"
-              style={{ minWidth: 40, minHeight: 40 }}
-            >
-              <svg 
-                width="20" 
-                height="20" 
-                viewBox="0 0 24 24" 
-                fill="currentColor"
-                aria-hidden="true"
-                style={{ display: 'block', flexShrink: 0 }}
-              >
-                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-              </svg>
-            </a>
-            
-            {/* Mobile Learn link - more visible */}
-            <Link
-              href="/learn"
-              className={`sm:hidden flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-xl transition-all ${
-                pathname === '/learn'
-                  ? 'btn-glow text-white'
-                  : 'btn-secondary text-white'
-              }`}
-            >
-              <BookOpen className="w-4 h-4" />
-              Learn
-            </Link>
-            
-            {/* Mobile Arena link - always visible */}
+          <Link
+            href="/learn"
+            className="sm:hidden"
+            style={{
+              color: pathname === '/learn' ? '#e8e8f0' : '#6b6b80',
+              textDecoration: 'none',
+              fontSize: 14,
+              fontWeight: 500,
+              padding: '8px 12px',
+              borderRadius: 10,
+              fontFamily: "'Outfit', sans-serif",
+              transition: 'all 0.2s',
+            }}
+          >
+            Learn
+          </Link>
+
+          {/* Desktop nav links */}
+          <div className="hidden sm:flex" style={{ alignItems: 'center', gap: 4 }}>
             <Link
               href="/arena"
-              className={`sm:hidden flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-xl transition-all ${
-                pathname === '/arena'
-                  ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-black'
-                  : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-              }`}
+              className="nav-link-new"
+              style={{
+                color: pathname === '/arena' ? '#e8e8f0' : undefined,
+                background: pathname === '/arena' ? 'rgba(255,255,255,0.04)' : undefined,
+              }}
             >
-              <Crown className="w-4 h-4" />
               Arena
             </Link>
-            
-            {/* Desktop nav links */}
-            <div className="hidden sm:flex items-center gap-1.5 p-1.5 rounded-xl bg-white/5 backdrop-blur-sm border border-white/10">
-              {connected && (
-                <>
-                  <Link
-                    href="/play"
-                    className={`px-4 py-2 text-sm font-medium rounded-xl transition-all ${
-                      pathname === '/play'
-                        ? 'btn-glow text-white'
-                        : 'text-neutral-400 hover:text-white btn-ghost'
-                    }`}
-                  >
-                    Play
-                  </Link>
-                  <Link
-                    href="/lobby"
-                    className={`px-4 py-2 text-sm font-medium rounded-xl transition-all ${
-                      pathname === '/lobby'
-                        ? 'btn-glow text-white'
-                        : 'text-neutral-400 hover:text-white btn-ghost'
-                    }`}
-                  >
-                    Lobby
-                  </Link>
-                </>
-              )}
-              <Link
-                href="/arena"
-                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-all ${
-                  pathname === '/arena'
-                    ? 'bg-gradient-to-r from-yellow-500 to-amber-500 text-black'
-                    : 'text-yellow-400 hover:text-yellow-300 btn-ghost'
-                }`}
-              >
-                <Crown className="w-4 h-4" />
-                Arena
-              </Link>
-              <Link
-                href="/learn"
-                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-all ${
-                  pathname === '/learn'
-                    ? 'btn-glow text-white'
-                    : 'text-neutral-400 hover:text-white btn-ghost'
-                }`}
-              >
-                <BookOpen className="w-4 h-4" />
-                Learn
-              </Link>
-            </div>
+            <Link
+              href="/learn"
+              className="nav-link-new"
+              style={{
+                color: pathname === '/learn' ? '#e8e8f0' : undefined,
+                background: pathname === '/learn' ? 'rgba(255,255,255,0.04)' : undefined,
+              }}
+            >
+              Learn
+            </Link>
+            <Link
+              href="/stats"
+              className="nav-link-new"
+              style={{
+                color: pathname === '/stats' ? '#e8e8f0' : undefined,
+                background: pathname === '/stats' ? 'rgba(255,255,255,0.04)' : undefined,
+              }}
+            >
+              Leaderboard
+            </Link>
+          </div>
+
+          {/* Wallet button wrapper with custom styling */}
+          <div style={{ marginLeft: 12 }}>
             <WalletButton />
           </div>
         </div>
       </div>
+
+      <style>{`
+        .nav-link-new {
+          color: #6b6b80;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 500;
+          padding: 8px 16px;
+          border-radius: 10px;
+          font-family: 'Outfit', sans-serif;
+          transition: all 0.2s;
+        }
+        .nav-link-new:hover {
+          color: #e8e8f0;
+          background: rgba(255,255,255,0.04);
+        }
+      `}</style>
     </nav>
   );
 }
