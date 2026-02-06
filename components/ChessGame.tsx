@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Swords, Trophy, RefreshCw, X, CheckCircle2, XCircle, Wifi, WifiOff, Users, Share2, Clock, MessageCircle, Send, Eye, Loader2, Coins } from 'lucide-react';
+import { Swords, Trophy, RefreshCw, X, CheckCircle2, XCircle, Users, Share2, Clock, MessageCircle, Send, Eye, Loader2, Coins } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
 import { Chess } from 'chess.js';
@@ -1936,74 +1936,260 @@ export const ChessGame: React.FC<ChessGameProps> = ({
         <div className="flex flex-col" style={{ width: '100%', maxWidth: 576 }}>
           {/* Match Header */}
           {mode === 'wager' && matchInfo && (
-            <div className="w-full max-w-[min(480px,calc(100vw-1rem))] rounded-2xl p-2 sm:p-3 mb-3 sm:mb-4" style={{ background: 'rgba(14,14,30,0.7)', border: '1px solid rgba(153,69,255,0.15)', backdropFilter: 'blur(12px)' }}>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs sm:text-sm">
-                <div className="flex items-center gap-2">
-                  <Swords className="h-4 w-4 text-solana-purple" />
-                  <span className="font-medium">Staked Match</span>
+            <div style={{
+              width: '100%',
+              maxWidth: 'min(480px, calc(100vw - 1rem))',
+              borderRadius: 20,
+              overflow: 'hidden',
+              marginBottom: 16,
+              background: 'linear-gradient(180deg, rgba(20,20,40,0.95) 0%, rgba(12,12,26,0.98) 100%)',
+              border: '1px solid rgba(153,69,255,0.15)',
+              boxShadow: '0 0 40px rgba(153,69,255,0.06), 0 8px 24px rgba(0,0,0,0.3)',
+            }}>
+              {/* Top accent bar */}
+              <div style={{
+                height: 2,
+                background: 'linear-gradient(90deg, transparent, #9945ff, #00ffa3, transparent)',
+              }} />
+
+              <div style={{ padding: '16px 20px' }}>
+                {/* Stake & Pot Row */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 12,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Swords style={{ width: 16, height: 16, color: '#9945ff' }} />
+                    <span style={{
+                      fontSize: 14,
+                      fontWeight: 700,
+                      fontFamily: "'Outfit', sans-serif",
+                      color: '#e8e8f0',
+                    }}>
+                      Staked Match
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{
+                        display: 'block',
+                        fontSize: 9,
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        color: '#6b6b80',
+                        fontFamily: "'Space Mono', monospace",
+                        marginBottom: 2,
+                      }}>Stake</span>
+                      <span style={{
+                        fontSize: 14,
+                        fontWeight: 800,
+                        fontFamily: "'Space Mono', monospace",
+                        color: '#e8e8f0',
+                      }}>{matchInfo.stake}</span>
+                    </div>
+                    <div style={{
+                      width: 1,
+                      height: 24,
+                      background: 'rgba(153,69,255,0.2)',
+                    }} />
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{
+                        display: 'block',
+                        fontSize: 9,
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        color: '#6b6b80',
+                        fontFamily: "'Space Mono', monospace",
+                        marginBottom: 2,
+                      }}>Pot</span>
+                      <span style={{
+                        fontSize: 14,
+                        fontWeight: 800,
+                        fontFamily: "'Space Mono', monospace",
+                        background: 'linear-gradient(135deg, #00ffa3, #9945ff)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                      }}>{matchInfo.pot}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex gap-3 sm:gap-4 text-neutral-300">
-                  <span>Stake: <span className="text-white font-semibold">{matchInfo.stake}</span></span>
-                  <span className="text-neutral-600">|</span>
-                  <span>Pot: <span className="text-solana-green font-semibold">{matchInfo.pot}</span></span>
-                </div>
+
+                {/* Multiplayer Status */}
+                {isMultiplayer && (
+                  <div style={{
+                    padding: '12px 16px',
+                    borderRadius: 14,
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    marginBottom: 12,
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 10,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {socket?.connected ? (
+                          <div style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            background: '#00ffa3',
+                            boxShadow: '0 0 8px rgba(0,255,163,0.5)',
+                          }} />
+                        ) : (
+                          <div style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: '50%',
+                            background: '#ef4444',
+                            boxShadow: '0 0 8px rgba(239,68,68,0.5)',
+                          }} />
+                        )}
+                        <span style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          fontFamily: "'Space Mono', monospace",
+                          color: socket?.connected ? '#00ffa3' : '#ef4444',
+                        }}>
+                          {socket?.connected ? 'Connected' : 'Connecting...'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Users style={{
+                          width: 14,
+                          height: 14,
+                          color: opponentConnected ? '#00ffa3' : '#f59e0b',
+                        }} />
+                        <span style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          fontFamily: "'Space Mono', monospace",
+                          color: opponentConnected ? '#00ffa3' : '#f59e0b',
+                        }}>
+                          {opponentConnected ? 'Opponent ready' : 'Waiting for opponent...'}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                    }}>
+                      <div style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: 4,
+                        background: playerColor === 'w'
+                          ? 'linear-gradient(135deg, #e8e8f0, #c8c8d4)'
+                          : 'linear-gradient(135deg, #2a2a40, #1a1a2e)',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                      }} />
+                      <span style={{
+                        fontSize: 11,
+                        fontWeight: 500,
+                        fontFamily: "'Outfit', sans-serif",
+                        color: '#6b6b80',
+                      }}>
+                        Playing as <span style={{ color: '#e8e8f0', fontWeight: 700 }}>{playerColor === 'w' ? 'White' : 'Black'}</span>
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Lobby Code & Spectate Link */}
+                {currentMatchPubkey && (
+                  <div style={{
+                    padding: '14px 16px',
+                    borderRadius: 14,
+                    background: 'rgba(153,69,255,0.04)',
+                    border: '1px solid rgba(153,69,255,0.12)',
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 10,
+                    }}>
+                      <span style={{
+                        fontSize: 10,
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.1em',
+                        color: '#6b6b80',
+                        fontFamily: "'Space Mono', monospace",
+                      }}>
+                        Lobby Code
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{
+                          fontSize: 18,
+                          fontWeight: 800,
+                          fontFamily: "'Space Mono', monospace",
+                          letterSpacing: '0.15em',
+                          background: 'linear-gradient(135deg, #00ffa3, #9945ff)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                        }}>
+                          {currentMatchPubkey.toBase58().slice(0, 4).toUpperCase()}
+                        </span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(currentMatchPubkey.toBase58().slice(0, 4).toUpperCase());
+                          }}
+                          style={{
+                            padding: '4px 10px',
+                            borderRadius: 8,
+                            background: 'rgba(153,69,255,0.1)',
+                            border: '1px solid rgba(153,69,255,0.2)',
+                            color: '#9945ff',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            fontFamily: "'Space Mono', monospace",
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                    <p style={{
+                      fontSize: 11,
+                      color: '#6b6b80',
+                      fontFamily: "'Outfit', sans-serif",
+                      marginBottom: 12,
+                    }}>
+                      Share this code with your opponent to join
+                    </p>
+                    <button
+                      onClick={handleCancelMatch}
+                      disabled={isCancellingMatch}
+                      style={{
+                        width: '100%',
+                        padding: '10px 16px',
+                        borderRadius: 12,
+                        background: 'rgba(239,68,68,0.06)',
+                        border: '1px solid rgba(239,68,68,0.15)',
+                        color: '#ef4444',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        fontFamily: "'Outfit', sans-serif",
+                        cursor: isCancellingMatch ? 'not-allowed' : 'pointer',
+                        opacity: isCancellingMatch ? 0.5 : 1,
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {isCancellingMatch ? 'Cancelling...' : 'Cancel Match & Refund SOL'}
+                    </button>
+                  </div>
+                )}
               </div>
-              {/* Multiplayer Status */}
-              {isMultiplayer && (
-                <div className="mt-3 pt-3 border-t border-white/10">
-                  <div className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-2">
-                      {socket?.connected ? (
-                        <Wifi className="h-3 w-3 text-green-400" />
-                      ) : (
-                        <WifiOff className="h-3 w-3 text-red-400" />
-                      )}
-                      <span className={socket?.connected ? 'text-green-400' : 'text-red-400'}>
-                        {socket?.connected ? 'Connected' : 'Connecting...'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Users className={`h-3 w-3 ${opponentConnected ? 'text-green-400' : 'text-yellow-400'}`} />
-                      <span className={opponentConnected ? 'text-green-400' : 'text-yellow-400'}>
-                        {opponentConnected ? 'Opponent ready' : 'Waiting for opponent...'}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-neutral-500 mt-2">
-                    You are playing as <span className="font-bold text-white">{playerColor === 'w' ? 'White' : 'Black'}</span>
-                  </p>
-                </div>
-              )}
-              {/* Lobby Code for sharing */}
-              {currentMatchPubkey && (
-                <div className="mt-3 pt-3 border-t border-white/10">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-neutral-400">Lobby Code:</span>
-                    <div className="flex items-center gap-2">
-                      <code className="text-lg font-mono font-bold text-solana-green bg-black/30 px-3 py-1 rounded tracking-widest">
-                        {currentMatchPubkey.toBase58().slice(0, 4).toUpperCase()}
-                      </code>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(currentMatchPubkey.toBase58().slice(0, 4).toUpperCase());
-                          alert('Lobby code copied!');
-                        }}
-                        className="text-xs text-solana-purple hover:text-solana-green transition-colors"
-                      >
-                        Copy
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-neutral-500 mt-1">Share this code with your opponent to join</p>
-                  <button
-                    onClick={handleCancelMatch}
-                    disabled={isCancellingMatch}
-                    className="mt-3 w-full py-2 px-4 bg-red-600/20 border border-red-500/30 text-red-400 hover:bg-red-600/30 hover:text-red-300 rounded-xl text-sm font-medium transition-all disabled:opacity-50"
-                  >
-                    {isCancellingMatch ? 'Cancelling...' : 'Cancel Match & Refund SOL'}
-                  </button>
-                </div>
-              )}
             </div>
           )}
 
