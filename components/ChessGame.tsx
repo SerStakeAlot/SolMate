@@ -204,7 +204,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [isJoiningMatch, setIsJoiningMatch] = useState(false);
   const [isCancellingMatch, setIsCancellingMatch] = useState(false);
   const [pendingMatchPubkey, setPendingMatchPubkey] = useState<string>('');
-  const [matchCreated, setMatchCreated] = useState(false);
+  const [matchCreated, setMatchCreated] = useState(!!matchPubkey && initialMode === 'wager');
   const [currentMatchPubkey, setCurrentMatchPubkey] = useState<PublicKey | null>(
     matchPubkey ? new PublicKey(matchPubkey) : null
   );
