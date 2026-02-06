@@ -5,97 +5,49 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletButton } from './WalletButton';
+import { useState, useEffect } from 'react';
 
 export function Navigation() {
   const pathname = usePathname();
   const { connected } = useWallet();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Close menu on route change
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  // Close menu on resize if going above mobile breakpoint
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 640) setMenuOpen(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   return (
-    <nav
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 50,
-        background: 'rgba(7,7,14,0.85)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '20px 40px',
-          maxWidth: 1200,
-          margin: '0 auto',
-        }}
-      >
+    <nav className="nav-root">
+      <div className="nav-inner">
         {/* Left: Logo + SOLMATE text */}
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+        <Link href="/" className="nav-logo-link">
           <Image
             src="/images/solmate-logo.png"
             alt="SolMate"
             width={36}
             height={36}
             style={{ objectFit: 'contain' }}
+            className="nav-logo-img"
           />
-          <span
-            style={{
-              fontFamily: "'Space Mono', monospace",
-              fontWeight: 700,
-              fontSize: 18,
-              letterSpacing: '0.08em',
-              background: 'linear-gradient(135deg, #00ffa3, #9945ff)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
+          <span className="nav-logo-text">
             SOLMATE
           </span>
         </Link>
 
-        {/* Right: Nav links + Wallet */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          {/* Mobile-only compact nav */}
-          <Link
-            href="/arena"
-            className="sm:hidden"
-            style={{
-              color: pathname === '/arena' ? '#e8e8f0' : '#6b6b80',
-              textDecoration: 'none',
-              fontSize: 14,
-              fontWeight: 500,
-              padding: '8px 12px',
-              borderRadius: 10,
-              fontFamily: "'Outfit', sans-serif",
-              transition: 'all 0.2s',
-            }}
-          >
-            Arena
-          </Link>
-          <Link
-            href="/learn"
-            className="sm:hidden"
-            style={{
-              color: pathname === '/learn' ? '#e8e8f0' : '#6b6b80',
-              textDecoration: 'none',
-              fontSize: 14,
-              fontWeight: 500,
-              padding: '8px 12px',
-              borderRadius: 10,
-              fontFamily: "'Outfit', sans-serif",
-              transition: 'all 0.2s',
-            }}
-          >
-            Learn
-          </Link>
-
-          {/* Desktop nav links */}
-          <div className="hidden sm:flex" style={{ alignItems: 'center', gap: 4 }}>
+        {/* Right side */}
+        <div className="nav-right">
+          {/* Desktop nav links (hidden on mobile) */}
+          <div className="nav-links-desktop">
             <Link
               href="/arena"
               className="nav-link-new"
@@ -128,14 +80,123 @@ export function Navigation() {
             </Link>
           </div>
 
-          {/* Wallet button wrapper with custom styling */}
-          <div style={{ marginLeft: 12 }}>
+          {/* Wallet button */}
+          <div className="nav-wallet-wrap">
             <WalletButton />
           </div>
+
+          {/* Hamburger button (mobile only) */}
+          <button
+            className="nav-hamburger"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Toggle menu"
+          >
+            <span className={`hamburger-line ${menuOpen ? 'hamburger-open-1' : ''}`} />
+            <span className={`hamburger-line ${menuOpen ? 'hamburger-open-2' : ''}`} />
+            <span className={`hamburger-line ${menuOpen ? 'hamburger-open-3' : ''}`} />
+          </button>
         </div>
       </div>
 
+      {/* Mobile dropdown menu */}
+      {menuOpen && (
+        <div className="nav-mobile-menu">
+          <Link
+            href="/arena"
+            className="nav-mobile-link"
+            style={{
+              color: pathname === '/arena' ? '#e8e8f0' : undefined,
+              background: pathname === '/arena' ? 'rgba(255,255,255,0.04)' : undefined,
+            }}
+          >
+            Arena
+          </Link>
+          <Link
+            href="/learn"
+            className="nav-mobile-link"
+            style={{
+              color: pathname === '/learn' ? '#e8e8f0' : undefined,
+              background: pathname === '/learn' ? 'rgba(255,255,255,0.04)' : undefined,
+            }}
+          >
+            Learn
+          </Link>
+          <Link
+            href="/stats"
+            className="nav-mobile-link"
+            style={{
+              color: pathname === '/stats' ? '#e8e8f0' : undefined,
+              background: pathname === '/stats' ? 'rgba(255,255,255,0.04)' : undefined,
+            }}
+          >
+            Leaderboard
+          </Link>
+        </div>
+      )}
+
       <style>{`
+        /* ── Nav Root ────────────────────────────── */
+        .nav-root {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 50;
+          background: rgba(7,7,14,0.85);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+
+        .nav-inner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 16px;
+          max-width: 1200px;
+          margin: 0 auto;
+          gap: 8px;
+        }
+
+        /* ── Logo ────────────────────────────────── */
+        .nav-logo-link {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          text-decoration: none;
+          flex-shrink: 0;
+        }
+
+        .nav-logo-img {
+          width: 30px;
+          height: 30px;
+        }
+
+        .nav-logo-text {
+          font-family: 'Space Mono', monospace;
+          font-weight: 700;
+          font-size: 16px;
+          letter-spacing: 0.08em;
+          background: linear-gradient(135deg, #00ffa3, #9945ff);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+
+        /* ── Right side container ─────────────────── */
+        .nav-right {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          min-width: 0;
+        }
+
+        /* ── Desktop links ────────────────────────── */
+        .nav-links-desktop {
+          display: none;
+          align-items: center;
+          gap: 4px;
+        }
+
         .nav-link-new {
           color: #6b6b80;
           text-decoration: none;
@@ -145,10 +206,117 @@ export function Navigation() {
           border-radius: 10px;
           font-family: 'Outfit', sans-serif;
           transition: all 0.2s;
+          white-space: nowrap;
         }
         .nav-link-new:hover {
           color: #e8e8f0;
           background: rgba(255,255,255,0.04);
+        }
+
+        /* ── Wallet button wrapper ────────────────── */
+        .nav-wallet-wrap {
+          margin-left: 4px;
+          flex-shrink: 0;
+          max-width: 160px;
+          overflow: hidden;
+        }
+
+        /* ── Hamburger (mobile only) ──────────────── */
+        .nav-hamburger {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          gap: 5px;
+          width: 36px;
+          height: 36px;
+          background: transparent;
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 8px;
+          cursor: pointer;
+          padding: 6px;
+          margin-left: 4px;
+          flex-shrink: 0;
+          transition: background 0.2s;
+        }
+        .nav-hamburger:hover {
+          background: rgba(255,255,255,0.04);
+        }
+
+        .hamburger-line {
+          display: block;
+          width: 18px;
+          height: 2px;
+          background: #a0a0b8;
+          border-radius: 2px;
+          transition: all 0.3s ease;
+        }
+        .hamburger-open-1 {
+          transform: translateY(7px) rotate(45deg);
+        }
+        .hamburger-open-2 {
+          opacity: 0;
+        }
+        .hamburger-open-3 {
+          transform: translateY(-7px) rotate(-45deg);
+        }
+
+        /* ── Mobile dropdown menu ─────────────────── */
+        .nav-mobile-menu {
+          display: flex;
+          flex-direction: column;
+          padding: 8px 16px 16px;
+          gap: 2px;
+          border-top: 1px solid rgba(255,255,255,0.04);
+          background: rgba(7,7,14,0.95);
+        }
+
+        .nav-mobile-link {
+          color: #6b6b80;
+          text-decoration: none;
+          font-size: 15px;
+          font-weight: 500;
+          padding: 12px 16px;
+          border-radius: 10px;
+          font-family: 'Outfit', sans-serif;
+          transition: all 0.2s;
+        }
+        .nav-mobile-link:hover {
+          color: #e8e8f0;
+          background: rgba(255,255,255,0.04);
+        }
+
+        /* ── Desktop breakpoint (640px+) ──────────── */
+        @media (min-width: 640px) {
+          .nav-inner {
+            padding: 20px 40px;
+          }
+
+          .nav-logo-img {
+            width: 36px;
+            height: 36px;
+          }
+
+          .nav-logo-text {
+            font-size: 18px;
+          }
+
+          .nav-links-desktop {
+            display: flex;
+          }
+
+          .nav-hamburger {
+            display: none;
+          }
+
+          .nav-mobile-menu {
+            display: none;
+          }
+
+          .nav-wallet-wrap {
+            margin-left: 12px;
+            max-width: none;
+          }
         }
       `}</style>
     </nav>

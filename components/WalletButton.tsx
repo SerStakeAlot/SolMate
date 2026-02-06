@@ -96,6 +96,10 @@ const connectButtonStyle: React.CSSProperties = {
   WebkitBackdropFilter: 'blur(12px)',
   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05) inset',
   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+  whiteSpace: 'nowrap' as const,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  maxWidth: '100%',
 };
 
 // Main export - uses standard wallet adapter

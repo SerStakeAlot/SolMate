@@ -218,11 +218,12 @@ export default function StatsPage() {
   return (
     <main style={{ minHeight: '100vh', background: '#07070e', position: 'relative' }}>
       <ParticleField />
-      <div style={{ maxWidth: 1000, margin: '0 auto', padding: '32px 40px 80px', position: 'relative', zIndex: 1 }}>
+      <div style={{ maxWidth: 1000, margin: '0 auto', padding: '24px 16px 80px', position: 'relative', zIndex: 1 }} className="stats-page-container">
+        <style>{`@media (min-width: 640px) { .stats-page-container { padding: 32px 40px 80px !important; } }`}</style>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 48 }}>
           <h1 style={{
-            color: '#e8e8f0', fontSize: 36, fontWeight: 800,
+            color: '#e8e8f0', fontSize: 'clamp(24px, 5vw, 36px)', fontWeight: 800,
             fontFamily: 'Outfit, sans-serif', margin: '0 0 8px',
           }}>
             Platform Statistics
@@ -250,7 +251,6 @@ export default function StatsPage() {
           }}
             className="stats-grid-responsive"
           >
-            <style>{`.stats-grid-responsive { } @media (max-width: 640px) { .stats-grid-responsive { grid-template-columns: repeat(2, 1fr) !important; } }`}</style>
             <StatCard label="Total Games" value={stats.totalGames.toLocaleString()} icon="🎮" />
             <StatCard label="Unique Players" value={stats.uniquePlayers.toLocaleString()} icon="👥" />
             <StatCard label="SOL Wagered" value={`${stats.totalSolWagered.toFixed(2)} ◎`} icon="💰" highlight />
@@ -500,6 +500,7 @@ function StatCard({
 }) {
   return (
     <div
+      className="stat-card-item"
       style={{
         borderRadius: 16,
         padding: 20,
@@ -523,15 +524,16 @@ function StatCard({
         e.currentTarget.style.transform = 'translateY(0)';
       }}
     >
+      <style>{`@media (max-width: 639px) { .stat-card-item { padding: 14px !important; border-radius: 12px !important; } .stat-card-item .stat-value { font-size: 16px !important; } }`}</style>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, minWidth: 0 }}>
         <span style={{ fontSize: 18, flexShrink: 0 }}>{icon}</span>
         <span style={{
-          fontSize: 12, color: '#6b6b80', fontFamily: "'Space Mono', monospace",
+          fontSize: 11, color: '#6b6b80', fontFamily: "'Space Mono', monospace",
           textTransform: 'uppercase', letterSpacing: '0.05em',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{label}</span>
       </div>
-      <div style={{
+      <div className="stat-value" style={{
         fontSize: 22, fontWeight: 800, fontFamily: "'Space Mono', monospace",
         color: highlight ? '#9945ff' : '#e8e8f0',
         overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
