@@ -3078,142 +3078,403 @@ export const ChessGame: React.FC<ChessGameProps> = ({
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            backdropFilter: 'blur(8px)',
+            backgroundColor: 'rgba(7, 7, 14, 0.85)',
+            backdropFilter: 'blur(12px)',
           }}
           onClick={() => setShowResultModal(false)}
         >
           <motion.div
-            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            initial={{ scale: 0.85, opacity: 0, y: 30 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="rounded-2xl p-6 w-[320px] relative"
-            style={{ background: 'rgba(14,14,30,0.95)', border: '1px solid rgba(153,69,255,0.2)', backdropFilter: 'blur(20px)', boxShadow: '0 0 60px rgba(153,69,255,0.15)' }}
+            exit={{ scale: 0.85, opacity: 0, y: 30 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            style={{
+              width: 380,
+              maxWidth: 'calc(100vw - 32px)',
+              borderRadius: 24,
+              overflow: 'hidden',
+              position: 'relative',
+              background: 'linear-gradient(180deg, rgba(20,20,40,0.98) 0%, rgba(12,12,26,0.99) 100%)',
+              border: '1px solid rgba(153,69,255,0.2)',
+              boxShadow: '0 0 80px rgba(153,69,255,0.12), 0 24px 48px rgba(0,0,0,0.5)',
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Determine if current player won */}
             {(() => {
-              // In practice mode, player is always white
-              // In multiplayer/free play, use playerColor
-              const myColor = playerColor || 'w';
+              const myColor = aiPlayerColor || playerColor || 'w';
               const isWinner = gameWinner === myColor;
               const winnerColor = gameWinner || 'w';
               const loserColor = gameWinner === 'w' ? 'b' : 'w';
-              
+
               return (
                 <>
-                  {/* Header: Victory/Defeat + Icon */}
-                  <div className="flex items-center justify-center gap-1.5 mb-3">
-                    <img 
-                      src={isWinner ? "/pieces/wN.svg" : "/pieces/bN.svg"}
-                      alt="Knight" 
-                      className="w-3.5 h-3.5 flex-shrink-0"
-                    />
-                    <h2 className={`text-sm font-bold whitespace-nowrap ${isWinner ? 'text-white' : 'text-red-400'}`}>
-                      {isWinner ? 'Victory!' : 'Defeat'}
-                    </h2>
-                    {isWinner ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0 text-emerald-400" />
-                    ) : (
-                      <XCircle className="w-3.5 h-3.5 flex-shrink-0 text-red-400" />
-                    )}
-                  </div>
+                  {/* Top accent gradient bar */}
+                  <div style={{
+                    height: 3,
+                    background: isWinner
+                      ? 'linear-gradient(90deg, transparent, #00ffa3, #9945ff, transparent)'
+                      : 'linear-gradient(90deg, transparent, #ef4444, #9945ff, transparent)',
+                  }} />
 
-                  {/* Winner vs Loser */}
-                  <div className="flex items-center justify-center gap-3 mb-3">
-                    <div className="flex flex-col items-center gap-1">
-                      <img 
-                        src={`/pieces/${winnerColor}K.svg`}
-                        alt="Winner" 
-                        className="w-6 h-6 flex-shrink-0"
-                      />
-                      <span className={`text-[10px] font-medium uppercase ${isWinner ? 'text-emerald-400' : 'text-neutral-400'}`}>
-                        {isWinner ? 'You' : 'Opp'}
-                      </span>
-                    </div>
-                    
-                    <div className="text-xs font-bold text-purple-400">VS</div>
-                    
-                    <div className="flex flex-col items-center gap-1">
-                      <img 
-                        src={`/pieces/${loserColor}K.svg`}
-                        alt="Loser" 
-                        className="w-6 h-6 flex-shrink-0 opacity-50"
-                      />
-                      <span className={`text-[10px] font-medium uppercase ${!isWinner ? 'text-red-400' : 'text-neutral-400'}`}>
-                        {!isWinner ? 'You' : 'Opp'}
-                      </span>
-                    </div>
-                  </div>
+                  <div style={{ padding: '32px 28px 28px' }}>
 
-                  {/* Reward Section (for wager mode) - only show for winner */}
-                  {mode === 'wager' && matchCreated && isWinner && (
-                    <div className="mb-3 text-center">
-                      <p className="text-[10px] font-medium text-neutral-400 uppercase mb-1">Reward</p>
-                      <div className="bg-gradient-to-r from-purple-600/20 to-purple-400/20 border border-purple-500/30 rounded-xl py-2 px-3">
-                        <p className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-purple-200">
-                          +{getStakeTierInfo(selectedStakeTier).stake * 1.8} SOL
-                        </p>
-                      </div>
-                      {payoutComplete ? (
-                        <p className="text-[10px] text-emerald-400 mt-1 font-medium">
-                          ✓ Claimed
-                        </p>
-                      ) : (
-                        <motion.button
-                          onClick={() => {
-                            setShowResultModal(false);
-                            handleSubmitResult();
-                          }}
-                          disabled={isSubmittingResult}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="mt-2 w-full bg-gradient-to-r from-emerald-500 to-green-400 hover:from-emerald-400 hover:to-green-300 disabled:from-neutral-600 disabled:to-neutral-500 text-black font-bold py-3 px-4 rounded-xl transition-all text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30"
-                        >
-                          {isSubmittingResult ? (
-                            <><RefreshCw className="w-5 h-5 animate-spin" /> Claiming...</>
-                          ) : (
-                            <><Coins className="w-5 h-5" /> 💰 CLAIM WINNINGS</>
-                          )}
-                        </motion.button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Loss message for wager mode */}
-                  {mode === 'wager' && matchCreated && !isWinner && (
-                    <div className="mb-3 text-center">
-                      <p className="text-[10px] font-medium text-neutral-400 uppercase mb-1">Result</p>
-                      <div className="bg-gradient-to-r from-red-600/20 to-red-400/20 border border-red-500/30 rounded-xl py-2 px-3">
-                        <p className="text-lg font-bold text-red-400">
-                          -{getStakeTierInfo(selectedStakeTier).stake} SOL
-                        </p>
+                    {/* Result Badge */}
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        padding: '10px 24px',
+                        borderRadius: 100,
+                        background: isWinner
+                          ? 'linear-gradient(135deg, rgba(0,255,163,0.12), rgba(153,69,255,0.08))'
+                          : 'linear-gradient(135deg, rgba(239,68,68,0.12), rgba(153,69,255,0.08))',
+                        border: `1px solid ${isWinner ? 'rgba(0,255,163,0.25)' : 'rgba(239,68,68,0.25)'}`,
+                        boxShadow: isWinner
+                          ? '0 0 24px rgba(0,255,163,0.1)'
+                          : '0 0 24px rgba(239,68,68,0.1)',
+                      }}>
+                        {isWinner ? (
+                          <CheckCircle2 style={{ width: 20, height: 20, color: '#00ffa3' }} />
+                        ) : (
+                          <XCircle style={{ width: 20, height: 20, color: '#ef4444' }} />
+                        )}
+                        <span style={{
+                          fontSize: 20,
+                          fontWeight: 800,
+                          letterSpacing: '-0.02em',
+                          fontFamily: "'Outfit', sans-serif",
+                          color: isWinner ? '#00ffa3' : '#ef4444',
+                        }}>
+                          {isWinner ? 'Victory!' : 'Defeat'}
+                        </span>
                       </div>
                     </div>
-                  )}
 
-                  {/* Status Text (for practice or other info) */}
-                  {mode === 'practice' && (
-                    <p className="text-center text-neutral-300 text-[11px] mb-3 opacity-80">
+                    {/* Matchup Display */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 20,
+                      marginBottom: 20,
+                      padding: '20px 24px',
+                      background: 'rgba(255,255,255,0.02)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      borderRadius: 16,
+                    }}>
+                      {/* Winner side */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                        <div style={{
+                          width: 60,
+                          height: 60,
+                          borderRadius: 16,
+                          background: winnerColor === 'w'
+                            ? 'linear-gradient(135deg, #e8e8f0, #c8c8d4)'
+                            : 'linear-gradient(135deg, #2a2a40, #1a1a2e)',
+                          border: `2px solid ${isWinner ? 'rgba(0,255,163,0.5)' : 'rgba(255,255,255,0.15)'}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          boxShadow: isWinner
+                            ? '0 0 24px rgba(0,255,163,0.2)'
+                            : '0 4px 16px rgba(0,0,0,0.3)',
+                        }}>
+                          <img
+                            src={`/pieces/${winnerColor}K.svg`}
+                            alt="Winner"
+                            style={{ width: 40, height: 40 }}
+                            draggable={false}
+                          />
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <span style={{
+                            display: 'block',
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: isWinner ? '#00ffa3' : '#e8e8f0',
+                            fontFamily: "'Outfit', sans-serif",
+                            marginBottom: 2,
+                          }}>
+                            {gameWinner === myColor ? (myUsername || 'You') : (opponentUsername || 'Opponent')}
+                          </span>
+                          <span style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.08em',
+                            color: '#00ffa3',
+                            fontFamily: "'Space Mono', monospace",
+                          }}>
+                            Winner
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* VS divider */}
+                      <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}>
+                        <div style={{
+                          width: 1,
+                          height: 20,
+                          background: 'linear-gradient(180deg, transparent, rgba(153,69,255,0.3))',
+                        }} />
+                        <span style={{
+                          fontSize: 12,
+                          fontWeight: 800,
+                          color: '#9945ff',
+                          fontFamily: "'Space Mono', monospace",
+                        }}>
+                          VS
+                        </span>
+                        <div style={{
+                          width: 1,
+                          height: 20,
+                          background: 'linear-gradient(180deg, rgba(153,69,255,0.3), transparent)',
+                        }} />
+                      </div>
+
+                      {/* Loser side */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                        <div style={{
+                          width: 60,
+                          height: 60,
+                          borderRadius: 16,
+                          background: loserColor === 'w'
+                            ? 'linear-gradient(135deg, #e8e8f0, #c8c8d4)'
+                            : 'linear-gradient(135deg, #2a2a40, #1a1a2e)',
+                          border: '2px solid rgba(255,255,255,0.08)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          opacity: 0.5,
+                          boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                        }}>
+                          <img
+                            src={`/pieces/${loserColor}K.svg`}
+                            alt="Loser"
+                            style={{ width: 40, height: 40 }}
+                            draggable={false}
+                          />
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <span style={{
+                            display: 'block',
+                            fontSize: 13,
+                            fontWeight: 700,
+                            color: !isWinner ? '#ef4444' : '#6b6b80',
+                            fontFamily: "'Outfit', sans-serif",
+                            marginBottom: 2,
+                          }}>
+                            {gameWinner !== myColor ? (myUsername || 'You') : (opponentUsername || 'Opponent')}
+                          </span>
+                          <span style={{
+                            fontSize: 10,
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.08em',
+                            color: '#ef4444',
+                            fontFamily: "'Space Mono', monospace",
+                          }}>
+                            Defeated
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Status line */}
+                    <p style={{
+                      textAlign: 'center',
+                      fontSize: 12,
+                      color: '#6b6b80',
+                      marginBottom: 20,
+                      fontFamily: "'Space Mono', monospace",
+                    }}>
                       {statusText}
                     </p>
-                  )}
+
+                    {/* Wager Reward Section — Winner */}
+                    {mode === 'wager' && matchCreated && isWinner && (
+                      <div style={{ marginBottom: 16 }}>
+                        <div style={{
+                          padding: '16px 20px',
+                          borderRadius: 14,
+                          background: 'linear-gradient(135deg, rgba(0,255,163,0.06), rgba(153,69,255,0.04))',
+                          border: '1px solid rgba(0,255,163,0.15)',
+                          textAlign: 'center',
+                        }}>
+                          <span style={{
+                            display: 'block',
+                            fontSize: 10,
+                            fontWeight: 600,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.1em',
+                            color: '#6b6b80',
+                            marginBottom: 6,
+                            fontFamily: "'Space Mono', monospace",
+                          }}>
+                            Reward
+                          </span>
+                          <span style={{
+                            display: 'block',
+                            fontSize: 28,
+                            fontWeight: 800,
+                            fontFamily: "'Space Mono', monospace",
+                            background: 'linear-gradient(135deg, #00ffa3, #9945ff)',
+                            WebkitBackgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            letterSpacing: '-0.02em',
+                          }}>
+                            +{(getStakeTierInfo(selectedStakeTier).stake * 1.8).toFixed(2)} SOL
+                          </span>
+                        </div>
+
+                        {payoutComplete ? (
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 6,
+                            marginTop: 12,
+                            padding: '10px 16px',
+                            borderRadius: 12,
+                            background: 'rgba(0,255,163,0.08)',
+                            border: '1px solid rgba(0,255,163,0.15)',
+                          }}>
+                            <CheckCircle2 style={{ width: 14, height: 14, color: '#00ffa3' }} />
+                            <span style={{ fontSize: 13, fontWeight: 600, color: '#00ffa3', fontFamily: "'Space Mono', monospace" }}>
+                              Claimed successfully
+                            </span>
+                          </div>
+                        ) : (
+                          <motion.button
+                            onClick={() => {
+                              setShowResultModal(false);
+                              handleSubmitResult();
+                            }}
+                            disabled={isSubmittingResult}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            style={{
+                              width: '100%',
+                              marginTop: 12,
+                              padding: '14px 24px',
+                              borderRadius: 14,
+                              border: 'none',
+                              cursor: isSubmittingResult ? 'not-allowed' : 'pointer',
+                              background: isSubmittingResult
+                                ? 'rgba(255,255,255,0.08)'
+                                : 'linear-gradient(135deg, #00ffa3 0%, #00d4ff 50%, #9945ff 100%)',
+                              color: isSubmittingResult ? '#6b6b80' : '#07070e',
+                              fontSize: 15,
+                              fontWeight: 800,
+                              fontFamily: "'Outfit', sans-serif",
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 8,
+                              boxShadow: isSubmittingResult
+                                ? 'none'
+                                : '0 4px 24px rgba(0,255,163,0.3)',
+                              transition: 'all 0.3s',
+                            }}
+                          >
+                            {isSubmittingResult ? (
+                              <>
+                                <Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} />
+                                Claiming...
+                              </>
+                            ) : (
+                              <>
+                                <Coins style={{ width: 18, height: 18 }} />
+                                Claim Winnings
+                              </>
+                            )}
+                          </motion.button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Wager Loss Section — Loser */}
+                    {mode === 'wager' && matchCreated && !isWinner && (
+                      <div style={{
+                        marginBottom: 16,
+                        padding: '16px 20px',
+                        borderRadius: 14,
+                        background: 'rgba(239,68,68,0.06)',
+                        border: '1px solid rgba(239,68,68,0.15)',
+                        textAlign: 'center',
+                      }}>
+                        <span style={{
+                          display: 'block',
+                          fontSize: 10,
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.1em',
+                          color: '#6b6b80',
+                          marginBottom: 6,
+                          fontFamily: "'Space Mono', monospace",
+                        }}>
+                          Lost
+                        </span>
+                        <span style={{
+                          display: 'block',
+                          fontSize: 24,
+                          fontWeight: 800,
+                          fontFamily: "'Space Mono', monospace",
+                          color: '#ef4444',
+                          letterSpacing: '-0.02em',
+                        }}>
+                          -{getStakeTierInfo(selectedStakeTier).stake} SOL
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Dismiss / Play Again Button */}
+                    <motion.button
+                      onClick={() => {
+                        setShowResultModal(false);
+                        if (mode === 'practice') resetPractice();
+                      }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      style={{
+                        width: '100%',
+                        padding: '12px 24px',
+                        borderRadius: 14,
+                        cursor: 'pointer',
+                        background: mode === 'practice'
+                          ? 'linear-gradient(135deg, rgba(153,69,255,0.15), rgba(153,69,255,0.08))'
+                          : 'rgba(255,255,255,0.04)',
+                        border: `1px solid ${mode === 'practice' ? 'rgba(153,69,255,0.25)' : 'rgba(255,255,255,0.1)'}`,
+                        color: mode === 'practice' ? '#c4a0ff' : '#a0a0b8',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        fontFamily: "'Outfit', sans-serif",
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {mode === 'practice' ? (
+                        <>
+                          <RefreshCw style={{ width: 14, height: 14 }} />
+                          Play Again
+                        </>
+                      ) : (
+                        'Dismiss'
+                      )}
+                    </motion.button>
+                  </div>
                 </>
               );
             })()}
-
-            {/* Dismiss Button */}
-            <motion.button
-              onClick={() => {
-                setShowResultModal(false);
-                if (mode === 'practice') resetPractice();
-              }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full bg-gradient-to-r from-purple-600 to-purple-500 hover:from-purple-700 hover:to-purple-600 text-white font-semibold py-2 px-4 rounded-xl transition-all text-sm"
-            >
-              Dismiss
-            </motion.button>
           </motion.div>
         </motion.div>
       )}
