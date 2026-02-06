@@ -6,10 +6,9 @@ import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { AnimatePresence } from "framer-motion";
 import { io, Socket } from "socket.io-client";
-import Link from "next/link";
-import Image from "next/image";
 
-import { WalletButton } from "@/components/WalletButton";
+
+
 import {
   EscrowClient,
   MatchAccount,
@@ -709,37 +708,6 @@ export default function LobbyPage() {
           }
         }
       `}</style>
-
-      {/* ─── NAV (with existing logo image) ─── */}
-      <nav style={{
-        position: "relative", zIndex: 10,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "20px 40px", maxWidth: 1200, margin: "0 auto",
-        ...fadeUp(0),
-      }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-          <Image
-            src="/images/solmate-logo.png"
-            alt="SolMate"
-            width={36}
-            height={36}
-            style={{ objectFit: "contain" }}
-          />
-          <span style={{
-            fontFamily: "'Space Mono', monospace", fontWeight: 700, fontSize: 18,
-            letterSpacing: "0.08em",
-            background: "linear-gradient(135deg, #00ffa3, #9945ff)",
-            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-          }}>SOLMATE</span>
-        </Link>
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <Link href="/arena" style={{ color: "#6b6b80", textDecoration: "none", fontSize: 14, fontWeight: 500, padding: "8px 16px", borderRadius: 10, fontFamily: "'Outfit', sans-serif" }}>Arena</Link>
-          <Link href="/learn" style={{ color: "#6b6b80", textDecoration: "none", fontSize: 14, fontWeight: 500, padding: "8px 16px", borderRadius: 10, fontFamily: "'Outfit', sans-serif" }}>Learn</Link>
-          <div style={{ marginLeft: 12 }}>
-            <WalletButton />
-          </div>
-        </div>
-      </nav>
 
       {/* ─── PAGE CONTENT ─── */}
       <div style={{

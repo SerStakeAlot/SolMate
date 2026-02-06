@@ -1,14 +1,12 @@
 "use client";
 
 import { ChessGame } from "@/components/ChessGame";
-import { WalletButton } from "@/components/WalletButton";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense, useEffect, useRef, useState, useCallback } from "react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { PublicKey } from "@solana/web3.js";
 import { io, Socket } from "socket.io-client";
-import Link from "next/link";
-import Image from "next/image";
+
 import {
   EscrowClient,
   STAKE_TIERS,
@@ -404,29 +402,6 @@ function GameContent() {
           @keyframes pulse-ring { 0% { transform: scale(1); opacity: 0.4; } 100% { transform: scale(1.8); opacity: 0; } }
           @keyframes fade-in-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
         `}</style>
-
-        {/* Nav */}
-        <nav style={{
-          position: "relative", zIndex: 10,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "20px 40px", maxWidth: 1200, margin: "0 auto",
-          ...fadeUp(0),
-        }}>
-          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
-            <Image src="/images/solmate-logo.png" alt="SolMate" width={36} height={36} style={{ objectFit: "contain" }} />
-            <span style={{
-              fontFamily: "'Space Mono', monospace", fontWeight: 700, fontSize: 18,
-              letterSpacing: "0.08em",
-              background: "linear-gradient(135deg, #00ffa3, #9945ff)",
-              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-            }}>SOLMATE</span>
-          </Link>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <Link href="/lobby" style={{ color: "#6b6b80", textDecoration: "none", fontSize: 14, fontWeight: 500, padding: "8px 16px", borderRadius: 10, fontFamily: "'Outfit', sans-serif" }}>Lobby</Link>
-            <Link href="/arena" style={{ color: "#6b6b80", textDecoration: "none", fontSize: 14, fontWeight: 500, padding: "8px 16px", borderRadius: 10, fontFamily: "'Outfit', sans-serif" }}>Arena</Link>
-            <div style={{ marginLeft: 12 }}><WalletButton /></div>
-          </div>
-        </nav>
 
         {/* Content */}
         <div style={{
