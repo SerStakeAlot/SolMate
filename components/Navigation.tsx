@@ -78,6 +78,19 @@ export function Navigation() {
             >
               Leaderboard
             </Link>
+
+            {/* X (Twitter) */}
+            <a
+              href="https://x.com/SolMateChess"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="nav-x-link"
+              aria-label="Follow on X (Twitter)"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+            </a>
           </div>
 
           {/* Wallet button */}
@@ -131,6 +144,18 @@ export function Navigation() {
           >
             Leaderboard
           </Link>
+          <a
+            href="https://x.com/SolMateChess"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="nav-mobile-link"
+            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ flexShrink: 0 }}>
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+            </svg>
+            Follow on X
+          </a>
         </div>
       )}
 
@@ -209,6 +234,24 @@ export function Navigation() {
           white-space: nowrap;
         }
         .nav-link-new:hover {
+          color: #e8e8f0;
+          background: rgba(255,255,255,0.04);
+        }
+
+        /* ── X (Twitter) link ──────────────────────── */
+        .nav-x-link {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          color: #6b6b80;
+          transition: all 0.2s;
+          text-decoration: none;
+          flex-shrink: 0;
+        }
+        .nav-x-link:hover {
           color: #e8e8f0;
           background: rgba(255,255,255,0.04);
         }
