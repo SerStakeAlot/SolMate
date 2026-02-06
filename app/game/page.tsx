@@ -157,6 +157,14 @@ function GameContent() {
   const [hostConnected, setHostConnected] = useState(false);
   const [dotCount, setDotCount] = useState(0);
 
+  // Refs to access latest state in socket callbacks
+  const hostMatchRef = useRef<{ pubkey: PublicKey | null; code: string; tier: number; step: HostStep }>({
+    pubkey: null, code: "", tier: 4, step: "select-tier"
+  });
+  useEffect(() => {
+    hostMatchRef.current = { pubkey: hostMatchPubkey, code: hostMatchCode, tier: selectedTier, step: hostStep };
+  }, [hostMatchPubkey, hostMatchCode, selectedTier, hostStep]);
+
   // Animate waiting dots
   useEffect(() => {
     if (hostStep !== "waiting") return;
@@ -164,16 +172,56 @@ function GameContent() {
     return () => clearInterval(interval);
   }, [hostStep]);
 
+  // Fallback: poll on-chain match state in case WebSocket notification was missed
+  useEffect(() => {
+    if (hostStep !== "waiting" || !hostMatchPubkey || !connected) return;
+    
+    const checkOnChain = async () => {
+      try {
+        const client = new EscrowClient(connection, wallet);
+        const matchData = await client.fetchMatch(hostMatchPubkey);
+        if (matchData && matchData.playerB) {
+          console.log('On-chain poll: opponent joined!', matchData.playerB.toBase58());
+          setOpponentJoined(true);
+          setHostOpponentWallet(matchData.playerB.toBase58());
+          setHostStep("ready");
+        }
+      } catch (e) {
+        // Ignore poll errors
+      }
+    };
+
+    // Poll every 5 seconds as fallback
+    const interval = setInterval(checkOnChain, 5000);
+    // Also check immediately
+    checkOnChain();
+    return () => clearInterval(interval);
+  }, [hostStep, hostMatchPubkey, connected, connection, wallet]);
+
   // Host WebSocket
   useEffect(() => {
     if (!isHostSetup) return;
     const newSocket = io(BACKEND_URL_HOST, { transports: ['websocket', 'polling'] });
     newSocket.on('connect', () => setHostConnected(true));
     newSocket.on('disconnect', () => setHostConnected(false));
-    newSocket.on('match:opponentJoined', ({ guestWallet }: { guestWallet: string }) => {
+    newSocket.on('match:playerJoined', ({ guestWallet }: { guestWallet: string }) => {
       setOpponentJoined(true);
       setHostOpponentWallet(guestWallet);
       setHostStep("ready");
+    });
+    // After registration completes, re-register the match to update server-side socket ID
+    // This handles reconnection scenarios (mobile wallet approval, background tab, etc.)
+    newSocket.on('player:registered', () => {
+      const { pubkey, code, tier, step } = hostMatchRef.current;
+      if (pubkey && (step === "waiting" || step === "ready")) {
+        console.log('Re-registering match after socket reconnect:', code);
+        newSocket.emit('match:host', {
+          matchCode: code,
+          matchPubkey: pubkey.toBase58(),
+          hostWallet: wallet.publicKey?.toBase58(),
+          stakeTier: tier,
+        });
+      }
     });
     setHostSocket(newSocket);
     return () => { newSocket.disconnect(); };

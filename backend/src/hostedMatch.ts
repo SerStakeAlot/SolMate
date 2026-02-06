@@ -33,7 +33,13 @@ class HostedMatchManager {
     if (existingCode) {
       const existing = this.matches.get(existingCode);
       if (existing && existing.status === 'waiting') {
-        // Cancel the old one
+        // If same match (same pubkey), just update the socket ID instead of cancelling
+        if (existing.matchPubkey === matchPubkey && hostSocketId) {
+          console.log(`Updating socket ID for existing match ${existingCode}: ${existing.hostSocketId?.slice(0, 8) || '(empty)'}... -> ${hostSocketId.slice(0, 8)}...`);
+          existing.hostSocketId = hostSocketId;
+          return existing;
+        }
+        // Different match - cancel the old one
         this.cancelMatch(existingCode, io);
       }
     }
