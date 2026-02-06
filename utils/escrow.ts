@@ -391,19 +391,42 @@ export class EscrowClient {
     try {
       let signature: string;
       
-      // Use sendTransaction if available (better mobile wallet compatibility)
-      if (this.wallet.sendTransaction) {
-        console.log('Using sendTransaction for joinMatch...');
+      // Prefer signTransaction for reliable signing (matches createMatch pattern)
+      // sendTransaction on MWA/Seeker can fail to attach the signature properly
+      if (this.wallet.signTransaction) {
+        console.log('Using signTransaction + sendRawTransaction for joinMatch...');
+        console.log('Transaction feePayer:', transaction.feePayer?.toBase58());
+        console.log('Wallet publicKey:', this.wallet.publicKey.toBase58());
+        
+        const signed = await this.wallet.signTransaction(transaction);
+        
+        // Verify the signature is from the correct wallet
+        const expectedSigner = this.wallet.publicKey.toBase58();
+        const signedBy = signed.signatures.find(s => s.signature !== null)?.publicKey.toBase58();
+        
+        if (signedBy !== expectedSigner) {
+          console.error('SIGNATURE MISMATCH in joinMatch!');
+          console.error('Expected signer:', expectedSigner);
+          console.error('Actual signer:', signedBy);
+          throw new Error(`Transaction signed by wrong wallet! Expected ${expectedSigner.slice(0,8)}... but got ${signedBy?.slice(0,8)}...`);
+        }
+        
+        signature = await this.connection.sendRawTransaction(signed.serialize(), {
+          skipPreflight: true,
+          preflightCommitment: 'confirmed',
+        });
+      } else if (this.wallet.sendTransaction) {
+        // Fallback to sendTransaction for wallets that only support it
+        console.log('Using sendTransaction for joinMatch (fallback)...');
         signature = await this.wallet.sendTransaction(transaction, this.connection, {
           skipPreflight: true,
           preflightCommitment: 'confirmed',
         });
-      } else if (this.wallet.signTransaction) {
-        const signed = await this.wallet.signTransaction(transaction);
-        signature = await this.connection.sendRawTransaction(signed.serialize(), { skipPreflight: true });
       } else {
         throw new Error('Wallet does not support transaction signing');
       }
+      
+      console.log('Join transaction sent, signature:', signature);
       
       // Wait for confirmation with proper status check
       const confirmation = await this.connection.confirmTransaction({
@@ -422,6 +445,15 @@ export class EscrowClient {
       if (error.message?.includes('Attempt to debit an account')) {
         throw new Error(
           'Insufficient SOL balance. Please ensure you have enough SOL to cover the stake.'
+        );
+      }
+      // Better error for missing signature issues
+      if (error.message?.includes('missing signature')) {
+        console.error('Missing signature error in joinMatch');
+        console.error('Wallet publicKey:', this.wallet.publicKey?.toBase58());
+        console.error('Wallet adapter name:', this.wallet.wallet?.adapter?.name);
+        throw new Error(
+          `Transaction signing failed. Please disconnect and reconnect your wallet, then try again.`
         );
       }
       throw error;
