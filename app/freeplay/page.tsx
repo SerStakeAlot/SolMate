@@ -742,6 +742,7 @@ function FreePlayContent() {
   );
   const [autoCreate, setAutoCreate] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+  const [opponentInLobby, setOpponentInLobby] = useState(false);
 
   // If joining via URL code, go straight to game
   useEffect(() => {
@@ -761,6 +762,12 @@ function FreePlayContent() {
   const handleGameStarted = useCallback(() => {
     setGameStarted(true);
     setRoomCode(null); // Dismiss overlay
+  }, []);
+
+  // When opponent joins the lobby (before game starts), dismiss WaitingOverlay
+  const handleOpponentJoined = useCallback(() => {
+    setOpponentInLobby(true);
+    setRoomCode(null); // Dismiss WaitingOverlay - lobby UI in ChessGame takes over
   }, []);
 
   const handleCreateGame = useCallback(() => {
@@ -929,6 +936,7 @@ function FreePlayContent() {
               autoCreateFreePlay={autoCreate}
               onFreePlayCodeGenerated={handleCodeGenerated}
               onFreePlayGameStarted={handleGameStarted}
+              onFreePlayOpponentJoined={handleOpponentJoined}
             />
           </div>
 

@@ -148,6 +148,7 @@ type ChessGameProps = {
   autoCreateFreePlay?: boolean; // Auto-create a free play room on mount
   onFreePlayCodeGenerated?: (code: string) => void; // Callback when room code is generated
   onFreePlayGameStarted?: () => void; // Callback when opponent joins and game starts
+  onFreePlayOpponentJoined?: () => void; // Callback when opponent enters lobby (before game starts)
   spectateRoomId?: string; // Spectate a wager match by room ID
 };
 
@@ -187,6 +188,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   autoCreateFreePlay,
   onFreePlayCodeGenerated,
   onFreePlayGameStarted,
+  onFreePlayOpponentJoined,
   spectateRoomId,
 }) => {
   const wallet = useWallet();
@@ -666,6 +668,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
           if (name) setLobbyOpponentName(name);
         });
       }
+      
+      // Notify parent to dismiss WaitingOverlay — lobby UI takes over
+      if (onFreePlayOpponentJoined) onFreePlayOpponentJoined();
     });
     
     // Joined lobby as guest
@@ -683,6 +688,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
           if (name) setLobbyOpponentName(name);
         });
       }
+      
+      // Notify parent to dismiss WaitingOverlay — lobby UI takes over
+      if (onFreePlayOpponentJoined) onFreePlayOpponentJoined();
     });
     
     // Colors updated
@@ -1162,6 +1170,20 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     chessRef.current = new Chess();
     setFen(chessRef.current.fen());
     setLastMove(null);
+  };
+
+  // Host starts the free play game from lobby
+  const handleStartFreePlayGame = () => {
+    if (!socket || !freePlayCode || !inLobby) return;
+    console.log('Host starting free play game:', freePlayCode);
+    socket.emit('freeplay:startGame', { code: freePlayCode });
+  };
+
+  // Host flips colors in the free play lobby
+  const handleFlipFreePlayColors = () => {
+    if (!socket || !freePlayCode || !inLobby) return;
+    console.log('Flipping colors for room:', freePlayCode);
+    socket.emit('freeplay:swapColors', { code: freePlayCode });
   };
 
   const board = useMemo(() => {
@@ -2227,6 +2249,154 @@ export const ChessGame: React.FC<ChessGameProps> = ({
           </div>
           </div> {/* End of board with coordinates wrapper */}
           
+              {/* Free Play Lobby Overlay - shown when opponent joined but game hasn't started */}
+              {isFreePlay && inLobby && !opponentConnected && (
+                <div style={{
+                  marginTop: 12,
+                  background: 'linear-gradient(135deg, rgba(153,69,255,0.08), rgba(0,255,163,0.06))',
+                  border: '1px solid rgba(153,69,255,0.2)',
+                  borderRadius: 16,
+                  padding: '24px 28px',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}>
+                  {/* Top accent line */}
+                  <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+                    background: 'linear-gradient(90deg, transparent, #9945ff, #00ffa3, transparent)',
+                  }} />
+                  
+                  <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                    <div style={{ fontSize: 24, marginBottom: 8 }}>⚔️</div>
+                    <h3 style={{
+                      fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em',
+                      color: '#e8e8f0', fontFamily: "'Outfit', sans-serif", margin: '0 0 4px',
+                    }}>
+                      {dynamicPlayerRole === 'host' ? 'Opponent Joined!' : 'Joined Game!'}
+                    </h3>
+                    <p style={{ fontSize: 13, color: '#6b6b80', margin: 0, fontFamily: "'Outfit', sans-serif" }}>
+                      {dynamicPlayerRole === 'host' ? 'Choose colors and start when ready' : 'Waiting for host to start the game'}
+                    </p>
+                  </div>
+
+                  {/* Color Assignment */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20,
+                    marginBottom: 20, padding: '16px 20px',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: 12,
+                  }}>
+                    {/* White side */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                      <div style={{
+                        width: 44, height: 44, borderRadius: 12,
+                        background: '#e8e8f0', border: '2px solid rgba(255,255,255,0.3)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 4px 16px rgba(255,255,255,0.1)',
+                      }}>
+                        <img src="/pieces/wK.svg" alt="White King" style={{ width: 32, height: 32 }} draggable={false} />
+                      </div>
+                      <span style={{
+                        fontSize: 12, fontWeight: 700, fontFamily: "'Space Mono', monospace",
+                        color: lobbyHostColor === 'w'
+                          ? (dynamicPlayerRole === 'host' ? '#00ffa3' : '#a0a0b8')
+                          : (dynamicPlayerRole === 'host' ? '#a0a0b8' : '#00ffa3'),
+                      }}>
+                        {lobbyHostColor === 'w'
+                          ? (dynamicPlayerRole === 'host' ? 'You' : lobbyOpponentName || 'Host')
+                          : (dynamicPlayerRole === 'host' ? lobbyOpponentName || 'Guest' : 'You')}
+                      </span>
+                    </div>
+
+                    {/* VS */}
+                    <div style={{
+                      fontSize: 14, fontWeight: 800, color: '#9945ff',
+                      fontFamily: "'Space Mono', monospace",
+                    }}>VS</div>
+
+                    {/* Black side */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                      <div style={{
+                        width: 44, height: 44, borderRadius: 12,
+                        background: '#1a1a2e', border: '2px solid rgba(255,255,255,0.15)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                      }}>
+                        <img src="/pieces/bK.svg" alt="Black King" style={{ width: 32, height: 32 }} draggable={false} />
+                      </div>
+                      <span style={{
+                        fontSize: 12, fontWeight: 700, fontFamily: "'Space Mono', monospace",
+                        color: lobbyHostColor === 'b'
+                          ? (dynamicPlayerRole === 'host' ? '#00ffa3' : '#a0a0b8')
+                          : (dynamicPlayerRole === 'host' ? '#a0a0b8' : '#00ffa3'),
+                      }}>
+                        {lobbyHostColor === 'b'
+                          ? (dynamicPlayerRole === 'host' ? 'You' : lobbyOpponentName || 'Host')
+                          : (dynamicPlayerRole === 'host' ? lobbyOpponentName || 'Guest' : 'You')}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {/* Flip Board button - host only */}
+                    {dynamicPlayerRole === 'host' && (
+                      <button
+                        onClick={handleFlipFreePlayColors}
+                        style={{
+                          flex: 1, padding: '12px 20px', borderRadius: 12,
+                          background: 'rgba(255,255,255,0.04)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          color: '#a0a0b8', fontSize: 14, fontWeight: 600,
+                          cursor: 'pointer', transition: 'all 0.2s',
+                          fontFamily: "'Outfit', sans-serif",
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#e8e8f0'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#a0a0b8'; }}
+                      >
+                        ⟳ Flip Colors
+                      </button>
+                    )}
+
+                    {/* Start Game button - host only */}
+                    {dynamicPlayerRole === 'host' ? (
+                      <button
+                        onClick={handleStartFreePlayGame}
+                        style={{
+                          flex: 2, padding: '14px 28px', borderRadius: 12,
+                          background: 'linear-gradient(135deg, #00ffa3 0%, #00d4ff 50%, #9945ff 100%)',
+                          border: 'none', color: '#07070e', fontSize: 15, fontWeight: 700,
+                          cursor: 'pointer', transition: 'all 0.3s',
+                          fontFamily: "'Outfit', sans-serif",
+                          boxShadow: '0 4px 20px rgba(0,255,163,0.3)',
+                        }}
+                      >
+                        Start Game →
+                      </button>
+                    ) : (
+                      <div style={{
+                        flex: 1, padding: '14px 28px', borderRadius: 12,
+                        background: 'rgba(153,69,255,0.08)',
+                        border: '1px solid rgba(153,69,255,0.2)',
+                        color: '#9945ff', fontSize: 14, fontWeight: 600,
+                        fontFamily: "'Outfit', sans-serif",
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                      }}>
+                        <div style={{
+                          width: 16, height: 16,
+                          border: '2px solid rgba(153,69,255,0.3)', borderTopColor: '#9945ff',
+                          borderRadius: '50%', animation: 'freeplay-lobby-spin 0.8s linear infinite',
+                        }} />
+                        <style>{`@keyframes freeplay-lobby-spin { to { transform: rotate(360deg); } }`}</style>
+                        Waiting for host...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Emoji Picker & Chat Buttons - Only for multiplayer modes with real opponents */}
               {((isFreePlay || isMultiplayer) && opponentConnected) ? (
                 <div className="flex items-center gap-2 mt-2">
