@@ -229,7 +229,7 @@ export default function ArenaPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
             >
-              <ArenaLobby onStartGame={() => setIsPlaying(true)} />
+              <ArenaLobby onStartGame={() => setIsPlaying(true)} walletAddress={publicKey?.toBase58() || ''} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -725,8 +725,33 @@ function LockedHero({ reason, mateBalance, skrBalance, onConnect }: {
 }
 
 // Arena Lobby Component
-function ArenaLobby({ onStartGame }: { onStartGame: () => void }) {
+const ARENA_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-production.up.railway.app';
+const MAX_DAILY_GAMES = 20;
+
+function ArenaLobby({ onStartGame, walletAddress }: { onStartGame: () => void; walletAddress: string }) {
   const [hoveredRule, setHoveredRule] = useState<number | null>(null);
+  const [gamesRemaining, setGamesRemaining] = useState<number | null>(null);
+  const [limitReached, setLimitReached] = useState(false);
+  const [cooldownEndsAt, setCooldownEndsAt] = useState<number | undefined>();
+
+  useEffect(() => {
+    if (!walletAddress) return;
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch(`${ARENA_BACKEND_URL}/api/arena/status/${walletAddress}`);
+        const data = await res.json();
+        const remaining = data.gamesRemainingToday ?? MAX_DAILY_GAMES;
+        setGamesRemaining(remaining);
+        setLimitReached(remaining <= 0);
+        if (data.cooldownEndsAt) setCooldownEndsAt(data.cooldownEndsAt);
+      } catch {
+        // If we can't reach backend, allow play (backend will enforce)
+        setGamesRemaining(null);
+        setLimitReached(false);
+      }
+    };
+    fetchStatus();
+  }, [walletAddress]);
 
   const RULES = [
     'Play against SolMate AI (~1500 ELO with opening book)',
@@ -873,24 +898,48 @@ function ArenaLobby({ onStartGame }: { onStartGame: () => void }) {
       {/* Start Match Button */}
       <div style={{ textAlign: 'center' }}>
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onStartGame}
+          whileHover={!limitReached ? { scale: 1.05 } : {}}
+          whileTap={!limitReached ? { scale: 0.95 } : {}}
+          onClick={!limitReached ? onStartGame : undefined}
+          disabled={limitReached}
           style={{
             padding: '18px 56px', borderRadius: 16,
-            background: 'linear-gradient(135deg, #eab308 0%, #f59e0b 50%, #eab308 100%)',
-            color: '#07070e', fontSize: 18, fontWeight: 800, border: 'none',
-            cursor: 'pointer', fontFamily: "'Outfit', sans-serif",
+            background: limitReached
+              ? 'linear-gradient(135deg, #444 0%, #555 50%, #444 100%)'
+              : 'linear-gradient(135deg, #eab308 0%, #f59e0b 50%, #eab308 100%)',
+            color: limitReached ? '#888' : '#07070e',
+            fontSize: 18, fontWeight: 800, border: 'none',
+            cursor: limitReached ? 'not-allowed' : 'pointer',
+            fontFamily: "'Outfit', sans-serif",
             letterSpacing: '0.01em',
-            boxShadow: '0 8px 40px rgba(234,179,8,0.3), 0 0 60px rgba(234,179,8,0.08)',
+            boxShadow: limitReached
+              ? 'none'
+              : '0 8px 40px rgba(234,179,8,0.3), 0 0 60px rgba(234,179,8,0.08)',
             transition: 'all 0.3s',
+            opacity: limitReached ? 0.6 : 1,
             display: 'inline-flex', alignItems: 'center', gap: 10,
-            WebkitTextFillColor: '#07070e',
+            WebkitTextFillColor: limitReached ? '#888' : '#07070e',
           }}
         >
-          <span style={{ fontSize: 20 }}>⚡</span>
-          Start Arena Match
+          <span style={{ fontSize: 20 }}>{limitReached ? '🔒' : '⚡'}</span>
+          {limitReached ? 'Daily Limit Reached' : 'Start Arena Match'}
         </motion.button>
+        {limitReached && (
+          <p style={{
+            marginTop: 12, fontSize: 13, color: '#eab308',
+            fontFamily: "'Space Mono', monospace",
+          }}>
+            You've played {MAX_DAILY_GAMES} games today. Come back tomorrow!
+          </p>
+        )}
+        {gamesRemaining !== null && !limitReached && (
+          <p style={{
+            marginTop: 10, fontSize: 12, color: '#6b6b80',
+            fontFamily: "'Space Mono', monospace",
+          }}>
+            {gamesRemaining} / {MAX_DAILY_GAMES} games remaining today
+          </p>
+        )}
       </div>
     </div>
   );
