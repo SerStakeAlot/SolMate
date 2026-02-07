@@ -239,88 +239,140 @@ export default function ArenaPage() {
 }
 
 // Copyable Address Component
-function CopyableAddress({ label, address }: { label: string; address: string }) {
+function CopyableAddress({ label, address, accentColor = '#9945ff' }: { label: string; address: string; accentColor?: string }) {
   const [copied, setCopied] = useState(false);
-  const inputRef = React.useRef<HTMLInputElement>(null);
-  
-  const handleCopy = () => {
-    // Select the input text
-    if (inputRef.current) {
-      inputRef.current.select();
-      inputRef.current.setSelectionRange(0, 99999); // For mobile
-    }
-    
-    // Try multiple copy methods
-    let success = false;
-    
-    // Method 1: Clipboard API
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(address).then(() => {
-        success = true;
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }).catch(() => {
-        // Try fallback
-        success = fallbackCopy();
-      });
-    } else {
-      success = fallbackCopy();
-    }
+  const [hovered, setHovered] = useState(false);
+  const textAreaRef = React.useRef<HTMLTextAreaElement>(null);
+
+  const markCopied = () => {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
   };
-  
-  const fallbackCopy = (): boolean => {
+
+  const handleCopy = async () => {
+    // Method 1: Modern Clipboard API (works on HTTPS)
     try {
-      // Select input and copy
-      if (inputRef.current) {
-        inputRef.current.select();
-        inputRef.current.setSelectionRange(0, 99999);
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        await navigator.clipboard.writeText(address);
+        markCopied();
+        return;
       }
-      const result = document.execCommand('copy');
-      if (result) {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }
-      return result;
-    } catch (err) {
-      console.error('Copy failed:', err);
-      return false;
+    } catch (_) { /* fall through */ }
+
+    // Method 2: Temporary textarea + execCommand (iOS Safari / Android / older browsers)
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = address;
+      ta.setAttribute('readonly', '');
+      // Prevent zoom on iOS
+      ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;font-size:16px;';
+      document.body.appendChild(ta);
+
+      // iOS-specific selection
+      const range = document.createRange();
+      const sel = window.getSelection();
+      ta.contentEditable = 'true';
+      ta.readOnly = false;
+      range.selectNodeContents(ta);
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+      ta.setSelectionRange(0, 999999);
+
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (ok) { markCopied(); return; }
+    } catch (_) { /* fall through */ }
+
+    // Method 3: Hidden textarea ref fallback
+    if (textAreaRef.current) {
+      textAreaRef.current.select();
+      textAreaRef.current.setSelectionRange(0, 999999);
+      try {
+        if (document.execCommand('copy')) { markCopied(); return; }
+      } catch (_) { /* ignore */ }
     }
   };
-  
-  const handleInputClick = () => {
-    // Select all text when clicking the input
-    if (inputRef.current) {
-      inputRef.current.select();
-      inputRef.current.setSelectionRange(0, 99999);
-    }
-  };
-  
+
+  const truncated = address.slice(0, 6) + '...' + address.slice(-4);
+  const isGold = accentColor === '#eab308';
+
   return (
-    <div className="flex flex-col gap-2 w-full">
-      <div className="flex items-center justify-between">
-        <span className="text-white/50 text-xs">{label} Token Address:</span>
-        {copied && <span className="text-green-400 text-xs font-medium">✓ Copied!</span>}
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={handleCopy}
+      role="button"
+      tabIndex={0}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 12, padding: '14px 18px', borderRadius: 14, cursor: 'pointer',
+        background: hovered
+          ? `linear-gradient(135deg, ${accentColor}12, ${accentColor}08)`
+          : 'rgba(255,255,255,0.02)',
+        border: `1px solid ${hovered ? accentColor + '30' : 'rgba(255,255,255,0.06)'}`,
+        transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+        transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
+        width: '100%', boxSizing: 'border-box',
+      }}
+    >
+      {/* Hidden textarea for fallback copy */}
+      <textarea
+        ref={textAreaRef}
+        value={address}
+        readOnly
+        aria-hidden
+        tabIndex={-1}
+        style={{ position: 'fixed', left: -9999, top: -9999, opacity: 0, fontSize: 16 }}
+      />
+
+      {/* Left: label + address */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
+        <div style={{
+          width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+          background: `${accentColor}14`,
+          border: `1px solid ${accentColor}25`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 14, fontWeight: 800, color: accentColor,
+          fontFamily: "'Space Mono', monospace",
+        }}>
+          {isGold ? '♟' : '⬡'}
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{
+            fontSize: 13, fontWeight: 700, color: '#e8e8f0',
+            marginBottom: 2, fontFamily: "'Outfit', sans-serif",
+          }}>
+            {label} Token
+          </div>
+          <div style={{
+            fontSize: 12, fontFamily: "'Space Mono', monospace",
+            color: '#6b6b80', whiteSpace: 'nowrap',
+            overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {/* Show truncated on small screens, full on larger */}
+            <span style={{ display: 'none' }} className="addr-full">{address}</span>
+            <span>{truncated}</span>
+          </div>
+        </div>
       </div>
-      <div className="flex gap-2">
-        <input
-          ref={inputRef}
-          type="text"
-          readOnly
-          value={address}
-          onClick={handleInputClick}
-          className="flex-1 px-3 py-2 rounded-lg bg-black/50 border border-white/20 font-mono text-[11px] text-white/80 focus:outline-none focus:border-purple-500/50 cursor-text"
-        />
-        <button
-          type="button"
-          onClick={handleCopy}
-          className="px-3 py-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/50 text-white font-medium text-xs transition-all flex items-center gap-1.5"
-        >
-          {copied ? (
-            <><Check className="w-4 h-4 text-green-400" /> Copied</>
-          ) : (
-            <><Copy className="w-4 h-4" /> Copy</>
-          )}
-        </button>
+
+      {/* Right: copy button */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: '8px 14px', borderRadius: 10, flexShrink: 0,
+        fontSize: 12, fontWeight: 700, fontFamily: "'Outfit', sans-serif",
+        transition: 'all 0.2s',
+        background: copied
+          ? 'rgba(34,197,94,0.12)'
+          : `${accentColor}15`,
+        border: `1px solid ${copied ? 'rgba(34,197,94,0.3)' : accentColor + '30'}`,
+        color: copied ? '#22c55e' : accentColor,
+      }}>
+        {copied ? (
+          <><Check style={{ width: 14, height: 14 }} /> Copied!</>
+        ) : (
+          <><Copy style={{ width: 14, height: 14 }} /> Copy</>
+        )}
       </div>
     </div>
   );
@@ -711,10 +763,15 @@ function LockedHero({ reason, mateBalance, skrBalance, onConnect }: {
             </div>
 
             {/* Token Addresses */}
-            <div style={{ ...fadeUp(0.6), maxWidth: 480, margin: '0 auto' }}>
-              <div className="flex flex-col gap-4 w-full px-4">
-                <CopyableAddress label="$MATE" address={SOLMATE_TOKEN_MINT} />
-                <CopyableAddress label="$SKR" address={SKR_TOKEN_MINT} />
+            <div style={{ ...fadeUp(0.6), maxWidth: 480, margin: '0 auto', padding: '0 16px' }}>
+              <p style={{
+                fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
+                letterSpacing: '0.1em', color: '#444', marginBottom: 14,
+                fontFamily: "'Space Mono', monospace",
+              }}>Token Addresses (tap to copy)</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
+                <CopyableAddress label="$MATE" address={SOLMATE_TOKEN_MINT} accentColor="#eab308" />
+                <CopyableAddress label="$SKR" address={SKR_TOKEN_MINT} accentColor="#9945ff" />
               </div>
             </div>
           </>
