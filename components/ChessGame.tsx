@@ -2623,6 +2623,144 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                 </div>
               )}
 
+              {/* Joiner Staking Overlay - shown when joiner arrives via share link but hasn't staked yet */}
+              {isMultiplayer && actualPlayerRole === 'join' && mode === 'wager' && !hasJoinerStaked && (
+                <div style={{
+                  marginTop: 12,
+                  background: 'linear-gradient(135deg, rgba(153,69,255,0.10), rgba(0,255,163,0.06))',
+                  border: '1px solid rgba(153,69,255,0.25)',
+                  borderRadius: 16,
+                  padding: '28px 28px',
+                  position: 'relative',
+                  overflow: 'hidden',
+                }}>
+                  {/* Top accent line */}
+                  <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+                    background: 'linear-gradient(90deg, transparent, #9945ff, #00ffa3, transparent)',
+                  }} />
+
+                  <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                    <div style={{ fontSize: 28, marginBottom: 8 }}>⚔️</div>
+                    <h3 style={{
+                      fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em',
+                      color: '#e8e8f0', fontFamily: "'Outfit', sans-serif", margin: '0 0 6px',
+                    }}>
+                      Stake to Join Match
+                    </h3>
+                    <p style={{ fontSize: 13, color: '#6b6b80', margin: 0, fontFamily: "'Outfit', sans-serif" }}>
+                      You must stake SOL on-chain to enter this wager match
+                    </p>
+                  </div>
+
+                  {/* Match Details */}
+                  <div style={{
+                    display: 'flex', justifyContent: 'center', gap: 16,
+                    marginBottom: 20, padding: '14px 20px',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: 12,
+                  }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{
+                        fontSize: 10, fontWeight: 600, textTransform: 'uppercase',
+                        letterSpacing: '0.1em', color: '#6b6b80', marginBottom: 4,
+                        fontFamily: "'Space Mono', monospace",
+                      }}>Stake Required</div>
+                      <div style={{
+                        fontSize: 18, fontWeight: 800, color: '#e8e8f0',
+                        fontFamily: "'Space Mono', monospace",
+                      }}>{getStakeTierInfo(selectedStakeTier).label}</div>
+                    </div>
+                    <div style={{ width: 1, background: 'rgba(153,69,255,0.2)' }} />
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{
+                        fontSize: 10, fontWeight: 600, textTransform: 'uppercase',
+                        letterSpacing: '0.1em', color: '#6b6b80', marginBottom: 4,
+                        fontFamily: "'Space Mono', monospace",
+                      }}>Winner Pot</div>
+                      <div style={{
+                        fontSize: 18, fontWeight: 800,
+                        fontFamily: "'Space Mono', monospace",
+                        background: 'linear-gradient(135deg, #00ffa3, #9945ff)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                      }}>{(getStakeTierInfo(selectedStakeTier).stake * 2 * 0.9).toFixed(2)} SOL</div>
+                    </div>
+                  </div>
+
+                  {/* Error Message */}
+                  {joinerStakeError && (
+                    <div style={{
+                      marginBottom: 14, padding: '12px 16px', borderRadius: 12,
+                      fontSize: 13, color: '#ff5050',
+                      background: 'rgba(255,80,80,0.06)',
+                      border: '1px solid rgba(255,80,80,0.15)',
+                      fontFamily: "'Space Mono', monospace",
+                      textAlign: 'center',
+                    }}>
+                      {joinerStakeError}
+                    </div>
+                  )}
+
+                  {/* Wallet Not Connected Warning */}
+                  {!connected && (
+                    <div style={{
+                      marginBottom: 14, padding: '12px 16px', borderRadius: 12,
+                      fontSize: 13, color: '#ffb432',
+                      background: 'rgba(255,180,50,0.06)',
+                      border: '1px solid rgba(255,180,50,0.15)',
+                      fontFamily: "'Space Mono', monospace",
+                      textAlign: 'center',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    }}>
+                      <span style={{ fontSize: 16 }}>⚠️</span>
+                      Connect your wallet to stake and join
+                    </div>
+                  )}
+
+                  {/* Stake Button */}
+                  <button
+                    onClick={handleJoinOnChain}
+                    disabled={!connected || isJoiningMatch}
+                    style={{
+                      width: '100%', padding: '16px 32px', borderRadius: 14,
+                      background: connected && !isJoiningMatch
+                        ? 'linear-gradient(135deg, #00ffa3 0%, #00d4ff 50%, #9945ff 100%)'
+                        : 'rgba(255,255,255,0.04)',
+                      color: connected && !isJoiningMatch ? '#07070e' : '#444',
+                      fontSize: 16, fontWeight: 700, border: 'none',
+                      fontFamily: "'Outfit', sans-serif",
+                      cursor: connected && !isJoiningMatch ? 'pointer' : 'not-allowed',
+                      boxShadow: connected && !isJoiningMatch ? '0 6px 30px rgba(0,255,163,0.2)' : 'none',
+                      transition: 'all 0.25s',
+                      opacity: isJoiningMatch ? 0.6 : 1,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                    }}
+                  >
+                    {isJoiningMatch ? (
+                      <>
+                        <div style={{
+                          width: 16, height: 16,
+                          border: '2px solid #07070e', borderTopColor: 'transparent',
+                          borderRadius: '50%', animation: 'joiner-stake-spin 0.8s linear infinite',
+                          display: 'inline-block',
+                        }} />
+                        <style>{`@keyframes joiner-stake-spin { to { transform: rotate(360deg); } }`}</style>
+                        Staking...
+                      </>
+                    ) : connected ? (
+                      <>
+                        <Coins style={{ width: 18, height: 18 }} />
+                        Stake {getStakeTierInfo(selectedStakeTier).label} &amp; Join Match
+                      </>
+                    ) : (
+                      'Connect Wallet to Join'
+                    )}
+                  </button>
+                </div>
+              )}
+
               {/* Wager Match Lobby Overlay - shown when opponent joined but game hasn't started */}
               {isMultiplayer && inWagerLobby && !opponentConnected && (
                 <div style={{
@@ -3711,6 +3849,47 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                         </span>
                       </div>
                     )}
+
+                    {/* Share to X Button */}
+                    <motion.button
+                      onClick={() => {
+                        const resultText = isWinner ? '🏆 I just won' : '⚔️ I just played';
+                        const modeText = mode === 'wager'
+                          ? ` a wager match on SolMate Chess!`
+                          : ` a game on SolMate Chess!`;
+                        const rewardText = mode === 'wager' && isWinner
+                          ? ` Won ${(getStakeTierInfo(selectedStakeTier).stake * 1.8).toFixed(2)} SOL 💰`
+                          : '';
+                        const tweetText = `${resultText}${modeText}${rewardText}\n\nPlay chess on Solana 👉 https://solmatechess.com`;
+                        const tweetUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+                        window.open(tweetUrl, '_blank', 'noopener,noreferrer');
+                      }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      style={{
+                        width: '100%',
+                        marginBottom: 8,
+                        padding: '12px 24px',
+                        borderRadius: 14,
+                        cursor: 'pointer',
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        color: '#e8e8f0',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        fontFamily: "'Outfit', sans-serif",
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                      </svg>
+                      Share to X
+                    </motion.button>
 
                     {/* Dismiss / Play Again Button */}
                     <motion.button

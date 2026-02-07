@@ -611,17 +611,21 @@ const StandardWalletButton: React.FC = () => {
       // Try to connect with 10s timeout
       let connectError: Error | null = null;
       let timedOut = false;
-      const connectPromise = connect().catch((e) => {
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+      const connectPromise = connect().then(() => {
+        // Clear timeout on successful connect
+        if (timeoutId) clearTimeout(timeoutId);
+      }).catch((e) => {
         connectError = e;
         debugLog(`⚠️ connect() threw: ${e?.name}: ${e?.message}`);
       });
-      const timeoutPromise = new Promise<void>((resolve) => 
-        setTimeout(() => {
+      const timeoutPromise = new Promise<void>((resolve) => {
+        timeoutId = setTimeout(() => {
           timedOut = true;
           debugLog(`⏱️ 10s timeout reached`);
           resolve();
-        }, 10000)
-      );
+        }, 10000);
+      });
       
       await Promise.race([connectPromise, timeoutPromise]);
       
