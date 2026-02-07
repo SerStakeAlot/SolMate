@@ -5,12 +5,17 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletButton } from './WalletButton';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export function Navigation() {
   const pathname = usePathname();
-  const { connected } = useWallet();
+  const { connected, disconnect } = useWallet();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const handleMobileDisconnect = useCallback(() => {
+    disconnect();
+    setMenuOpen(false);
+  }, [disconnect]);
 
   // Close menu on route change
   useEffect(() => {
@@ -156,6 +161,23 @@ export function Navigation() {
             </svg>
             Follow on X
           </a>
+          {connected && (
+            <button
+              onClick={handleMobileDisconnect}
+              className="nav-mobile-link"
+              style={{
+                background: 'rgba(248, 113, 113, 0.08)',
+                color: '#f87171',
+                border: 'none',
+                cursor: 'pointer',
+                textAlign: 'left',
+                font: 'inherit',
+                width: '100%',
+              }}
+            >
+              Disconnect Wallet
+            </button>
+          )}
         </div>
       )}
 
@@ -261,7 +283,6 @@ export function Navigation() {
           margin-left: 4px;
           flex-shrink: 0;
           max-width: 160px;
-          overflow: hidden;
         }
 
         /* ── Hamburger (mobile only) ──────────────── */
