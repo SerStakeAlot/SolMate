@@ -10,6 +10,34 @@ import {
 } from '@solana/web3.js';
 import { WalletContextState } from '@solana/wallet-adapter-react';
 
+// Minimal base58 encoder (Bitcoin alphabet) – avoids external dependency
+const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+function base58Encode(bytes: Uint8Array): string {
+  const digits = [0];
+  for (const byte of bytes) {
+    let carry = byte;
+    for (let j = 0; j < digits.length; j++) {
+      carry += digits[j] << 8;
+      digits[j] = carry % 58;
+      carry = (carry / 58) | 0;
+    }
+    while (carry > 0) {
+      digits.push(carry % 58);
+      carry = (carry / 58) | 0;
+    }
+  }
+  let result = '';
+  // leading zeros
+  for (const byte of bytes) {
+    if (byte !== 0) break;
+    result += '1';
+  }
+  for (let i = digits.length - 1; i >= 0; i--) {
+    result += BASE58_ALPHABET[digits[i]];
+  }
+  return result;
+}
+
 // BN implementation for timestamp handling
 class BN {
   private value: bigint;
@@ -140,6 +168,29 @@ export class EscrowClient {
   ) {}
 
   /**
+   * Normalize a transaction signature to base58 encoding.
+   * MWA adapters sometimes return base64-encoded signatures which break
+   * confirmTransaction (it expects base58).
+   */
+  private normalizeSignature(sig: string): string {
+    // Base58 alphabet does not contain +, /, or =
+    const looksBase64 = /[+/=]/.test(sig);
+    if (looksBase64) {
+      try {
+        const bytes = Uint8Array.from(atob(sig), c => c.charCodeAt(0));
+        if (bytes.length === 64) {
+          const base58Sig = base58Encode(bytes);
+          console.log('[normalizeSignature] Converted base64 → base58:', base58Sig.slice(0, 16) + '...');
+          return base58Sig;
+        }
+      } catch (e) {
+        console.warn('[normalizeSignature] Base64 decode failed, returning original:', e);
+      }
+    }
+    return sig;
+  }
+
+  /**
    * Detect if the connected wallet is a Mobile Wallet Adapter (Seed Vault / TWA).
    * MWA's signTransaction fails with "Signature verification failed" on legacy
    * Transaction objects, so we must use VersionedTransaction v0 + sendTransaction.
@@ -182,8 +233,13 @@ export class EscrowClient {
         preflightCommitment: 'confirmed',
       });
 
-      console.log(`[${label}] MWA transaction sent, signature:`, signature);
-      return signature;
+      console.log(`[${label}] MWA transaction sent, raw signature:`, signature);
+
+      // MWA adapters may return base64-encoded signatures instead of base58.
+      // Detect and convert to base58 so confirmTransaction works.
+      const normalizedSig = this.normalizeSignature(signature);
+      console.log(`[${label}] Normalized signature:`, normalizedSig);
+      return normalizedSig;
     }
 
     // Desktop path: legacy Transaction
@@ -697,27 +753,36 @@ export class EscrowClient {
       const data = accountInfo.data;
       
       // Skip 8-byte discriminator
+      // Expected layout (118 bytes): disc(8) + playerA(32) + optPlayerB(33) + stakeTier(1)
+      //   + joinDeadline(8) + status(1) + optWinner(33) + bump(1) + escrowBump(1)
+      const EXPECTED_MIN_SIZE = 8 + 32 + 33 + 1 + 8 + 1 + 33 + 1 + 1; // 118
+      if (data.length < EXPECTED_MIN_SIZE) {
+        console.warn(`[fetchMatch] Account data too short: ${data.length} bytes (expected ${EXPECTED_MIN_SIZE})`);
+        return null;
+      }
+
+      // Ensure we work with a proper Buffer (some environments return Uint8Array)
+      const buf = Buffer.from(data);
       let offset = 8;
       
-      const playerA = new PublicKey(data.slice(offset, offset + 32));
+      const playerA = new PublicKey(buf.slice(offset, offset + 32));
       offset += 32;
       
-      const hasPlayerB = data[offset] === 1;
+      const hasPlayerB = buf[offset] === 1;
       offset += 1;
-      const playerB = hasPlayerB ? new PublicKey(data.slice(offset, offset + 32)) : null;
+      const playerB = hasPlayerB ? new PublicKey(buf.slice(offset, offset + 32)) : null;
       offset += 32;
       
-      const stakeTier = data[offset];
+      const stakeTier = buf[offset];
       offset += 1;
       
-      const joinDeadlineBytes = data.slice(offset, offset + 8);
-      const joinDeadline = new BN(
-        joinDeadlineBytes.readUInt32LE(0) + 
-        joinDeadlineBytes.readUInt32LE(4) * 0x100000000
-      );
+      // Read i64 join_deadline safely using DataView to avoid readUInt32LE issues
+      const joinDeadlineLo = buf[offset] | (buf[offset+1] << 8) | (buf[offset+2] << 16) | ((buf[offset+3] << 24) >>> 0);
+      const joinDeadlineHi = buf[offset+4] | (buf[offset+5] << 8) | (buf[offset+6] << 16) | ((buf[offset+7] << 24) >>> 0);
+      const joinDeadline = new BN(joinDeadlineLo + joinDeadlineHi * 0x100000000);
       offset += 8;
       
-      const statusByte = data[offset];
+      const statusByte = buf[offset];
       offset += 1;
       let status: MatchStatus;
       switch (statusByte) {
@@ -728,14 +793,14 @@ export class EscrowClient {
         default: status = MatchStatus.Open;
       }
       
-      const hasWinner = data[offset] === 1;
+      const hasWinner = buf[offset] === 1;
       offset += 1;
-      const winner = hasWinner ? new PublicKey(data.slice(offset, offset + 32)) : null;
+      const winner = hasWinner ? new PublicKey(buf.slice(offset, offset + 32)) : null;
       offset += 32;
       
-      const bump = data[offset];
+      const bump = buf[offset];
       offset += 1;
-      const escrowBump = data[offset];
+      const escrowBump = buf[offset];
 
       return {
         playerA,
