@@ -2305,7 +2305,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
               })()}
               
               {/* Chess Board with Coordinates */}
-              <div className="relative">
+              <div className="relative" style={{ marginBottom: 4 }}>
               <div className="aspect-square w-full overflow-hidden rounded-2xl" style={{ border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 0 40px rgba(153,69,255,0.08)' }}>
                 <div className="grid h-full w-full grid-cols-8 grid-rows-8">
               {Array.from({ length: 64 }).map((_, i) => {
