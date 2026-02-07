@@ -289,7 +289,7 @@ export class EscrowClient {
             'Insufficient SOL balance. Please add more SOL to your wallet.'
           );
         }
-        if (error.message?.includes('missing signature')) {
+        if (error.message?.toLowerCase().includes('missing signature')) {
           console.error('=== MISSING SIGNATURE DEBUG (createMatch) ===');
           console.error('Wallet publicKey:', walletPubkey.toBase58());
           console.error('Wallet adapter name:', this.wallet.wallet?.adapter?.name);
@@ -433,7 +433,7 @@ export class EscrowClient {
           'Insufficient SOL balance. Please ensure you have enough SOL to cover the stake.'
         );
       }
-      if (error.message?.includes('missing signature')) {
+      if (error.message?.toLowerCase().includes('missing signature')) {
         console.error('=== MISSING SIGNATURE DEBUG ===');
         console.error('Wallet publicKey:', walletPubkey.toBase58());
         console.error('Wallet adapter name:', this.wallet.wallet?.adapter?.name);

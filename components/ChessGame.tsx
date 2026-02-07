@@ -1340,7 +1340,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       
       if (errorMsg.includes('User rejected') || errorMsg.includes('rejected')) {
         alert('Transaction was cancelled');
-      } else if (errorMsg.includes('missing signature')) {
+      } else if (errorMsg.toLowerCase().includes('missing signature')) {
         // This typically means the wallet's active account doesn't match what's expected
         alert(`Signature mismatch error. Your wallet might be using a different account than expected.\n\nPlease:\n1. Check which account is active in your wallet\n2. Try disconnecting and reconnecting your wallet\n3. Try refreshing the page`);
       } else if (errorMsg.includes('signed by wrong wallet')) {
