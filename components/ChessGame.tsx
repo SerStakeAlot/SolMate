@@ -3299,11 +3299,15 @@ export const ChessGame: React.FC<ChessGameProps> = ({
             <button
                 type="button"
                 onClick={() => {
-                  if (isMultiplayer && socket && !chessRef.current?.isGameOver()) {
-                    // Multiplayer resign: notify server
+                  if ((isMultiplayer || isFreePlay) && socket && gameRoomId && !chessRef.current?.isGameOver() && !gameWinner) {
+                    // Multiplayer/free play resign: notify server with roomId
+                    // Server will call handleResignation which determines winner from player ID
+                    // and emits game:end to both players
+                    socket.emit('game:resign', { roomId: gameRoomId });
+                    // Set local state immediately for responsive UI
+                    // (server will also send game:end but we show modal right away)
                     const loser = playerColor || 'w';
                     const winner = loser === 'w' ? 'b' : 'w';
-                    socket.emit('game:resign', { loser });
                     setGameWinner(winner);
                     setShowResultModal(true);
                   } else if (mode === 'practice' && !isFreePlay && !chessRef.current?.isGameOver()) {

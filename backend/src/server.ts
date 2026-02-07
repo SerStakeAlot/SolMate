@@ -739,8 +739,15 @@ io.on('connection', (socket) => {
       return;
     }
 
-    console.log(`Player ${player.id} resigned from room ${roomId}`);
-    gameRoomManager.handleResignation(roomId, player.id, io);
+    // If roomId not provided, look it up from the player's active room
+    const resolvedRoomId = roomId || gameRoomManager.getPlayerRoom(player.id);
+    if (!resolvedRoomId) {
+      console.log(`Player ${player.id} tried to resign but no room found`);
+      return;
+    }
+
+    console.log(`Player ${player.id} resigned from room ${resolvedRoomId}`);
+    gameRoomManager.handleResignation(resolvedRoomId, player.id, io);
   });
 
   // Handle game end (checkmate, draw)

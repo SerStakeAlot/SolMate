@@ -76,6 +76,10 @@ class GameRoomManager {
     return roomId ? this.rooms.get(roomId) : undefined;
   }
 
+  getPlayerRoom(playerId: string): string | undefined {
+    return this.playerToRoom.get(playerId);
+  }
+
   joinRoom(roomId: string, playerId: string, socketId: string): boolean {
     const room = this.rooms.get(roomId);
     if (!room) {
