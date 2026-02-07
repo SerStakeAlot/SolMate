@@ -157,6 +157,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
   const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(null);
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [moveCount, setMoveCount] = useState(0);
+  const [pendingPromotion, setPendingPromotion] = useState<{ from: Square; to: Square } | null>(null);
   
   // Result state
   const [gameOver, setGameOver] = useState(false);
@@ -289,6 +290,47 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
     }
   }, [board, gameOver, playerColor, canPlay]);
 
+  // Execute a player move on the arena board
+  const executeArenaMove = (from: Square, to: Square, promotion?: string) => {
+    const targetPiece = chess.get(to);
+    const isCapture = targetPiece !== null;
+    const movingPiece = chess.get(from);
+    const isCastle = movingPiece?.type === 'k' && Math.abs(from.charCodeAt(0) - to.charCodeAt(0)) === 2;
+
+    const moveOptions: any = { from, to };
+    if (promotion) moveOptions.promotion = promotion;
+    const move = chess.move(moveOptions);
+    if (move) {
+      setBoard([...chess.board()]);
+      setLastMove({ from, to });
+      setMoveCount(prev => prev + 1);
+      setPendingPromotion(null);
+
+      if (chess.isCheck()) {
+        playSound('check');
+      } else if (isCastle) {
+        playSound('castle');
+      } else if (isCapture) {
+        playSound('capture');
+      } else {
+        playSound('move');
+      }
+
+      if (chess.isCheckmate()) {
+        handleGameEnd('win', 'checkmate');
+      } else if (chess.isDraw()) {
+        handleGameEnd('draw', 'draw');
+      }
+    }
+    setSelectedSquare(null);
+    setValidMoves([]);
+  };
+
+  const handlePromotionSelect = (piece: string) => {
+    if (!pendingPromotion) return;
+    executeArenaMove(pendingPromotion.from, pendingPromotion.to, piece);
+  };
+
   // Handle player move
   const handleSquareClick = (square: Square) => {
     if (gameOver || isAiThinking || chess.turn() !== playerColor) return;
@@ -305,35 +347,18 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
     
     // If a piece is selected and clicking valid square, make move
     if (selectedSquare && validMoves.includes(square)) {
-      const targetPiece = chess.get(square);
-      const isCapture = targetPiece !== null;
+      // Check if this is a pawn promotion
       const movingPiece = chess.get(selectedSquare);
-      const isCastle = movingPiece?.type === 'k' && Math.abs(selectedSquare.charCodeAt(0) - square.charCodeAt(0)) === 2;
-      
-      const move = chess.move({ from: selectedSquare, to: square, promotion: 'q' });
-      if (move) {
-        setBoard([...chess.board()]);
-        setLastMove({ from: selectedSquare, to: square });
-        setMoveCount(prev => prev + 1);
-        
-        // Play sound
-        if (chess.isCheck()) {
-          playSound('check');
-        } else if (isCastle) {
-          playSound('castle');
-        } else if (isCapture) {
-          playSound('capture');
-        } else {
-          playSound('move');
-        }
-        
-        // Check for game end
-        if (chess.isCheckmate()) {
-          handleGameEnd('win', 'checkmate');
-        } else if (chess.isDraw()) {
-          handleGameEnd('draw', 'draw');
-        }
+      const toRank = Number(square[1]);
+      const isPromotion = movingPiece?.type === 'p' && ((movingPiece.color === 'w' && toRank === 8) || (movingPiece.color === 'b' && toRank === 1));
+
+      if (isPromotion) {
+        setPendingPromotion({ from: selectedSquare, to: square });
+        return;
       }
+
+      executeArenaMove(selectedSquare, square);
+      return;
     }
     
     setSelectedSquare(null);
@@ -688,6 +713,80 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
                   </div>
                 </div>
               )}
+
+              {/* Pawn Promotion Picker */}
+              {pendingPromotion && (() => {
+                const movingPiece = chess.get(pendingPromotion.from);
+                const color = movingPiece?.color || 'w';
+                const toCol = pendingPromotion.to.charCodeAt(0) - 97;
+                // Arena player is always white (no flip)
+                const fromTop = color === 'w'; // white promotes to rank 8 = top of board
+                const pieces = ['q', 'r', 'b', 'n'] as const;
+
+                return (
+                  <motion.div
+                    key="promotion-overlay"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    onClick={() => { setPendingPromotion(null); setSelectedSquare(null); setValidMoves([]); }}
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      zIndex: 50,
+                      background: 'rgba(0,0,0,0.5)',
+                      borderRadius: '16px',
+                    }}
+                  >
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        position: 'absolute',
+                        left: `${toCol * 12.5}%`,
+                        width: '12.5%',
+                        ...(fromTop ? { top: 0 } : { bottom: 0 }),
+                        display: 'flex',
+                        flexDirection: fromTop ? 'column' : 'column-reverse',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                      }}
+                    >
+                      {pieces.map((p) => (
+                        <motion.button
+                          key={p}
+                          initial={{ scale: 0.8, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0.8, opacity: 0 }}
+                          transition={{ duration: 0.12 }}
+                          whileHover={{ scale: 1.1, backgroundColor: 'rgba(234,179,8,0.3)' }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handlePromotionSelect(p)}
+                          style={{
+                            aspectRatio: '1',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: 'rgba(14,14,30,0.95)',
+                            border: 'none',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid rgba(255,255,255,0.08)',
+                            padding: '8%',
+                          }}
+                        >
+                          <img
+                            src={`/pieces/${color}${p.toUpperCase()}.svg`}
+                            alt={p}
+                            style={{ width: '85%', height: '85%', objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
+                            draggable={false}
+                          />
+                        </motion.button>
+                      ))}
+                    </div>
+                  </motion.div>
+                );
+              })()}
             </div>
           </div>
 

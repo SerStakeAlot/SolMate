@@ -441,6 +441,12 @@ export default function Home() {
             </button>
             <button 
               className="btn-secondary-new"
+              onClick={() => window.location.href = "https://playsolmate.fun/freeplay/"}
+            >
+              Free Play
+            </button>
+            <button 
+              className="btn-secondary-new"
               onClick={() => router.push("/game?mode=computer")}
             >
               Practice Mode

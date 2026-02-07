@@ -96,6 +96,7 @@ function GameRoom({ socket, roomId, yourColor, opponent, stakeTier, onExit }: Ga
 
   const [fen, setFen] = useState(() => chessRef.current!.fen());
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   const [whiteTime, setWhiteTime] = useState(600000); // 10 minutes in ms
   const [blackTime, setBlackTime] = useState(600000);
   const [currentTurn, setCurrentTurn] = useState<'w' | 'b'>('w');
@@ -154,62 +155,78 @@ function GameRoom({ socket, roomId, yourColor, opponent, stakeTier, onExit }: Ga
     };
   }, [socket]);
 
+  const isPromotionMove = (from: string, to: string): boolean => {
+    const chess = chessRef.current!;
+    const piece = chess.get(from as any) as any;
+    if (!piece || piece.type !== 'p') return false;
+    const toRank = Number(to[1]);
+    return (piece.color === 'w' && toRank === 8) || (piece.color === 'b' && toRank === 1);
+  };
+
+  const executeMultiplayerMove = (from: string, to: string, promotion?: string) => {
+    const chess = chessRef.current!;
+    try {
+      const moveOptions: any = { from, to };
+      if (promotion) moveOptions.promotion = promotion;
+      const move = chess.move(moveOptions);
+      if (!move) return;
+      setFen(chess.fen());
+      setSelectedSquare(null);
+      setPendingPromotion(null);
+
+      socket.emit('game:makeMove', {
+        roomId,
+        move: { from: move.from, to: move.to, promotion: move.promotion, fen: chess.fen(), san: move.san },
+      });
+
+      if (chess.isCheckmate()) {
+        socket.emit('game:end', { roomId, winner: chess.turn() === 'w' ? 'b' : 'w', reason: 'checkmate' });
+      } else if (chess.isDraw()) {
+        socket.emit('game:end', { roomId, winner: 'draw', reason: 'draw' });
+      }
+    } catch (error) {
+      const piece = chess.get(to as any);
+      if (piece && piece.color === yourColor) {
+        setSelectedSquare(to);
+      } else {
+        setSelectedSquare(null);
+      }
+      setPendingPromotion(null);
+    }
+  };
+
+  const handlePromotionSelect = (piece: string) => {
+    if (!pendingPromotion) return;
+    executeMultiplayerMove(pendingPromotion.from, pendingPromotion.to, piece);
+  };
+
   const handleSquareClick = (square: string) => {
     if (gameStatus !== 'active' || !isMyTurn) return;
 
     const chess = chessRef.current!;
 
     if (selectedSquare) {
-      // Try to make a move
-      try {
-        const move = chess.move({
-          from: selectedSquare,
-          to: square,
-          promotion: 'q', // Always promote to queen for simplicity
-        });
-
-        if (move) {
-          setFen(chess.fen());
-          setSelectedSquare(null);
-
-          // Send move to server
-          socket.emit('game:makeMove', {
-            roomId,
-            move: {
-              from: move.from,
-              to: move.to,
-              promotion: move.promotion,
-              fen: chess.fen(),
-              san: move.san,
-            },
-          });
-
-          // Check for game end
-          if (chess.isCheckmate()) {
-            socket.emit('game:end', {
-              roomId,
-              winner: chess.turn() === 'w' ? 'b' : 'w',
-              reason: 'checkmate',
-            });
-          } else if (chess.isDraw()) {
-            socket.emit('game:end', {
-              roomId,
-              winner: 'draw',
-              reason: 'draw',
-            });
-          }
-        }
-      } catch (error) {
-        // Invalid move, try selecting the clicked square instead
-        const piece = chess.get(square as any);
-        if (piece && piece.color === yourColor) {
-          setSelectedSquare(square);
-        } else {
-          setSelectedSquare(null);
-        }
+      // If clicking another own piece, reselect
+      const clickedPiece = chess.get(square as any);
+      if (clickedPiece && clickedPiece.color === yourColor) {
+        setSelectedSquare(square);
+        return;
       }
+
+      // Check if promotion
+      if (isPromotionMove(selectedSquare, square)) {
+        const chess2 = new Chess(chess.fen());
+        try {
+          chess2.move({ from: selectedSquare, to: square, promotion: 'q' });
+          setPendingPromotion({ from: selectedSquare, to: square });
+        } catch {
+          setSelectedSquare(null);
+        }
+        return;
+      }
+
+      executeMultiplayerMove(selectedSquare, square);
     } else {
-      // Select piece
       const piece = chess.get(square as any);
       if (piece && piece.color === yourColor) {
         setSelectedSquare(square);
@@ -251,6 +268,7 @@ function GameRoom({ socket, roomId, yourColor, opponent, stakeTier, onExit }: Ga
           </div>
 
           {/* Chess Board with Coordinates */}
+          <div className="relative">
           <div className="aspect-square w-full rounded-2xl overflow-hidden shadow-glow border-4 border-white/10">
             {board.map((row, rowIndex) => (
               <div key={rowIndex} className="flex h-[12.5%]">
@@ -324,6 +342,85 @@ function GameRoom({ socket, roomId, yourColor, opponent, stakeTier, onExit }: Ga
                 })}
               </div>
             ))}
+          </div>
+
+          {/* Pawn Promotion Picker */}
+          <AnimatePresence>
+            {pendingPromotion && (() => {
+              const chess = chessRef.current!;
+              const piece = chess.get(pendingPromotion.from as any) as any;
+              const color = piece?.color || 'w';
+              const toCol = pendingPromotion.to.charCodeAt(0) - 97;
+              const displayCol = isFlipped ? 7 - toCol : toCol;
+              const isWhitePromotion = color === 'w';
+              const fromTop = isFlipped ? isWhitePromotion : !isWhitePromotion;
+              const pieces = ['q', 'r', 'b', 'n'] as const;
+
+              return (
+                <motion.div
+                  key="promotion-overlay"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  onClick={() => { setPendingPromotion(null); setSelectedSquare(null); }}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    zIndex: 50,
+                    background: 'rgba(0,0,0,0.5)',
+                    borderRadius: '16px',
+                  }}
+                >
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      position: 'absolute',
+                      left: `${displayCol * 12.5}%`,
+                      width: '12.5%',
+                      ...(fromTop ? { top: 0 } : { bottom: 0 }),
+                      display: 'flex',
+                      flexDirection: fromTop ? 'column' : 'column-reverse',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                    }}
+                  >
+                    {pieces.map((p) => (
+                      <motion.button
+                        key={p}
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.8, opacity: 0 }}
+                        transition={{ duration: 0.12 }}
+                        whileHover={{ scale: 1.1, backgroundColor: 'rgba(153,69,255,0.4)' }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handlePromotionSelect(p)}
+                        style={{
+                          aspectRatio: '1',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: 'rgba(14,14,30,0.95)',
+                          border: 'none',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid rgba(255,255,255,0.08)',
+                          padding: '8%',
+                        }}
+                      >
+                        <img
+                          src={`/pieces/${color}${p.toUpperCase()}.svg`}
+                          alt={p}
+                          style={{ width: '85%', height: '85%', objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
+                          draggable={false}
+                        />
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
+              );
+            })()}
+          </AnimatePresence>
           </div>
 
           {/* Your Info */}

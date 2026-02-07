@@ -349,6 +349,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
   const [fen, setFen] = useState(() => chessRef.current!.fen());
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const [pendingPromotion, setPendingPromotion] = useState<{ from: string; to: string } | null>(null);
   
   // Track if AI game has started (for timer)
   const [aiGameStarted, setAiGameStarted] = useState(false);
@@ -1653,14 +1654,54 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     }
   }, [gameWinner, mode, currentMatchPubkey, playerColor]);
 
-  const maybeAutoPromote = (from: string, to: string) => {
+  const isPromotionMove = (from: string, to: string): boolean => {
     const chess = chessRef.current!;
     const piece = chess.get(from as any) as any;
-    if (!piece || piece.type !== 'p') return undefined;
+    if (!piece || piece.type !== 'p') return false;
     const toRank = Number(to[1]);
-    if (piece.color === 'w' && toRank === 8) return 'q';
-    if (piece.color === 'b' && toRank === 1) return 'q';
-    return undefined;
+    return (piece.color === 'w' && toRank === 8) || (piece.color === 'b' && toRank === 1);
+  };
+
+  const executeMove = (from: string, to: string, promotion?: string) => {
+    const chess = chessRef.current!;
+    const moveOptions: any = { from, to };
+    if (promotion) moveOptions.promotion = promotion;
+
+    try {
+      const move = chess.move(moveOptions);
+      if (!move) return;
+      setSelectedSquare(null);
+      setPendingPromotion(null);
+      setFen(chess.fen());
+      setLastMove({ from, to });
+
+      if (mode === 'practice' && !isFreePlay && !aiGameStarted) {
+        setAiGameStarted(true);
+        lastTickRef.current = Date.now();
+      }
+
+      if (chess.isCheck()) {
+        playSound('check');
+      } else if (move.flags?.includes('c') || move.flags?.includes('e')) {
+        playSound('capture');
+      } else if (move.flags?.includes('k') || move.flags?.includes('q')) {
+        playSound('castle');
+      } else {
+        playSound('move');
+      }
+
+      if (isMultiplayer || isFreePlay) {
+        sendMove(from, to, move.san, chess.fen(), promotion);
+      }
+    } catch (error) {
+      setSelectedSquare(null);
+      setPendingPromotion(null);
+    }
+  };
+
+  const handlePromotionSelect = (piece: string) => {
+    if (!pendingPromotion) return;
+    executeMove(pendingPromotion.from, pendingPromotion.to, piece);
   };
 
   // --- Enhanced AI Engine with iterative deepening, quiescence search, and non-deterministic play ---
@@ -2072,51 +2113,20 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       return;
     }
 
-    // Try to make the move - chess.js will handle en passant, castling, etc.
-    const promotion = maybeAutoPromote(selectedSquare, square);
-    
-    // Build move object - only include promotion if needed
-    const moveOptions: any = {
-      from: selectedSquare,
-      to: square,
-    };
-    
-    if (promotion) {
-      moveOptions.promotion = promotion;
+    // Check if this is a promotion move
+    if (isPromotionMove(selectedSquare, square)) {
+      // Validate move is legal first (try with queen promotion)
+      const chess2 = new Chess(chess.fen());
+      try {
+        chess2.move({ from: selectedSquare, to: square, promotion: 'q' });
+        setPendingPromotion({ from: selectedSquare, to: square });
+      } catch {
+        setSelectedSquare(null);
+      }
+      return;
     }
 
-    try {
-      const move = chess.move(moveOptions);
-      if (!move) return;
-      setSelectedSquare(null);
-      setFen(chess.fen());
-      setLastMove({ from: selectedSquare, to: square });
-      
-      // Start AI game timer on first move
-      if (mode === 'practice' && !isFreePlay && !aiGameStarted) {
-        setAiGameStarted(true);
-        lastTickRef.current = Date.now();
-      }
-      
-      // Play sound
-      if (chess.isCheck()) {
-        playSound('check');
-      } else if (move.flags?.includes('c') || move.flags?.includes('e')) {
-        playSound('capture');
-      } else if (move.flags?.includes('k') || move.flags?.includes('q')) {
-        playSound('castle');
-      } else {
-        playSound('move');
-      }
-      
-      // Send move to opponent in multiplayer or free play
-      if (isMultiplayer || isFreePlay) {
-        sendMove(selectedSquare, square, move.san, chess.fen(), promotion);
-      }
-    } catch (error) {
-      // Invalid move, deselect
-      setSelectedSquare(null);
-    }
+    executeMove(selectedSquare, square);
   };
 
   useEffect(() => {
@@ -2695,6 +2705,87 @@ export const ChessGame: React.FC<ChessGameProps> = ({
               })}
             </div>
           </div>
+
+          {/* Pawn Promotion Picker */}
+          <AnimatePresence>
+            {pendingPromotion && (() => {
+              const chess = chessRef.current!;
+              const piece = chess.get(pendingPromotion.from as any) as any;
+              const color = piece?.color || 'w';
+              const effectivePlayerColor = (mode === 'practice' && !isFreePlay) ? aiPlayerColor : playerColor;
+              const flipped = effectivePlayerColor === 'b';
+              const toCol = pendingPromotion.to.charCodeAt(0) - 97; // a=0, h=7
+              const displayCol = flipped ? 7 - toCol : toCol;
+              const isWhitePromotion = color === 'w';
+              const fromTop = (flipped ? isWhitePromotion : !isWhitePromotion);
+              const pieces = ['q', 'r', 'b', 'n'] as const;
+
+              return (
+                <motion.div
+                  key="promotion-overlay"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  onClick={() => { setPendingPromotion(null); setSelectedSquare(null); }}
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    zIndex: 50,
+                    background: 'rgba(0,0,0,0.5)',
+                    borderRadius: '16px',
+                  }}
+                >
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      position: 'absolute',
+                      left: `${displayCol * 12.5}%`,
+                      width: '12.5%',
+                      ...(fromTop ? { top: 0 } : { bottom: 0 }),
+                      display: 'flex',
+                      flexDirection: fromTop ? 'column' : 'column-reverse',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+                    }}
+                  >
+                    {pieces.map((p) => (
+                      <motion.button
+                        key={p}
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.8, opacity: 0 }}
+                        transition={{ duration: 0.12 }}
+                        whileHover={{ scale: 1.1, backgroundColor: 'rgba(153,69,255,0.4)' }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handlePromotionSelect(p)}
+                        style={{
+                          aspectRatio: '1',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: 'rgba(14,14,30,0.95)',
+                          border: 'none',
+                          cursor: 'pointer',
+                          borderBottom: '1px solid rgba(255,255,255,0.08)',
+                          padding: '8%',
+                        }}
+                      >
+                        <img
+                          src={`/pieces/${color}${p.toUpperCase()}.svg`}
+                          alt={p}
+                          style={{ width: '85%', height: '85%', objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))' }}
+                          draggable={false}
+                        />
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
+              );
+            })()}
+          </AnimatePresence>
+
           </div> {/* End of board with coordinates wrapper */}
           
               {/* Free Play Lobby Overlay - shown when opponent joined but game hasn't started */}
