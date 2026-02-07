@@ -925,7 +925,7 @@ function FreePlayContent() {
               zIndex: 1,
               maxWidth: 1200,
               margin: "0 auto",
-              padding: "0 40px 60px",
+              padding: "0 clamp(12px, 3vw, 40px) 60px",
               ...fadeUp(0.2),
             }}
           >

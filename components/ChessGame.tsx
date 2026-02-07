@@ -1933,12 +1933,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       `}</style>
       <div className="chess-grid">
         {/* Left Column - Board */}
-        <div className="flex flex-col" style={{ width: '100%', maxWidth: 576 }}>
+        <div className="flex flex-col" style={{ width: '100%', maxWidth: 576, margin: '0 auto' }}>
           {/* Match Header */}
           {mode === 'wager' && matchInfo && (
             <div style={{
               width: '100%',
-              maxWidth: 'min(480px, calc(100vw - 1rem))',
+              maxWidth: 'min(576px, calc(100vw - 1rem))',
               borderRadius: 20,
               overflow: 'hidden',
               marginBottom: 16,
