@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Swords, Trophy, RefreshCw, X, CheckCircle2, XCircle, Users, Share2, Clock, MessageCircle, Send, Eye, Loader2, Coins } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 
-import { Chess } from 'chess.js';
+import { Chess, Move } from 'chess.js';
 import { EscrowClient, STAKE_TIERS, getStakeTierInfo, lamportsToSol, MatchStatus } from '@/utils/escrow';
 import { getUsername, formatDisplayName, getPlayerStats, PlayerStats } from '@/utils/username';
 
@@ -284,9 +284,14 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   ];
   const [tipIndex, setTipIndex] = useState(() => Math.floor(Math.random() * 15));
 
-  // AI difficulty: 'novice' (depth 1), 'club' (depth 2), 'master' (depth 3)
+  // AI difficulty with iterative deepening: novice (~800 ELO), club (~1200 ELO), master (~1500 ELO)
   type AIDifficulty = 'novice' | 'club' | 'master';
   const [aiDifficulty, setAiDifficulty] = useState<AIDifficulty>('club');
+  const AI_SETTINGS: Record<AIDifficulty, { maxDepth: number; timeLimit: number; variance: number }> = {
+    novice: { maxDepth: 3, timeLimit: 300, variance: 80 },   // ~800 ELO: shallow search, high randomness
+    club:   { maxDepth: 5, timeLimit: 800, variance: 40 },   // ~1200 ELO: moderate search
+    master: { maxDepth: 6, timeLimit: 1500, variance: 25 },  // ~1500 ELO: deep search, tight play
+  };
   
   // AI player color (default white for player)
   const [aiPlayerColor, setAiPlayerColor] = useState<'w' | 'b'>('w');
@@ -1658,80 +1663,250 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     return undefined;
   };
 
-  // Minimax evaluation function for AI
+  // --- Enhanced AI Engine with iterative deepening, quiescence search, and non-deterministic play ---
+  const practiceSearchRef = useRef({ startTime: 0, timedOut: false });
+
+  const getPieceVal = (piece: string): number => {
+    const v: Record<string, number> = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+    return v[piece] || 0;
+  };
+
   const evaluateBoard = (chess: Chess): number => {
-    const board = chess.board();
-    let score = 0;
-    
-    const pieceValues: Record<string, number> = {
-      p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000
-    };
-    
-    // Position bonuses for better play
+    if (chess.isCheckmate()) return chess.turn() === 'w' ? -10000 : 10000;
+    if (chess.isDraw()) return 0;
+
+    const pieceValues: Record<string, number> = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
+
     const pawnTable = [
-      [0,  0,  0,  0,  0,  0,  0,  0],
-      [50, 50, 50, 50, 50, 50, 50, 50],
-      [10, 10, 20, 30, 30, 20, 10, 10],
-      [5,  5, 10, 25, 25, 10,  5,  5],
-      [0,  0,  0, 20, 20,  0,  0,  0],
-      [5, -5,-10,  0,  0,-10, -5,  5],
-      [5, 10, 10,-20,-20, 10, 10,  5],
-      [0,  0,  0,  0,  0,  0,  0,  0]
+      0,0,0,0,0,0,0,0, 50,50,50,50,50,50,50,50, 10,10,20,30,30,20,10,10,
+      5,5,10,25,25,10,5,5, 0,0,0,20,20,0,0,0, 5,-5,-10,0,0,-10,-5,5,
+      5,10,10,-20,-20,10,10,5, 0,0,0,0,0,0,0,0
     ];
-    
     const knightTable = [
-      [-50,-40,-30,-30,-30,-30,-40,-50],
-      [-40,-20,  0,  0,  0,  0,-20,-40],
-      [-30,  0, 10, 15, 15, 10,  0,-30],
-      [-30,  5, 15, 20, 20, 15,  5,-30],
-      [-30,  0, 15, 20, 20, 15,  0,-30],
-      [-30,  5, 10, 15, 15, 10,  5,-30],
-      [-40,-20,  0,  5,  5,  0,-20,-40],
-      [-50,-40,-30,-30,-30,-30,-40,-50]
+      -50,-40,-30,-30,-30,-30,-40,-50, -40,-20,0,0,0,0,-20,-40,
+      -30,0,10,15,15,10,0,-30, -30,5,15,20,20,15,5,-30,
+      -30,0,15,20,20,15,0,-30, -30,5,10,15,15,10,5,-30,
+      -40,-20,0,5,5,0,-20,-40, -50,-40,-30,-30,-30,-30,-40,-50
     ];
+    const bishopTable = [
+      -20,-10,-10,-10,-10,-10,-10,-20, -10,0,0,0,0,0,0,-10,
+      -10,0,10,10,10,10,0,-10, -10,5,10,15,15,10,5,-10,
+      -10,0,15,15,15,15,0,-10, -10,10,10,10,10,10,10,-10,
+      -10,5,0,0,0,0,5,-10, -20,-10,-10,-10,-10,-10,-10,-20
+    ];
+    const rookTable = [
+      0,0,0,0,0,0,0,0, 5,10,10,10,10,10,10,5,
+      -5,0,0,0,0,0,0,-5, -5,0,0,0,0,0,0,-5,
+      -5,0,0,0,0,0,0,-5, -5,0,0,0,0,0,0,-5,
+      -5,0,0,0,0,0,0,-5, 0,0,0,5,5,0,0,0
+    ];
+    const queenTable = [
+      -20,-10,-10,-5,-5,-10,-10,-20, -10,0,0,0,0,0,0,-10,
+      -10,0,5,5,5,5,0,-10, -5,0,5,5,5,5,0,-5,
+      0,0,5,5,5,5,0,-5, -10,5,5,5,5,5,0,-10,
+      -10,0,5,0,0,0,0,-10, -20,-10,-10,-5,-5,-10,-10,-20
+    ];
+    const kingMiddleTable = [
+      -30,-40,-40,-50,-50,-40,-40,-30, -30,-40,-40,-50,-50,-40,-40,-30,
+      -30,-40,-40,-50,-50,-40,-40,-30, -30,-40,-40,-50,-50,-40,-40,-30,
+      -20,-30,-30,-40,-40,-30,-30,-20, -10,-20,-20,-20,-20,-20,-20,-10,
+      20,20,0,0,0,0,20,20, 20,30,10,0,0,10,30,20
+    ];
+    const kingEndgameTable = [
+      -50,-40,-30,-20,-20,-30,-40,-50, -30,-20,-10,0,0,-10,-20,-30,
+      -30,-10,20,30,30,20,-10,-30, -30,-10,30,40,40,30,-10,-30,
+      -30,-10,30,40,40,30,-10,-30, -30,-10,20,30,30,20,-10,-30,
+      -30,-30,0,0,0,0,-30,-30, -50,-30,-30,-30,-30,-30,-30,-50
+    ];
+
+    const tables: Record<string, number[]> = {
+      p: pawnTable, n: knightTable, b: bishopTable, r: rookTable, q: queenTable, k: kingMiddleTable,
+    };
+
+    let score = 0;
+    const board = chess.board();
+    let totalMaterial = 0;
+    let wBishops = 0, bBishops = 0;
+    const wPawnCols: number[][] = [[], [], [], [], [], [], [], []];
+    const bPawnCols: number[][] = [[], [], [], [], [], [], [], []];
 
     for (let row = 0; row < 8; row++) {
       for (let col = 0; col < 8; col++) {
         const piece = board[row][col];
-        if (!piece) continue;
-        
-        let value = pieceValues[piece.type] || 0;
-        
-        // Add positional bonuses
-        if (piece.type === 'p') {
-          value += piece.color === 'w' ? pawnTable[row][col] : pawnTable[7-row][col];
-        } else if (piece.type === 'n') {
-          value += piece.color === 'w' ? knightTable[row][col] : knightTable[7-row][col];
+        if (piece) {
+          if (piece.type !== 'k' && piece.type !== 'p') totalMaterial += pieceValues[piece.type] || 0;
+          if (piece.type === 'b') { if (piece.color === 'w') wBishops++; else bBishops++; }
+          if (piece.type === 'p') { if (piece.color === 'w') wPawnCols[col].push(row); else bPawnCols[col].push(row); }
         }
-        
-        score += piece.color === 'w' ? value : -value;
       }
     }
-    
-    // Bonus for checkmate
-    if (chess.isCheckmate()) {
-      return chess.turn() === 'w' ? -100000 : 100000;
+
+    const isEndgame = totalMaterial < 2600;
+    if (isEndgame) tables['k'] = kingEndgameTable;
+
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const piece = board[row][col];
+        if (piece) {
+          const value = pieceValues[piece.type] || 0;
+          const table = tables[piece.type];
+          let posBonus = 0;
+          if (table) posBonus = piece.color === 'w' ? table[row * 8 + col] : table[(7 - row) * 8 + col];
+          score += piece.color === 'w' ? value + posBonus : -(value + posBonus);
+        }
+      }
     }
-    
+
+    // Bishop pair
+    if (wBishops >= 2) score += 30;
+    if (bBishops >= 2) score -= 30;
+
+    // Pawn structure
+    for (let col = 0; col < 8; col++) {
+      if (wPawnCols[col].length > 1) score -= 20 * (wPawnCols[col].length - 1);
+      if (bPawnCols[col].length > 1) score += 20 * (bPawnCols[col].length - 1);
+      if (wPawnCols[col].length > 0) {
+        const hasN = (col > 0 && wPawnCols[col-1].length > 0) || (col < 7 && wPawnCols[col+1].length > 0);
+        if (!hasN) score -= 15;
+      }
+      if (bPawnCols[col].length > 0) {
+        const hasN = (col > 0 && bPawnCols[col-1].length > 0) || (col < 7 && bPawnCols[col+1].length > 0);
+        if (!hasN) score += 15;
+      }
+      for (const row of wPawnCols[col]) {
+        let passed = true;
+        for (let r = row - 1; r >= 0 && passed; r--) for (let c = Math.max(0, col-1); c <= Math.min(7, col+1); c++) if (bPawnCols[c].includes(r)) passed = false;
+        if (passed) score += 20 + (7 - row) * 10;
+      }
+      for (const row of bPawnCols[col]) {
+        let passed = true;
+        for (let r = row + 1; r <= 7 && passed; r++) for (let c = Math.max(0, col-1); c <= Math.min(7, col+1); c++) if (wPawnCols[c].includes(r)) passed = false;
+        if (passed) score -= 20 + row * 10;
+      }
+    }
+
+    // Rook on open file
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const piece = board[row][col];
+        if (piece && piece.type === 'r') {
+          const own = piece.color === 'w' ? wPawnCols[col] : bPawnCols[col];
+          const opp = piece.color === 'w' ? bPawnCols[col] : wPawnCols[col];
+          if (own.length === 0 && opp.length === 0) score += piece.color === 'w' ? 25 : -25;
+          else if (own.length === 0) score += piece.color === 'w' ? 15 : -15;
+        }
+      }
+    }
+
+    // King safety in middlegame
+    if (!isEndgame) {
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          const piece = board[row][col];
+          if (piece && piece.type === 'k') {
+            let shield = 0;
+            if (piece.color === 'w' && row >= 6) {
+              for (let c = Math.max(0, col-1); c <= Math.min(7, col+1); c++) {
+                if (board[row-1]?.[c]?.type === 'p' && board[row-1]?.[c]?.color === 'w') shield += 15;
+                if (board[row-2]?.[c]?.type === 'p' && board[row-2]?.[c]?.color === 'w') shield += 5;
+              }
+              score += shield;
+            } else if (piece.color === 'b' && row <= 1) {
+              for (let c = Math.max(0, col-1); c <= Math.min(7, col+1); c++) {
+                if (board[row+1]?.[c]?.type === 'p' && board[row+1]?.[c]?.color === 'b') shield += 15;
+                if (board[row+2]?.[c]?.type === 'p' && board[row+2]?.[c]?.color === 'b') shield += 5;
+              }
+              score -= shield;
+            }
+          }
+        }
+      }
+    }
+
+    score += chess.moves().length * 3 * (chess.turn() === 'w' ? 1 : -1);
     return score;
   };
 
-  // Minimax algorithm with alpha-beta pruning
-  const minimax = (chess: Chess, depth: number, alpha: number, beta: number, maximizing: boolean): number => {
-    if (depth === 0 || chess.isGameOver()) {
+  const orderMovesTree = (moves: Move[]): Move[] => {
+    return moves.sort((a, b) => {
+      let sa = 0, sb = 0;
+      if (a.captured) sa += 1000 + getPieceVal(a.captured) * 100 - getPieceVal(a.piece) * 10;
+      if (b.captured) sb += 1000 + getPieceVal(b.captured) * 100 - getPieceVal(b.piece) * 10;
+      if (a.promotion) sa += 900;
+      if (b.promotion) sb += 900;
+      if (['d4','d5','e4','e5'].includes(a.to)) sa += 20;
+      if (['d4','d5','e4','e5'].includes(b.to)) sb += 20;
+      return sb - sa;
+    });
+  };
+
+  const practiceQuiescence = (chess: Chess, alpha: number, beta: number, maximizing: boolean, qDepth: number): number => {
+    const sr = practiceSearchRef.current;
+    if (sr.timedOut || Date.now() - sr.startTime > AI_SETTINGS[aiDifficulty].timeLimit) {
+      sr.timedOut = true;
       return evaluateBoard(chess);
     }
-    
-    const moves = chess.moves({ verbose: true });
-    
+    const standPat = evaluateBoard(chess);
+    if (qDepth <= 0) return standPat;
+    if (chess.isGameOver()) {
+      if (chess.isCheckmate()) return chess.turn() === 'w' ? -10000 : 10000;
+      return 0;
+    }
+    if (maximizing) {
+      if (standPat >= beta) return beta;
+      let a = Math.max(alpha, standPat);
+      const caps = chess.moves({ verbose: true }).filter(m => m.captured || m.promotion)
+        .sort((x, y) => ((y.captured ? getPieceVal(y.captured) * 100 : 0) + (y.promotion ? 800 : 0)) - ((x.captured ? getPieceVal(x.captured) * 100 : 0) + (x.promotion ? 800 : 0)));
+      for (const move of caps) {
+        if (move.captured && standPat + getPieceVal(move.captured) * 100 + 200 < a) continue;
+        chess.move(move);
+        const s = practiceQuiescence(chess, a, beta, false, qDepth - 1);
+        chess.undo();
+        if (sr.timedOut) return s;
+        if (s > a) a = s;
+        if (a >= beta) return beta;
+      }
+      return a;
+    } else {
+      if (standPat <= alpha) return alpha;
+      let b = Math.min(beta, standPat);
+      const caps = chess.moves({ verbose: true }).filter(m => m.captured || m.promotion)
+        .sort((x, y) => ((y.captured ? getPieceVal(y.captured) * 100 : 0) + (y.promotion ? 800 : 0)) - ((x.captured ? getPieceVal(x.captured) * 100 : 0) + (x.promotion ? 800 : 0)));
+      for (const move of caps) {
+        if (move.captured && standPat - getPieceVal(move.captured) * 100 - 200 > b) continue;
+        chess.move(move);
+        const s = practiceQuiescence(chess, alpha, b, true, qDepth - 1);
+        chess.undo();
+        if (sr.timedOut) return s;
+        if (s < b) b = s;
+        if (alpha >= b) return alpha;
+      }
+      return b;
+    }
+  };
+
+  const minimax = (chess: Chess, depth: number, alpha: number, beta: number, maximizing: boolean): number => {
+    const sr = practiceSearchRef.current;
+    if (Date.now() - sr.startTime > AI_SETTINGS[aiDifficulty].timeLimit) {
+      sr.timedOut = true;
+      return evaluateBoard(chess);
+    }
+    if (chess.isGameOver()) {
+      if (chess.isCheckmate()) return chess.turn() === 'w' ? -10000 - depth : 10000 + depth;
+      return 0;
+    }
+    if (depth <= 0) return practiceQuiescence(chess, alpha, beta, maximizing, 6);
+
+    const moves = orderMovesTree(chess.moves({ verbose: true }));
     if (maximizing) {
       let maxEval = -Infinity;
       for (const move of moves) {
         chess.move(move);
-        const evaluation = minimax(chess, depth - 1, alpha, beta, false);
+        const ev = minimax(chess, depth - 1, alpha, beta, false);
         chess.undo();
-        maxEval = Math.max(maxEval, evaluation);
-        alpha = Math.max(alpha, evaluation);
+        if (sr.timedOut) return ev;
+        maxEval = Math.max(maxEval, ev);
+        alpha = Math.max(alpha, ev);
         if (beta <= alpha) break;
       }
       return maxEval;
@@ -1739,10 +1914,11 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       let minEval = Infinity;
       for (const move of moves) {
         chess.move(move);
-        const evaluation = minimax(chess, depth - 1, alpha, beta, true);
+        const ev = minimax(chess, depth - 1, alpha, beta, true);
         chess.undo();
-        minEval = Math.min(minEval, evaluation);
-        beta = Math.min(beta, evaluation);
+        if (sr.timedOut) return ev;
+        minEval = Math.min(minEval, ev);
+        beta = Math.min(beta, ev);
         if (beta <= alpha) break;
       }
       return minEval;
@@ -1762,22 +1938,68 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
     const moves = chess.moves({ verbose: true }) as Array<any>;
     if (moves.length === 0) return;
+    if (moves.length === 1) { /* only one legal move */ }
 
-    // Depth based on difficulty: Novice=1, Club=2, Master=3
-    const depthMap = { novice: 1, club: 2, master: 3 };
-    const depth = depthMap[aiDifficulty];
-    
+    // Iterative deepening with difficulty-based depth & time limits
+    const settings = AI_SETTINGS[aiDifficulty];
+    const sr = practiceSearchRef.current;
+    sr.startTime = Date.now();
+    sr.timedOut = false;
+
     let bestMove = moves[0];
-    let bestValue = aiColor === 'b' ? Infinity : -Infinity;
-    
-    for (const move of moves) {
-      chess.move(move);
-      const value = minimax(chess, depth, -Infinity, Infinity, aiColor === 'b');
-      chess.undo();
-      
-      if (aiColor === 'b' ? value < bestValue : value > bestValue) {
-        bestValue = value;
-        bestMove = move;
+    let candidates: { move: any; score: number }[] = [];
+    const isMax = aiColor === 'w';
+
+    // Order root moves: captures/promotions first, then center moves
+    const rootOrder = (ms: any[], pvMove: any | null) => {
+      return [...ms].sort((a, b) => {
+        let sa = 0, sb = 0;
+        if (pvMove && a.from === pvMove.from && a.to === pvMove.to) sa += 10000;
+        if (pvMove && b.from === pvMove.from && b.to === pvMove.to) sb += 10000;
+        if (a.captured) sa += 1000 + getPieceVal(a.captured) * 100;
+        if (b.captured) sb += 1000 + getPieceVal(b.captured) * 100;
+        if (a.promotion) sa += 900;
+        if (b.promotion) sb += 900;
+        if (a.san?.includes('+') || a.san?.includes('#')) sa += 500;
+        if (b.san?.includes('+') || b.san?.includes('#')) sb += 500;
+        if (['d4','d5','e4','e5'].includes(a.to)) sa += 20;
+        if (['d4','d5','e4','e5'].includes(b.to)) sb += 20;
+        return sb - sa;
+      });
+    };
+
+    for (let depth = 1; depth <= settings.maxDepth; depth++) {
+      if (Date.now() - sr.startTime > settings.timeLimit) break;
+      const depthCandidates: { move: any; score: number }[] = [];
+      const ordered = rootOrder(moves, bestMove);
+
+      for (const move of ordered) {
+        if (sr.timedOut) break;
+        chess.move(move);
+        const score = minimax(chess, depth - 1, -Infinity, Infinity, !isMax);
+        chess.undo();
+        if (sr.timedOut) break;
+        depthCandidates.push({ move, score });
+      }
+
+      if (!sr.timedOut && depthCandidates.length > 0) {
+        candidates = depthCandidates;
+        candidates.sort((a, b) => isMax ? b.score - a.score : a.score - b.score);
+        bestMove = candidates[0].move;
+        if (Math.abs(candidates[0].score) > 9000) break;
+      } else if (depthCandidates.length > 0 && candidates.length === 0) {
+        candidates = depthCandidates;
+        candidates.sort((a, b) => isMax ? b.score - a.score : a.score - b.score);
+        bestMove = candidates[0].move;
+      }
+    }
+
+    // Non-deterministic: pick randomly among moves within variance of best
+    if (candidates.length > 1 && Math.abs(candidates[0].score) < 9000) {
+      const best = candidates[0].score;
+      const eligible = candidates.filter(c => Math.abs(c.score - best) <= settings.variance);
+      if (eligible.length > 1) {
+        bestMove = eligible[Math.floor(Math.random() * eligible.length)].move;
       }
     }
 
@@ -3367,6 +3589,35 @@ export const ChessGame: React.FC<ChessGameProps> = ({
         <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 16, padding: '20px 24px' }}>
           <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b6b80', marginBottom: 14, fontFamily: "'Space Mono', monospace" }}>Actions</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* Difficulty Selector - only for practice mode */}
+            {mode === 'practice' && !isFreePlay && !isMultiplayer && (
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6b6b80', marginBottom: 8, fontFamily: "'Space Mono', monospace" }}>Difficulty</div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {([['novice', '🟢', '~800'], ['club', '🟡', '~1200'], ['master', '🔴', '~1500']] as const).map(([key, icon, elo]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => { setAiDifficulty(key as AIDifficulty); resetPractice(); }}
+                      style={{
+                        flex: 1, padding: '8px 6px', borderRadius: 10, fontSize: 12, fontWeight: 600,
+                        fontFamily: "'Outfit', sans-serif", cursor: 'pointer',
+                        background: aiDifficulty === key ? 'rgba(153,69,255,0.15)' : 'rgba(255,255,255,0.03)',
+                        border: `1px solid ${aiDifficulty === key ? 'rgba(153,69,255,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                        color: aiDifficulty === key ? '#c4a0ff' : '#a0a0b8',
+                        transition: 'all 0.2s', textAlign: 'center',
+                        boxShadow: aiDifficulty === key ? '0 0 12px rgba(153,69,255,0.15)' : 'none',
+                      }}
+                      onMouseEnter={(e) => { if (aiDifficulty !== key) { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#e8e8f0'; } }}
+                      onMouseLeave={(e) => { if (aiDifficulty !== key) { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = '#a0a0b8'; } }}
+                    >
+                      <div>{icon} {key.charAt(0).toUpperCase() + key.slice(1)}</div>
+                      <div style={{ fontSize: 9, color: aiDifficulty === key ? '#9945ff' : '#6b6b80', marginTop: 2, fontFamily: "'Space Mono', monospace" }}>{elo} ELO</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* New Game - only show for practice mode (not multiplayer/wager) */}
             {mode === 'practice' && !isFreePlay && !isMultiplayer && (
             <button
