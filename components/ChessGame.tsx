@@ -2196,60 +2196,84 @@ export const ChessGame: React.FC<ChessGameProps> = ({
           <div className="w-full space-y-3 sm:space-y-4">
             <div className="rounded-2xl p-2 sm:p-3" style={{ background: 'rgba(14,14,30,0.7)', border: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
               {/* Opponent info bar for multiplayer/free play (shown at top) */}
-              {(isFreePlay || isMultiplayer) && opponentConnected && (
-                <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/10">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${playerColor === 'b' ? 'bg-white border border-neutral-400' : 'bg-neutral-800 border border-neutral-600'}`} />
-                    <span className="font-semibold text-sm truncate max-w-[100px]">
-                      {opponentUsername || (opponentWallet ? `${opponentWallet.slice(0, 4)}...${opponentWallet.slice(-4)}` : 'Opponent')}
-                    </span>
-                    {/* Opponent W-L record */}
-                    {opponentStats && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-white/10 text-neutral-300">
-                        {opponentStats.gamesWon}W-{opponentStats.gamesLost}L
+              {(isFreePlay || isMultiplayer) && opponentConnected && (() => {
+                const opponentColor = playerColor === 'w' ? 'b' : 'w';
+                const isOpponentTurn = (playerColor === 'w' && chessRef.current?.turn() === 'b') || (playerColor === 'b' && chessRef.current?.turn() === 'w');
+                const opponentName = opponentUsername || (opponentWallet ? `${opponentWallet.slice(0, 4)}...${opponentWallet.slice(-4)}` : 'Opponent');
+                // Opponent's captured pieces (pieces opponent took from player)
+                const oppCapturedTypes = opponentColor === 'w' ? capturedPieces.wTypes : capturedPieces.bTypes;
+                const oppCapturedValue = oppCapturedTypes.reduce((s, p) => s + ({ p: 1, n: 3, b: 3, r: 5, q: 9, P: 1, N: 3, B: 3, R: 5, Q: 9 }[p] || 0), 0);
+                const playerCapturedValue = (opponentColor === 'w' ? capturedPieces.bTypes : capturedPieces.wTypes).reduce((s, p) => s + ({ p: 1, n: 3, b: 3, r: 5, q: 9, P: 1, N: 3, B: 3, R: 5, Q: 9 }[p] || 0), 0);
+                const oppAdvantage = Math.max(0, oppCapturedValue - playerCapturedValue);
+                // Group pieces for display
+                const sorted = [...oppCapturedTypes].sort((a, b) => (PIECE_SORT_ORDER[a] ?? 5) - (PIECE_SORT_ORDER[b] ?? 5));
+                const groups: { piece: string; count: number }[] = [];
+                sorted.forEach(p => { const last = groups[groups.length - 1]; if (last && last.piece === p) last.count++; else groups.push({ piece: p, count: 1 }); });
+                const pieceColor = opponentColor === 'b' ? '#b388ff' : '#e8e8f0';
+                return (
+                  <div style={{
+                    display: 'flex', flexDirection: 'column', gap: 0,
+                    padding: '12px 20px',
+                    background: isOpponentTurn ? 'rgba(0,255,163,0.06)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${isOpponentTurn ? 'rgba(0,255,163,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                    borderRadius: 14, transition: 'all 0.3s', marginBottom: 8,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: isOpponentTurn ? '#00ffa3' : '#333', boxShadow: isOpponentTurn ? '0 0 12px rgba(0,255,163,0.5)' : 'none', transition: 'all 0.3s' }} />
+                        <span style={{ fontSize: 14, fontWeight: 600, color: isOpponentTurn ? '#e8e8f0' : '#6b6b80', fontFamily: "'Outfit', sans-serif", maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opponentName}</span>
+                        <div style={{ width: 14, height: 14, borderRadius: 4, background: opponentColor === 'w' ? '#e8e8f0' : '#1a1a2e', border: '1px solid rgba(255,255,255,0.15)' }} />
+                        {/* Opponent W-L record */}
+                        {opponentStats && (
+                          <span style={{ fontSize: 11, fontWeight: 600, fontFamily: "'Space Mono', monospace", color: '#6b6b80', padding: '2px 6px', borderRadius: 6, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                            {opponentStats.gamesWon}W-{opponentStats.gamesLost}L
+                          </span>
+                        )}
+                        {/* Spectator count */}
+                        {isFreePlay && spectatorCount > 0 && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(153,69,255,0.15)', padding: '2px 8px', borderRadius: 99, border: '1px solid rgba(153,69,255,0.2)' }}>
+                            <Eye className="h-3.5 w-3.5" style={{ color: '#9945ff' }} />
+                            <span style={{ fontSize: 11, fontWeight: 600, color: '#9945ff', fontFamily: "'Space Mono', monospace" }}>{spectatorCount}</span>
+                          </div>
+                        )}
+                        {/* Opponent's reaction bubble */}
+                        <AnimatePresence>
+                          {incomingReaction && (
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.5, x: -10 }}
+                              animate={{ opacity: 1, scale: 1, x: 0 }}
+                              exit={{ opacity: 0, scale: 0.5, x: -10 }}
+                            >
+                              <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 99, padding: '2px 8px', border: '1px solid rgba(255,255,255,0.2)' }}>
+                                <span style={{ fontSize: 18 }}>{incomingReaction}</span>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                      <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 22, fontWeight: 700, color: isOpponentTurn ? '#00ffa3' : '#6b6b80', letterSpacing: '0.05em', transition: 'color 0.3s' }}>
+                        {formatTime(playerColor === 'w' ? blackTimeMs : whiteTimeMs)}
                       </span>
-                    )}
-                    {/* Spectator count */}
-                    {isFreePlay && spectatorCount > 0 && (
-                      <div className="flex items-center gap-1 bg-solana-purple/30 px-2 py-0.5 rounded-full">
-                        <Eye className="h-3.5 w-3.5 text-solana-purple" />
-                        <span className="text-xs text-solana-purple font-medium">{spectatorCount}</span>
+                    </div>
+                    {oppCapturedTypes.length > 0 && (
+                      <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', minHeight: 24 }}>
+                        {groups.map((g, i) => (
+                          <div key={`${g.piece}-${i}`} style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+                            {Array.from({ length: g.count }).map((_, j) => (
+                              <span key={j} style={{ fontSize: 18, lineHeight: 1, color: pieceColor, filter: opponentColor === 'b' ? 'drop-shadow(0 1px 4px rgba(153,69,255,0.4))' : 'drop-shadow(0 1px 4px rgba(255,255,255,0.2))', marginLeft: j > 0 ? -6 : 0, position: 'relative', zIndex: g.count - j, opacity: 0.9, userSelect: 'none' }}>
+                                {PIECE_SYMBOLS[g.piece]}
+                              </span>
+                            ))}
+                          </div>
+                        ))}
+                        {oppAdvantage > 0 && (
+                          <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "'Space Mono', monospace", color: '#00ffa3', marginLeft: 6, padding: '2px 6px', borderRadius: 6, background: 'rgba(0,255,163,0.1)', border: '1px solid rgba(0,255,163,0.15)' }}>+{oppAdvantage}</span>
+                        )}
                       </div>
                     )}
-                    {/* Opponent's reaction bubble */}
-                    <AnimatePresence>
-                      {incomingReaction && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.5, x: -10 }}
-                          animate={{ opacity: 1, scale: 1, x: 0 }}
-                          exit={{ opacity: 0, scale: 0.5, x: -10 }}
-                        >
-                          <div className="bg-white/20 rounded-full px-2 py-0.5 border border-white/30">
-                            <span className="text-xl">{incomingReaction}</span>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
                   </div>
-                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-xl transition-all ${
-                    (playerColor === 'w' && chessRef.current?.turn() === 'b') || 
-                    (playerColor === 'b' && chessRef.current?.turn() === 'w')
-                      ? 'text-white'
-                      : 'bg-white/5 text-neutral-500'
-                  }`}
-                  style={(
-                    (playerColor === 'w' && chessRef.current?.turn() === 'b') || 
-                    (playerColor === 'b' && chessRef.current?.turn() === 'w')
-                  ) ? { background: 'rgba(0,255,163,0.12)', boxShadow: '0 0 12px rgba(0,255,163,0.15)', border: '1px solid rgba(0,255,163,0.2)' } : {}}
-                  >
-                    <Clock className="w-4 h-4" style={(
-                      (playerColor === 'w' && chessRef.current?.turn() === 'b') || 
-                      (playerColor === 'b' && chessRef.current?.turn() === 'w')
-                    ) ? { color: '#00ffa3' } : {}} />
-                    {formatTime(playerColor === 'w' ? blackTimeMs : whiteTimeMs)}
-                  </div>
-                </div>
-              )}
+                );
+              })()}
               
               {/* AI timer bar for practice mode (shown above board) */}
               {mode === 'practice' && !isFreePlay && (() => {
@@ -2749,14 +2773,25 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
               {/* Emoji Picker & Chat Buttons - Only for multiplayer modes with real opponents */}
               {((isFreePlay || isMultiplayer) && opponentConnected) ? (
-                <div className="flex items-center gap-2 mt-2">
-                  {/* React Button - Premium */}
-                  <div className="relative">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                  {/* React Button - Premium Themed */}
+                  <div style={{ position: 'relative' }}>
                     <button
                       onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowChat(false); }}
-                      className="btn-secondary flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-white hover:text-white transition-all"
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '8px 14px', borderRadius: 12,
+                        background: showEmojiPicker ? 'rgba(153,69,255,0.15)' : 'rgba(255,255,255,0.04)',
+                        border: `1px solid ${showEmojiPicker ? 'rgba(153,69,255,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                        color: showEmojiPicker ? '#e8e8f0' : '#a0a0b8',
+                        fontSize: 13, fontWeight: 600,
+                        fontFamily: "'Outfit', sans-serif",
+                        cursor: 'pointer', transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(153,69,255,0.12)'; e.currentTarget.style.color = '#e8e8f0'; e.currentTarget.style.borderColor = 'rgba(153,69,255,0.25)'; }}
+                      onMouseLeave={(e) => { if (!showEmojiPicker) { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#a0a0b8'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; } }}
                     >
-                      <span className="text-base">😊</span>
+                      <span style={{ fontSize: 16 }}>😊</span>
                       <span>React</span>
                     </button>
                     
@@ -2767,18 +2802,29 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.9, y: 10 }}
                           transition={{ duration: 0.15 }}
-                          className="absolute bottom-full left-0 mb-2 z-40"
+                          style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: 8, zIndex: 40 }}
                         >
-                          <div className="glass-card rounded-2xl p-3 border border-white/20 shadow-2xl flex gap-2 flex-wrap max-w-[200px]">
+                          <div style={{
+                            display: 'flex', gap: 4, flexWrap: 'wrap', maxWidth: 220,
+                            padding: 12, borderRadius: 16,
+                            background: 'rgba(14,14,30,0.95)',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            backdropFilter: 'blur(20px)',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(153,69,255,0.08)',
+                          }}>
                             {REACTION_EMOJIS.map((emoji) => (
                               <button
                                 key={emoji}
                                 onClick={() => sendReaction(emoji)}
-                                className="text-2xl hover:scale-125 active:scale-110 transition-transform p-2 hover:bg-white/10 rounded-xl touch-manipulation"
                                 style={{
+                                  fontSize: 22, padding: 8, borderRadius: 10,
+                                  background: 'transparent', border: 'none',
+                                  cursor: 'pointer', transition: 'all 0.15s',
                                   touchAction: 'manipulation',
-                                  WebkitTapHighlightColor: 'rgba(153, 69, 255, 0.3)'
+                                  WebkitTapHighlightColor: 'rgba(153, 69, 255, 0.3)',
                                 }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.transform = 'scale(1.2)'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = 'scale(1)'; }}
                                 aria-label={`React with ${emoji}`}
                               >
                                 {emoji}
@@ -2790,20 +2836,38 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     </AnimatePresence>
                   </div>
                   
-                  {/* Chat Button - Premium */}
+                  {/* Chat Button - Premium Themed */}
                   <button
                     onClick={() => { setShowChat(!showChat); setShowEmojiPicker(false); }}
-                    className={`btn-secondary flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm relative transition-all ${
-                      showChat ? 'ring-2 ring-solana-purple/50' : ''
-                    }`}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      padding: '8px 14px', borderRadius: 12,
+                      background: showChat ? 'rgba(153,69,255,0.15)' : 'rgba(255,255,255,0.04)',
+                      border: `1px solid ${showChat ? 'rgba(153,69,255,0.3)' : 'rgba(255,255,255,0.08)'}`,
+                      color: showChat ? '#e8e8f0' : '#a0a0b8',
+                      fontSize: 13, fontWeight: 600,
+                      fontFamily: "'Outfit', sans-serif",
+                      cursor: 'pointer', transition: 'all 0.2s',
+                      position: 'relative',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(153,69,255,0.12)'; e.currentTarget.style.color = '#e8e8f0'; e.currentTarget.style.borderColor = 'rgba(153,69,255,0.25)'; }}
+                    onMouseLeave={(e) => { if (!showChat) { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.color = '#a0a0b8'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; } }}
                   >
-                    <MessageCircle className="w-4 h-4" />
-                    <span className="text-white">Chat</span>
+                    <MessageCircle style={{ width: 16, height: 16 }} />
+                    <span>Chat</span>
                     {unreadCount > 0 && !showChat && (
                       <motion.span 
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold shadow-lg ring-2 ring-red-500/30"
+                        style={{
+                          position: 'absolute', top: -4, right: -4,
+                          background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                          color: '#fff', fontSize: 10, fontWeight: 700,
+                          borderRadius: 99, width: 18, height: 18,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          boxShadow: '0 2px 8px rgba(239,68,68,0.4), 0 0 0 2px rgba(239,68,68,0.2)',
+                          fontFamily: "'Space Mono', monospace",
+                        }}
                       >
                         {unreadCount > 9 ? '9+' : unreadCount}
                       </motion.span>
@@ -2954,47 +3018,71 @@ export const ChessGame: React.FC<ChessGameProps> = ({
               </AnimatePresence>
               
               {/* Player info bar for multiplayer/free play (shown at bottom) */}
-              {(isFreePlay || isMultiplayer) && opponentConnected && (
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-white/10">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-full ${playerColor === 'w' ? 'bg-white border border-neutral-400' : 'bg-neutral-800 border border-neutral-600'}`} />
-                    <span className="font-semibold text-sm truncate max-w-[120px]">
-                      {myUsername || (publicKey ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}` : 'You')}
-                    </span>
-                    {/* Your reaction bubble */}
-                    <AnimatePresence>
-                      {outgoingReaction && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.5, x: -10 }}
-                          animate={{ opacity: 1, scale: 1, x: 0 }}
-                          exit={{ opacity: 0, scale: 0.5, x: -10 }}
-                        >
-                          <div className="bg-solana-purple/40 rounded-full px-2 py-0.5 border border-solana-purple/50">
-                            <span className="text-xl">{outgoingReaction}</span>
+              {(isFreePlay || isMultiplayer) && opponentConnected && (() => {
+                const isMyTurn = (playerColor === 'w' && chessRef.current?.turn() === 'w') || (playerColor === 'b' && chessRef.current?.turn() === 'b');
+                const myName = myUsername || (publicKey ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}` : 'You');
+                // Player's captured pieces (pieces player took from opponent)
+                const myCapturedTypes = playerColor === 'w' ? capturedPieces.wTypes : capturedPieces.bTypes;
+                const myCapturedValue = myCapturedTypes.reduce((s, p) => s + ({ p: 1, n: 3, b: 3, r: 5, q: 9, P: 1, N: 3, B: 3, R: 5, Q: 9 }[p] || 0), 0);
+                const opponentCapturedValue = (playerColor === 'w' ? capturedPieces.bTypes : capturedPieces.wTypes).reduce((s, p) => s + ({ p: 1, n: 3, b: 3, r: 5, q: 9, P: 1, N: 3, B: 3, R: 5, Q: 9 }[p] || 0), 0);
+                const myAdvantage = Math.max(0, myCapturedValue - opponentCapturedValue);
+                // Group pieces for display
+                const sorted = [...myCapturedTypes].sort((a, b) => (PIECE_SORT_ORDER[a] ?? 5) - (PIECE_SORT_ORDER[b] ?? 5));
+                const groups: { piece: string; count: number }[] = [];
+                sorted.forEach(p => { const last = groups[groups.length - 1]; if (last && last.piece === p) last.count++; else groups.push({ piece: p, count: 1 }); });
+                // Player captures opponent pieces, so show opponent's piece color
+                const pieceColor = playerColor === 'w' ? '#b388ff' : '#e8e8f0';
+                return (
+                  <div style={{
+                    display: 'flex', flexDirection: 'column', gap: 0,
+                    padding: '12px 20px',
+                    background: isMyTurn ? 'rgba(0,255,163,0.06)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${isMyTurn ? 'rgba(0,255,163,0.2)' : 'rgba(255,255,255,0.06)'}`,
+                    borderRadius: 14, transition: 'all 0.3s', marginTop: 8,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: isMyTurn ? '#00ffa3' : '#333', boxShadow: isMyTurn ? '0 0 12px rgba(0,255,163,0.5)' : 'none', transition: 'all 0.3s' }} />
+                        <span style={{ fontSize: 14, fontWeight: 600, color: isMyTurn ? '#e8e8f0' : '#6b6b80', fontFamily: "'Outfit', sans-serif", maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{myName}</span>
+                        <div style={{ width: 14, height: 14, borderRadius: 4, background: playerColor === 'w' ? '#e8e8f0' : '#1a1a2e', border: '1px solid rgba(255,255,255,0.15)' }} />
+                        {/* Your reaction bubble */}
+                        <AnimatePresence>
+                          {outgoingReaction && (
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.5, x: -10 }}
+                              animate={{ opacity: 1, scale: 1, x: 0 }}
+                              exit={{ opacity: 0, scale: 0.5, x: -10 }}
+                            >
+                              <div style={{ background: 'rgba(153,69,255,0.25)', borderRadius: 99, padding: '2px 8px', border: '1px solid rgba(153,69,255,0.35)' }}>
+                                <span style={{ fontSize: 18 }}>{outgoingReaction}</span>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                      <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 22, fontWeight: 700, color: isMyTurn ? '#00ffa3' : '#6b6b80', letterSpacing: '0.05em', transition: 'color 0.3s' }}>
+                        {formatTime(playerColor === 'w' ? whiteTimeMs : blackTimeMs)}
+                      </span>
+                    </div>
+                    {myCapturedTypes.length > 0 && (
+                      <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap', minHeight: 24 }}>
+                        {groups.map((g, i) => (
+                          <div key={`${g.piece}-${i}`} style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+                            {Array.from({ length: g.count }).map((_, j) => (
+                              <span key={j} style={{ fontSize: 18, lineHeight: 1, color: pieceColor, filter: playerColor === 'w' ? 'drop-shadow(0 1px 4px rgba(153,69,255,0.4))' : 'drop-shadow(0 1px 4px rgba(255,255,255,0.2))', marginLeft: j > 0 ? -6 : 0, position: 'relative', zIndex: g.count - j, opacity: 0.9, userSelect: 'none' }}>
+                                {PIECE_SYMBOLS[g.piece]}
+                              </span>
+                            ))}
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+                        ))}
+                        {myAdvantage > 0 && (
+                          <span style={{ fontSize: 12, fontWeight: 700, fontFamily: "'Space Mono', monospace", color: '#00ffa3', marginLeft: 6, padding: '2px 6px', borderRadius: 6, background: 'rgba(0,255,163,0.1)', border: '1px solid rgba(0,255,163,0.15)' }}>+{myAdvantage}</span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className={`flex items-center gap-1.5 font-mono text-lg px-3 py-1 rounded-xl transition-all ${
-                    (playerColor === 'w' && chessRef.current?.turn() === 'w') || 
-                    (playerColor === 'b' && chessRef.current?.turn() === 'b')
-                      ? 'text-white'
-                      : 'bg-white/5 text-neutral-500'
-                  }`}
-                  style={(
-                    (playerColor === 'w' && chessRef.current?.turn() === 'w') || 
-                    (playerColor === 'b' && chessRef.current?.turn() === 'b')
-                  ) ? { background: 'rgba(0,255,163,0.12)', boxShadow: '0 0 12px rgba(0,255,163,0.15)', border: '1px solid rgba(0,255,163,0.2)' } : {}}
-                  >
-                    <Clock className="w-4 h-4" style={(
-                      (playerColor === 'w' && chessRef.current?.turn() === 'w') || 
-                      (playerColor === 'b' && chessRef.current?.turn() === 'b')
-                    ) ? { color: '#00ffa3' } : {}} />
-                    {formatTime(playerColor === 'w' ? whiteTimeMs : blackTimeMs)}
-                  </div>
-                </div>
-              )}
+                );
+              })()}
               
               {/* Player timer bar for AI practice mode (shown below board) */}
               {mode === 'practice' && !isFreePlay && (() => {
