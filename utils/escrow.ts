@@ -3,6 +3,9 @@ import {
   PublicKey,
   SystemProgram,
   Transaction,
+  TransactionInstruction,
+  TransactionMessage,
+  VersionedTransaction,
   LAMPORTS_PER_SOL,
 } from '@solana/web3.js';
 import { WalletContextState } from '@solana/wallet-adapter-react';
@@ -136,6 +139,86 @@ export class EscrowClient {
     private wallet: WalletContextState
   ) {}
 
+  /**
+   * Detect if the connected wallet is a Mobile Wallet Adapter (Seed Vault / TWA).
+   * MWA's signTransaction fails with "Signature verification failed" on legacy
+   * Transaction objects, so we must use VersionedTransaction v0 + sendTransaction.
+   */
+  private isMobileWalletAdapter(): boolean {
+    const name = this.wallet.wallet?.adapter?.name ?? '';
+    return name.includes('Mobile Wallet Adapter');
+  }
+
+  /**
+   * Build, sign, and send a transaction using the appropriate path:
+   *  - Mobile Wallet Adapter: VersionedTransaction v0 + sendTransaction
+   *    (avoids signTransaction which fails on Seed Vault for legacy txs)
+   *  - Desktop wallets: legacy Transaction + signTransaction → sendRawTransaction,
+   *    or sendTransaction fallback
+   */
+  private async buildSignAndSend(
+    instruction: TransactionInstruction,
+    blockhash: string,
+    lastValidBlockHeight: number,
+    label: string
+  ): Promise<string> {
+    const walletPubkey = this.wallet.publicKey!;
+
+    if (this.isMobileWalletAdapter()) {
+      // MWA path: VersionedTransaction v0 + sendTransaction
+      console.log(`[${label}] MWA detected – using VersionedTransaction v0 + sendTransaction`);
+
+      const messageV0 = new TransactionMessage({
+        payerKey: walletPubkey,
+        recentBlockhash: blockhash,
+        instructions: [instruction],
+      }).compileToV0Message();
+
+      const vTx = new VersionedTransaction(messageV0);
+
+      console.log(`[${label}] VersionedTransaction built, sending via wallet.sendTransaction...`);
+      const signature = await this.wallet.sendTransaction(vTx, this.connection, {
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
+      });
+
+      console.log(`[${label}] MWA transaction sent, signature:`, signature);
+      return signature;
+    }
+
+    // Desktop path: legacy Transaction
+    const tx = new Transaction().add(instruction);
+    tx.feePayer = walletPubkey;
+    tx.recentBlockhash = blockhash;
+    tx.lastValidBlockHeight = lastValidBlockHeight;
+
+    if (this.wallet.signTransaction) {
+      console.log(`[${label}] calling wallet.signTransaction...`);
+      const signedTx = await this.wallet.signTransaction(tx);
+
+      const walletSig = signedTx.signatures.find(s => s.publicKey.equals(walletPubkey));
+      if (!walletSig?.signature) {
+        throw new Error(`[${label}] Wallet did not sign – missing signature for ${walletPubkey.toBase58()}`);
+      }
+
+      const rawBytes = signedTx.serialize();
+      return await this.connection.sendRawTransaction(rawBytes, {
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
+      });
+    }
+
+    if (this.wallet.sendTransaction) {
+      console.log(`[${label}] using sendTransaction fallback`);
+      return await this.wallet.sendTransaction(tx, this.connection, {
+        skipPreflight: false,
+        preflightCommitment: 'confirmed',
+      });
+    }
+
+    throw new Error('Wallet does not support transaction signing');
+  }
+
   async createMatch(
     stakeTier: number,
     joinDeadlineMinutes: number = 30
@@ -190,16 +273,13 @@ export class EscrowClient {
     console.log('Transaction accounts:');
     keys.forEach((k, i) => console.log(`  ${i}: ${k.pubkey.toBase58()} (signer: ${k.isSigner})`));
 
-    const instruction = {
+    const instruction = new TransactionInstruction({
       keys,
       programId: PROGRAM_ID,
       data: instructionData,
-    };
+    });
 
     const walletPubkey = this.wallet.publicKey;
-
-    const tx = new Transaction().add(instruction);
-    tx.feePayer = walletPubkey;
 
     // Verify: only the wallet should be a local signer
     const localSigners = keys.filter(k => k.isSigner);
@@ -218,51 +298,12 @@ export class EscrowClient {
       try {
         // Use "finalized" commitment for blockhash – more reliable on Seed Vault / mobile
         const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('finalized');
-        tx.recentBlockhash = blockhash;
-        tx.lastValidBlockHeight = lastValidBlockHeight;
 
-        // === TEMP DEBUG: createMatch signer diagnosis ===
-        console.log('[createMatch] wallet:', this.wallet.publicKey?.toBase58());
-        console.log('[createMatch] feePayer:', tx.feePayer?.toBase58());
-        const compiledMsg = tx.compileMessage();
-        console.log('[createMatch] requiredSigners:', compiledMsg.header.numRequiredSignatures);
-        compiledMsg.accountKeys.slice(0, compiledMsg.header.numRequiredSignatures)
-          .forEach((k: PublicKey, i: number) => console.log('[createMatch] reqSigner', i, k.toBase58()));
-        tx.signatures.forEach(s => console.log('[createMatch] PRE-SIGN', s.publicKey.toBase58(), 'hasSig:', !!s.signature));
-        // === END PRE-SIGN DEBUG ===
+        console.log('[createMatch] wallet:', walletPubkey.toBase58());
+        console.log('[createMatch] adapter:', this.wallet.wallet?.adapter?.name ?? 'unknown');
+        console.log('[createMatch] isMWA:', this.isMobileWalletAdapter());
 
-        let signature: string;
-
-        if (this.wallet.signTransaction) {
-          console.log('[createMatch] calling wallet.signTransaction...');
-          const signedTx = await this.wallet.signTransaction(tx);
-
-          // === TEMP DEBUG: post-sign ===
-          signedTx.signatures.forEach(s => console.log('[createMatch] POST-SIGN', s.publicKey.toBase58(), 'hasSig:', !!s.signature));
-
-          // Hard assertion: wallet MUST have signed
-          const walletSig = signedTx.signatures.find(s => s.publicKey.equals(walletPubkey));
-          if (!walletSig?.signature) {
-            throw new Error('[createMatch] Wallet did not sign - missing signature for ' + walletPubkey.toBase58());
-          }
-
-          // Serialize the SIGNED tx (not the original `tx`)
-          console.log('[createMatch] serializing signedTx (not tx)');
-          const rawBytes = signedTx.serialize();
-          console.log('[createMatch] serialized length:', rawBytes.length, 'first 64 bytes (sig):', Buffer.from(rawBytes.slice(0, 64)).toString('hex'));
-          signature = await this.connection.sendRawTransaction(rawBytes, {
-            skipPreflight: false,
-            preflightCommitment: 'confirmed',
-          });
-        } else if (this.wallet.sendTransaction) {
-          console.log('[createMatch] using sendTransaction fallback');
-          signature = await this.wallet.sendTransaction(tx, this.connection, {
-            skipPreflight: false,
-            preflightCommitment: 'confirmed',
-          });
-        } else {
-          throw new Error('Wallet does not support transaction signing');
-        }
+        const signature = await this.buildSignAndSend(instruction, blockhash, lastValidBlockHeight, 'createMatch');
 
         console.log('Transaction sent, signature:', signature);
         console.log('Waiting for confirmation...');
@@ -355,63 +396,21 @@ export class EscrowClient {
       );
     }
 
-    const instruction = {
+    const instruction = new TransactionInstruction({
       keys,
       programId: PROGRAM_ID,
       data: instructionData,
-    };
-
-    const tx = new Transaction().add(instruction);
-    tx.feePayer = walletPubkey;
+    });
 
     // Use "finalized" commitment for blockhash – more reliable on Seed Vault / mobile
     const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('finalized');
-    tx.recentBlockhash = blockhash;
-    tx.lastValidBlockHeight = lastValidBlockHeight;
 
-    // === TEMP DEBUG: joinMatch signer diagnosis ===
-    console.log('[joinMatch] wallet:', this.wallet.publicKey?.toBase58());
-    console.log('[joinMatch] feePayer:', tx.feePayer?.toBase58());
-    const compiledMsg = tx.compileMessage();
-    console.log('[joinMatch] requiredSigners:', compiledMsg.header.numRequiredSignatures);
-    compiledMsg.accountKeys.slice(0, compiledMsg.header.numRequiredSignatures)
-      .forEach((k: PublicKey, i: number) => console.log('[joinMatch] reqSigner', i, k.toBase58()));
-    tx.signatures.forEach(s => console.log('[joinMatch] PRE-SIGN', s.publicKey.toBase58(), 'hasSig:', !!s.signature));
-    // === END PRE-SIGN DEBUG ===
+    console.log('[joinMatch] wallet:', walletPubkey.toBase58());
+    console.log('[joinMatch] adapter:', this.wallet.wallet?.adapter?.name ?? 'unknown');
+    console.log('[joinMatch] isMWA:', this.isMobileWalletAdapter());
 
     try {
-      let signature: string;
-
-      if (this.wallet.signTransaction) {
-        console.log('[joinMatch] calling wallet.signTransaction...');
-        const signedTx = await this.wallet.signTransaction(tx);
-
-        // === TEMP DEBUG: post-sign ===
-        signedTx.signatures.forEach(s => console.log('[joinMatch] POST-SIGN', s.publicKey.toBase58(), 'hasSig:', !!s.signature));
-
-        // Hard assertion: wallet MUST have signed
-        const walletSig = signedTx.signatures.find(s => s.publicKey.equals(walletPubkey));
-        if (!walletSig?.signature) {
-          throw new Error('[joinMatch] Wallet did not sign - missing signature for ' + walletPubkey.toBase58());
-        }
-
-        // Serialize the SIGNED tx (not the original `tx`)
-        console.log('[joinMatch] serializing signedTx (not tx)');
-        const rawBytes = signedTx.serialize();
-        console.log('[joinMatch] serialized length:', rawBytes.length, 'first 64 bytes (sig):', Buffer.from(rawBytes.slice(0, 64)).toString('hex'));
-        signature = await this.connection.sendRawTransaction(rawBytes, {
-          skipPreflight: false,
-          preflightCommitment: 'confirmed',
-        });
-      } else if (this.wallet.sendTransaction) {
-        console.log('[joinMatch] using sendTransaction fallback');
-        signature = await this.wallet.sendTransaction(tx, this.connection, {
-          skipPreflight: false,
-          preflightCommitment: 'confirmed',
-        });
-      } else {
-        throw new Error('Wallet does not support transaction signing');
-      }
+      const signature = await this.buildSignAndSend(instruction, blockhash, lastValidBlockHeight, 'joinMatch');
 
       console.log('Join transaction sent, signature:', signature);
       console.log('Waiting for confirmation...');
@@ -471,41 +470,15 @@ export class EscrowClient {
       { pubkey: this.wallet.publicKey, isSigner: true, isWritable: false },
     ];
 
-    const instruction = {
+    const instruction = new TransactionInstruction({
       keys,
       programId: PROGRAM_ID,
       data: instructionData,
-    };
-
-    const walletPubkey = this.wallet.publicKey;
-    const tx = new Transaction().add(instruction);
-    tx.feePayer = walletPubkey;
+    });
 
     const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('finalized');
-    tx.recentBlockhash = blockhash;
-    tx.lastValidBlockHeight = lastValidBlockHeight;
 
-    let signature: string;
-
-    if (this.wallet.signTransaction) {
-      const signed = await this.wallet.signTransaction(tx);
-
-      const walletSig = signed.signatures.find(s => s.publicKey.equals(walletPubkey));
-      if (!walletSig?.signature) {
-        throw new Error(
-          `Wallet did not sign the submitResult transaction. Expected signature for ${walletPubkey.toBase58()}.`
-        );
-      }
-
-      signature = await this.connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
-    } else if (this.wallet.sendTransaction) {
-      signature = await this.wallet.sendTransaction(tx, this.connection, {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-      });
-    } else {
-      throw new Error('Wallet does not support transaction signing');
-    }
+    const signature = await this.buildSignAndSend(instruction, blockhash, lastValidBlockHeight, 'submitResult');
 
     const confirmation = await this.connection.confirmTransaction(
       { signature, blockhash, lastValidBlockHeight },
@@ -552,46 +525,15 @@ export class EscrowClient {
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ];
 
-    const instruction = {
+    const instruction = new TransactionInstruction({
       keys,
       programId: PROGRAM_ID,
       data: instructionData,
-    };
-
-    const walletPubkey = this.wallet.publicKey;
-    const tx = new Transaction().add(instruction);
-    tx.feePayer = walletPubkey;
+    });
 
     const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('finalized');
-    tx.recentBlockhash = blockhash;
-    tx.lastValidBlockHeight = lastValidBlockHeight;
 
-    let signature: string;
-
-    if (this.wallet.signTransaction) {
-      console.log('Signing confirmPayout with wallet.signTransaction...');
-      const signed = await this.wallet.signTransaction(tx);
-
-      const walletSig = signed.signatures.find(s => s.publicKey.equals(walletPubkey));
-      if (!walletSig?.signature) {
-        throw new Error(
-          `Wallet did not sign the confirmPayout transaction. Expected signature for ${walletPubkey.toBase58()}.`
-        );
-      }
-
-      signature = await this.connection.sendRawTransaction(signed.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-      });
-    } else if (this.wallet.sendTransaction) {
-      console.log('Using sendTransaction for confirmPayout (fallback)...');
-      signature = await this.wallet.sendTransaction(tx, this.connection, {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-      });
-    } else {
-      throw new Error('Wallet does not support transaction signing');
-    }
+    const signature = await this.buildSignAndSend(instruction, blockhash, lastValidBlockHeight, 'confirmPayout');
 
     const confirmation = await this.connection.confirmTransaction(
       { signature, blockhash, lastValidBlockHeight },
@@ -631,44 +573,15 @@ export class EscrowClient {
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ];
 
-    const instruction = {
+    const instruction = new TransactionInstruction({
       keys,
       programId: PROGRAM_ID,
       data: instructionData,
-    };
-
-    const walletPubkey = this.wallet.publicKey;
-    const tx = new Transaction().add(instruction);
-    tx.feePayer = walletPubkey;
+    });
 
     const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('finalized');
-    tx.recentBlockhash = blockhash;
-    tx.lastValidBlockHeight = lastValidBlockHeight;
 
-    let signature: string;
-
-    if (this.wallet.signTransaction) {
-      const signed = await this.wallet.signTransaction(tx);
-
-      const walletSig = signed.signatures.find(s => s.publicKey.equals(walletPubkey));
-      if (!walletSig?.signature) {
-        throw new Error(
-          `Wallet did not sign the cancelMatch transaction. Expected signature for ${walletPubkey.toBase58()}.`
-        );
-      }
-
-      signature = await this.connection.sendRawTransaction(signed.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-      });
-    } else if (this.wallet.sendTransaction) {
-      signature = await this.wallet.sendTransaction(tx, this.connection, {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-      });
-    } else {
-      throw new Error('Wallet does not support transaction signing');
-    }
+    const signature = await this.buildSignAndSend(instruction, blockhash, lastValidBlockHeight, 'cancelMatch');
 
     await this.connection.confirmTransaction(
       { signature, blockhash, lastValidBlockHeight },
@@ -709,43 +622,15 @@ export class EscrowClient {
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ];
 
-    const instruction = {
+    const instruction = new TransactionInstruction({
       keys,
       programId: PROGRAM_ID,
       data: instructionData,
-    };
-
-    const tx = new Transaction().add(instruction);
-    tx.feePayer = walletPubkey;
+    });
 
     const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('finalized');
-    tx.recentBlockhash = blockhash;
-    tx.lastValidBlockHeight = lastValidBlockHeight;
 
-    let signature: string;
-
-    if (this.wallet.signTransaction) {
-      const signed = await this.wallet.signTransaction(tx);
-
-      const walletSig = signed.signatures.find(s => s.publicKey.equals(walletPubkey));
-      if (!walletSig?.signature) {
-        throw new Error(
-          `Wallet did not sign the abandonMatch transaction. Expected signature for ${walletPubkey.toBase58()}.`
-        );
-      }
-
-      signature = await this.connection.sendRawTransaction(signed.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-      });
-    } else if (this.wallet.sendTransaction) {
-      signature = await this.wallet.sendTransaction(tx, this.connection, {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-      });
-    } else {
-      throw new Error('Wallet does not support transaction signing');
-    }
+    const signature = await this.buildSignAndSend(instruction, blockhash, lastValidBlockHeight, 'abandonMatch');
 
     await this.connection.confirmTransaction(
       { signature, blockhash, lastValidBlockHeight },
@@ -785,44 +670,15 @@ export class EscrowClient {
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     ];
 
-    const instruction = {
+    const instruction = new TransactionInstruction({
       keys,
       programId: PROGRAM_ID,
       data: instructionData,
-    };
-
-    const walletPubkey = this.wallet.publicKey;
-    const tx = new Transaction().add(instruction);
-    tx.feePayer = walletPubkey;
+    });
 
     const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('finalized');
-    tx.recentBlockhash = blockhash;
-    tx.lastValidBlockHeight = lastValidBlockHeight;
 
-    let signature: string;
-
-    if (this.wallet.signTransaction) {
-      const signed = await this.wallet.signTransaction(tx);
-
-      const walletSig = signed.signatures.find(s => s.publicKey.equals(walletPubkey));
-      if (!walletSig?.signature) {
-        throw new Error(
-          `Wallet did not sign the forceRefund transaction. Expected signature for ${walletPubkey.toBase58()}.`
-        );
-      }
-
-      signature = await this.connection.sendRawTransaction(signed.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-      });
-    } else if (this.wallet.sendTransaction) {
-      signature = await this.wallet.sendTransaction(tx, this.connection, {
-        skipPreflight: false,
-        preflightCommitment: 'confirmed',
-      });
-    } else {
-      throw new Error('Wallet does not support transaction signing');
-    }
+    const signature = await this.buildSignAndSend(instruction, blockhash, lastValidBlockHeight, 'forceRefund');
 
     await this.connection.confirmTransaction(
       { signature, blockhash, lastValidBlockHeight },
