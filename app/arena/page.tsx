@@ -678,6 +678,19 @@ function LockedHero({ reason, mateBalance, skrBalance, onConnect }: {
                 </a>
               </div>
             </div>
+
+            {/* Token Addresses */}
+            <div style={{ ...fadeUp(0.65), maxWidth: 480, margin: '24px auto 0', padding: '0 16px' }}>
+              <p style={{
+                fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
+                letterSpacing: '0.1em', color: '#444', marginBottom: 14,
+                fontFamily: "'Space Mono', monospace",
+              }}>Token Addresses (tap to copy)</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
+                <CopyableAddress label="$MATE" address={SOLMATE_TOKEN_MINT} accentColor="#eab308" />
+                <CopyableAddress label="$SKR" address={SKR_TOKEN_MINT} accentColor="#9945ff" />
+              </div>
+            </div>
           </>
         ) : (
           <>
