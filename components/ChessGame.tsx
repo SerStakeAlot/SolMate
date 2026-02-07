@@ -1938,7 +1938,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
           {mode === 'wager' && matchInfo && (
             <div style={{
               width: '100%',
-              maxWidth: 'min(576px, calc(100vw - 1rem))',
+              maxWidth: 'min(576px, calc(100vw - 12px))',
               borderRadius: 20,
               overflow: 'hidden',
               marginBottom: 16,
