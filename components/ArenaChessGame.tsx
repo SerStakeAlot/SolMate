@@ -571,10 +571,10 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
                     const rank = 8 - row;
                     const file = FILES[col];
 
-                    // Dark themed square colors
-                    let bgColor = isLight ? '#1e1e3a' : '#12122a';
+                    // Square colors - light and dark
+                    let bgColor = isLight ? '#e8e0f0' : '#12122a';
                     if (isLastMoveSquare && !isSelected && !isCheck) {
-                      bgColor = isLight ? 'rgba(153,69,255,0.18)' : 'rgba(153,69,255,0.28)';
+                      bgColor = isLight ? 'rgba(153,69,255,0.22)' : 'rgba(153,69,255,0.28)';
                     }
                     if (isSelected) {
                       bgColor = 'rgba(0,255,163,0.25)';

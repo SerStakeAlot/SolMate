@@ -2359,12 +2359,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
                 // Determine background color with priority: check > selected > lastMove > default
                 let bgStyle: React.CSSProperties = {
-                  backgroundColor: isLight ? '#1e1e3a' : '#12122a',
+                  backgroundColor: isLight ? '#e8e0f0' : '#12122a',
                   borderRadius: '2px',
                 };
                 
                 if (isLastMove && !isSelected && !isKingInCheck) {
-                  bgStyle.backgroundColor = isLight ? 'rgba(153,69,255,0.18)' : 'rgba(153,69,255,0.28)';
+                  bgStyle.backgroundColor = isLight ? 'rgba(153,69,255,0.22)' : 'rgba(153,69,255,0.28)';
                 }
                 if (isSelected) {
                   bgStyle.backgroundColor = 'rgba(0,255,163,0.25)';
