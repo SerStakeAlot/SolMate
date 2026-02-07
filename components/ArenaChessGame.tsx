@@ -12,8 +12,9 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-prod
 const MAX_GAMES_PER_DAY = 20;
 const MIN_MOVES_TO_COUNT = 10;
 const COOLDOWN_SECONDS = 30;
-const AI_THINK_TIME_MS = 300; // AI "thinks" for realism
-const AI_DEPTH = 3; // Minimax depth - enhanced with opening book and move ordering
+const AI_THINK_TIME_MS = 150; // AI "thinks" for realism
+const AI_MAX_DEPTH = 6; // Maximum iterative deepening depth
+const AI_TIME_LIMIT_MS = 1500; // Time budget for search (ms) - ensures ~1500 ELO strength
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 
 // Piece SVG paths
@@ -247,8 +248,8 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
     // Simulate thinking time
     await new Promise(resolve => setTimeout(resolve, AI_THINK_TIME_MS));
     
-    // Get best move using minimax with increased depth
-    const bestMove = findBestMove(chess, AI_DEPTH);
+    // Get best move using iterative deepening minimax
+    const bestMove = findBestMove(chess, AI_MAX_DEPTH);
     
     if (bestMove) {
       const isCapture = chess.get(bestMove.to as Square) !== null;
@@ -1104,13 +1105,22 @@ const OPENING_BOOK: Record<string, string[]> = {
   'rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq': ['e4d5'], // vs Scandinavian
 };
 
-// Simple minimax AI with opening book
-function findBestMove(chess: Chess, depth: number): Move | null {
-  // Check opening book first (much faster)
-  const fen = chess.fen().split(' ').slice(0, 4).join(' '); // Position without move counters
+// Enhanced minimax AI with iterative deepening, quiescence search, and improved evaluation
+// Target: ~1500 ELO strength with non-deterministic play
+
+let searchStartTime = 0;
+let searchTimedOut = false;
+
+// Variance window: moves within this score range of the best are eligible for random selection.
+// 25 centipawns keeps play strong but varied (~1500 ELO). Forced tactics won't be missed
+// because a +25cp move is still clearly better than a blunder.
+const SCORE_VARIANCE_CP = 25;
+
+function findBestMove(chess: Chess, maxDepth: number): Move | null {
+  // Check opening book first
+  const fen = chess.fen().split(' ').slice(0, 4).join(' ');
   const bookMoves = OPENING_BOOK[fen];
   if (bookMoves && bookMoves.length > 0) {
-    // Pick a random book move for variety
     const bookMove = bookMoves[Math.floor(Math.random() * bookMoves.length)];
     const from = bookMove.slice(0, 2);
     const to = bookMove.slice(2, 4);
@@ -1128,64 +1138,146 @@ function findBestMove(chess: Chess, depth: number): Move | null {
 
   const moves = chess.moves({ verbose: true });
   if (moves.length === 0) return null;
-  
-  // Sort moves for better alpha-beta pruning (captures, checks first)
-  const sortedMoves = moves.sort((a, b) => {
-    let scoreA = 0, scoreB = 0;
-    // Prioritize captures
-    if (a.captured) scoreA += 10 + getPieceValue(a.captured);
-    if (b.captured) scoreB += 10 + getPieceValue(b.captured);
-    // Prioritize checks
-    chess.move(a);
-    if (chess.isCheck()) scoreA += 5;
-    chess.undo();
-    chess.move(b);
-    if (chess.isCheck()) scoreB += 5;
-    chess.undo();
-    // Prioritize center moves
-    if (['d4', 'd5', 'e4', 'e5'].includes(a.to)) scoreA += 2;
-    if (['d4', 'd5', 'e4', 'e5'].includes(b.to)) scoreB += 2;
-    return scoreB - scoreA;
-  });
+  if (moves.length === 1) return moves[0]; // Only one legal move
 
+  searchStartTime = Date.now();
+  searchTimedOut = false;
   let bestMove: Move | null = null;
-  let bestScore = chess.turn() === 'b' ? Infinity : -Infinity;
-  
-  for (const move of sortedMoves) {
-    chess.move(move);
-    const score = minimax(chess, depth - 1, -Infinity, Infinity, chess.turn() === 'b');
-    chess.undo();
-    
-    if (chess.turn() === 'b') {
-      // AI plays black, wants minimum score
-      if (score < bestScore) {
-        bestScore = score;
-        bestMove = move;
+  let candidateMoves: { move: Move; score: number }[] = [];
+
+  // Iterative deepening: search depth 1, 2, 3... up to maxDepth or time limit
+  for (let depth = 1; depth <= maxDepth; depth++) {
+    if (Date.now() - searchStartTime > AI_TIME_LIMIT_MS) break;
+
+    const isMaximizing = chess.turn() === 'w';
+    const depthCandidates: { move: Move; score: number }[] = [];
+
+    // Order moves: put previous best move first, then captures/checks, then rest
+    const orderedMoves = orderMoves(chess, moves, bestMove);
+
+    for (const move of orderedMoves) {
+      if (searchTimedOut) break;
+
+      chess.move(move);
+      const score = minimax(chess, depth - 1, -Infinity, Infinity, !isMaximizing);
+      chess.undo();
+
+      if (searchTimedOut) break;
+
+      depthCandidates.push({ move, score });
+    }
+
+    // Only update candidates if we completed this depth fully
+    if (!searchTimedOut && depthCandidates.length > 0) {
+      candidateMoves = depthCandidates;
+
+      // Sort by score (best first depending on side)
+      if (isMaximizing) {
+        candidateMoves.sort((a, b) => b.score - a.score);
+      } else {
+        candidateMoves.sort((a, b) => a.score - b.score);
       }
-    } else {
-      if (score > bestScore) {
-        bestScore = score;
-        bestMove = move;
+      bestMove = candidateMoves[0].move;
+
+      // Stop if we found a forced mate
+      if (Math.abs(candidateMoves[0].score) > 9000) break;
+    } else if (depthCandidates.length > 0 && !bestMove) {
+      // Use partial result if we have nothing yet
+      candidateMoves = depthCandidates;
+      if (chess.turn() === 'w') {
+        candidateMoves.sort((a, b) => b.score - a.score);
+      } else {
+        candidateMoves.sort((a, b) => a.score - b.score);
       }
+      bestMove = candidateMoves[0].move;
     }
   }
-  
+
+  // Non-deterministic selection: pick randomly among moves within SCORE_VARIANCE_CP of best
+  if (candidateMoves.length > 1 && Math.abs(candidateMoves[0].score) < 9000) {
+    const bestScore = candidateMoves[0].score;
+    const eligible = candidateMoves.filter(
+      c => Math.abs(c.score - bestScore) <= SCORE_VARIANCE_CP
+    );
+    if (eligible.length > 1) {
+      return eligible[Math.floor(Math.random() * eligible.length)].move;
+    }
+  }
+
   return bestMove;
 }
 
+// Order moves for better alpha-beta pruning
+function orderMoves(chess: Chess, moves: Move[], pvMove: Move | null): Move[] {
+  const scored = moves.map(move => {
+    let score = 0;
+    // PV move from previous iteration always first
+    if (pvMove && move.from === pvMove.from && move.to === pvMove.to) {
+      score += 10000;
+    }
+    // MVV-LVA: Most Valuable Victim - Least Valuable Attacker
+    if (move.captured) {
+      score += 1000 + getPieceValue(move.captured) * 100 - getPieceValue(move.piece) * 10;
+    }
+    // Promotions
+    if (move.promotion) {
+      score += 900 + (move.promotion === 'q' ? 800 : 0);
+    }
+    // Check bonus (cheap check detection via san)
+    if (move.san && (move.san.includes('+') || move.san.includes('#'))) {
+      score += 500;
+    }
+    // Center moves
+    if (['d4','d5','e4','e5'].includes(move.to)) score += 20;
+    if (['c3','c4','c5','c6','d3','d6','e3','e6','f3','f4','f5','f6'].includes(move.to)) score += 10;
+    return { move, score };
+  });
+  scored.sort((a, b) => b.score - a.score);
+  return scored.map(s => s.move);
+}
+
+// Lightweight move ordering inside the tree (no PV move, no check detection)
+function orderMovesInTree(moves: Move[]): Move[] {
+  return moves.sort((a, b) => {
+    let sa = 0, sb = 0;
+    if (a.captured) sa += 1000 + getPieceValue(a.captured) * 100 - getPieceValue(a.piece) * 10;
+    if (b.captured) sb += 1000 + getPieceValue(b.captured) * 100 - getPieceValue(b.piece) * 10;
+    if (a.promotion) sa += 900;
+    if (b.promotion) sb += 900;
+    if (['d4','d5','e4','e5'].includes(a.to)) sa += 20;
+    if (['d4','d5','e4','e5'].includes(b.to)) sb += 20;
+    return sb - sa;
+  });
+}
+
 function minimax(chess: Chess, depth: number, alpha: number, beta: number, maximizing: boolean): number {
-  if (depth === 0 || chess.isGameOver()) {
+  // Time check every few nodes
+  if ((Date.now() - searchStartTime) > AI_TIME_LIMIT_MS) {
+    searchTimedOut = true;
     return evaluateBoard(chess);
   }
-  
-  const moves = chess.moves({ verbose: true });
-  
+
+  if (chess.isGameOver()) {
+    if (chess.isCheckmate()) {
+      // Add depth bonus so engine prefers faster mates
+      return chess.turn() === 'w' ? -10000 - depth : 10000 + depth;
+    }
+    return 0; // Draw
+  }
+
+  if (depth <= 0) {
+    return quiescenceSearch(chess, alpha, beta, maximizing, 6);
+  }
+
+  const moves = orderMovesInTree(chess.moves({ verbose: true }));
+
   if (maximizing) {
     let maxEval = -Infinity;
     for (const move of moves) {
       chess.move(move);
       const eval_ = minimax(chess, depth - 1, alpha, beta, false);
       chess.undo();
+      if (searchTimedOut) return eval_;
       maxEval = Math.max(maxEval, eval_);
       alpha = Math.max(alpha, eval_);
       if (beta <= alpha) break;
@@ -1197,11 +1289,79 @@ function minimax(chess: Chess, depth: number, alpha: number, beta: number, maxim
       chess.move(move);
       const eval_ = minimax(chess, depth - 1, alpha, beta, true);
       chess.undo();
+      if (searchTimedOut) return eval_;
       minEval = Math.min(minEval, eval_);
       beta = Math.min(beta, eval_);
       if (beta <= alpha) break;
     }
     return minEval;
+  }
+}
+
+// Quiescence search: only evaluate captures/promotions at leaf nodes to avoid horizon effect
+function quiescenceSearch(chess: Chess, alpha: number, beta: number, maximizing: boolean, qDepth: number): number {
+  if (searchTimedOut || (Date.now() - searchStartTime) > AI_TIME_LIMIT_MS) {
+    searchTimedOut = true;
+    return evaluateBoard(chess);
+  }
+
+  const standPat = evaluateBoard(chess);
+
+  if (qDepth <= 0) return standPat;
+
+  if (chess.isGameOver()) {
+    if (chess.isCheckmate()) {
+      return chess.turn() === 'w' ? -10000 : 10000;
+    }
+    return 0;
+  }
+
+  if (maximizing) {
+    if (standPat >= beta) return beta;
+    if (standPat > alpha) alpha = standPat;
+
+    // Only search captures and promotions
+    const moves = chess.moves({ verbose: true }).filter(m => m.captured || m.promotion);
+    const sorted = moves.sort((a, b) => {
+      const sa = (a.captured ? getPieceValue(a.captured) * 100 - getPieceValue(a.piece) * 10 : 0) + (a.promotion ? 800 : 0);
+      const sb = (b.captured ? getPieceValue(b.captured) * 100 - getPieceValue(b.piece) * 10 : 0) + (b.promotion ? 800 : 0);
+      return sb - sa;
+    });
+
+    for (const move of sorted) {
+      // Delta pruning: skip captures that can't possibly raise alpha
+      if (move.captured && standPat + getPieceValue(move.captured) * 100 + 200 < alpha) continue;
+
+      chess.move(move);
+      const score = quiescenceSearch(chess, alpha, beta, false, qDepth - 1);
+      chess.undo();
+      if (searchTimedOut) return score;
+      if (score > alpha) alpha = score;
+      if (alpha >= beta) return beta;
+    }
+    return alpha;
+  } else {
+    if (standPat <= alpha) return alpha;
+    if (standPat < beta) beta = standPat;
+
+    const moves = chess.moves({ verbose: true }).filter(m => m.captured || m.promotion);
+    const sorted = moves.sort((a, b) => {
+      const sa = (a.captured ? getPieceValue(a.captured) * 100 - getPieceValue(a.piece) * 10 : 0) + (a.promotion ? 800 : 0);
+      const sb = (b.captured ? getPieceValue(b.captured) * 100 - getPieceValue(b.piece) * 10 : 0) + (b.promotion ? 800 : 0);
+      return sb - sa;
+    });
+
+    for (const move of sorted) {
+      if (move.captured && standPat - getPieceValue(move.captured) * 100 - 200 > beta) continue;
+
+      chess.move(move);
+      const score = quiescenceSearch(chess, alpha, beta, true, qDepth - 1);
+      chess.undo();
+      if (searchTimedOut) return score;
+      if (score < beta) beta = score;
+      if (alpha >= beta) return alpha;
+    }
+    return beta;
   }
 }
 
@@ -1245,9 +1405,9 @@ function evaluateBoard(chess: Chess): number {
   const bishopTable = [
     -20,-10,-10,-10,-10,-10,-10,-20,
     -10,  0,  0,  0,  0,  0,  0,-10,
-    -10,  0,  5, 10, 10,  5,  0,-10,
-    -10,  5,  5, 10, 10,  5,  5,-10,
     -10,  0, 10, 10, 10, 10,  0,-10,
+    -10,  5, 10, 15, 15, 10,  5,-10,
+    -10,  0, 15, 15, 15, 15,  0,-10,
     -10, 10, 10, 10, 10, 10, 10,-10,
     -10,  5,  0,  0,  0,  0,  5,-10,
     -20,-10,-10,-10,-10,-10,-10,-20
@@ -1286,6 +1446,17 @@ function evaluateBoard(chess: Chess): number {
      20, 30, 10,  0,  0, 10, 30, 20
   ];
   
+  const kingEndgameTable = [
+    -50,-40,-30,-20,-20,-30,-40,-50,
+    -30,-20,-10,  0,  0,-10,-20,-30,
+    -30,-10, 20, 30, 30, 20,-10,-30,
+    -30,-10, 30, 40, 40, 30,-10,-30,
+    -30,-10, 30, 40, 40, 30,-10,-30,
+    -30,-10, 20, 30, 30, 20,-10,-30,
+    -30,-30,  0,  0,  0,  0,-30,-30,
+    -50,-30,-30,-30,-30,-30,-30,-50
+  ];
+  
   const tables: Record<string, number[]> = {
     p: pawnTable,
     n: knightTable,
@@ -1298,6 +1469,37 @@ function evaluateBoard(chess: Chess): number {
   let score = 0;
   const board = chess.board();
   
+  // Determine game phase for king table selection
+  let totalMaterial = 0;
+  let wBishopCount = 0, bBishopCount = 0;
+  const wPawnCols: number[][] = [[], [], [], [], [], [], [], []];
+  const bPawnCols: number[][] = [[], [], [], [], [], [], [], []];
+  
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const piece = board[row][col];
+      if (piece) {
+        if (piece.type !== 'k' && piece.type !== 'p') {
+          totalMaterial += pieceValues[piece.type] || 0;
+        }
+        if (piece.type === 'b') {
+          if (piece.color === 'w') wBishopCount++;
+          else bBishopCount++;
+        }
+        if (piece.type === 'p') {
+          if (piece.color === 'w') wPawnCols[col].push(row);
+          else bPawnCols[col].push(row);
+        }
+      }
+    }
+  }
+  
+  const isEndgame = totalMaterial < 2600; // ~queen + rook gone
+  if (isEndgame) {
+    tables['k'] = kingEndgameTable;
+  }
+  
+  // Material + piece-square tables
   for (let row = 0; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
       const piece = board[row][col];
@@ -1305,13 +1507,11 @@ function evaluateBoard(chess: Chess): number {
         const value = pieceValues[piece.type] || 0;
         const table = tables[piece.type];
         
-        // Get position bonus from table
         let posBonus = 0;
         if (table) {
           if (piece.color === 'w') {
             posBonus = table[row * 8 + col];
           } else {
-            // Mirror for black
             posBonus = table[(7 - row) * 8 + col];
           }
         }
@@ -1325,9 +1525,95 @@ function evaluateBoard(chess: Chess): number {
     }
   }
   
-  // Add mobility bonus
-  const moves = chess.moves();
-  score += moves.length * 5 * (chess.turn() === 'w' ? 1 : -1);
+  // Bishop pair bonus (+30 centipawns)
+  if (wBishopCount >= 2) score += 30;
+  if (bBishopCount >= 2) score -= 30;
+  
+  // Pawn structure evaluation
+  for (let col = 0; col < 8; col++) {
+    // Doubled pawns penalty
+    if (wPawnCols[col].length > 1) score -= 20 * (wPawnCols[col].length - 1);
+    if (bPawnCols[col].length > 1) score += 20 * (bPawnCols[col].length - 1);
+    
+    // Isolated pawns penalty (no friendly pawns on adjacent files)
+    if (wPawnCols[col].length > 0) {
+      const hasNeighbor = (col > 0 && wPawnCols[col-1].length > 0) || (col < 7 && wPawnCols[col+1].length > 0);
+      if (!hasNeighbor) score -= 15;
+    }
+    if (bPawnCols[col].length > 0) {
+      const hasNeighbor = (col > 0 && bPawnCols[col-1].length > 0) || (col < 7 && bPawnCols[col+1].length > 0);
+      if (!hasNeighbor) score += 15;
+    }
+    
+    // Passed pawns bonus (no opposing pawns on same or adjacent files ahead)
+    for (const row of wPawnCols[col]) {
+      let isPassed = true;
+      for (let r = row - 1; r >= 0; r--) {
+        for (let c = Math.max(0, col-1); c <= Math.min(7, col+1); c++) {
+          if (bPawnCols[c].includes(r)) { isPassed = false; break; }
+        }
+        if (!isPassed) break;
+      }
+      if (isPassed) score += 20 + (7 - row) * 10; // More bonus the further advanced
+    }
+    for (const row of bPawnCols[col]) {
+      let isPassed = true;
+      for (let r = row + 1; r <= 7; r++) {
+        for (let c = Math.max(0, col-1); c <= Math.min(7, col+1); c++) {
+          if (wPawnCols[c].includes(r)) { isPassed = false; break; }
+        }
+        if (!isPassed) break;
+      }
+      if (isPassed) score -= 20 + row * 10;
+    }
+  }
+  
+  // Rook on open/semi-open file bonus
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const piece = board[row][col];
+      if (piece && piece.type === 'r') {
+        const ownPawns = piece.color === 'w' ? wPawnCols[col] : bPawnCols[col];
+        const oppPawns = piece.color === 'w' ? bPawnCols[col] : wPawnCols[col];
+        if (ownPawns.length === 0 && oppPawns.length === 0) {
+          score += piece.color === 'w' ? 25 : -25; // Open file
+        } else if (ownPawns.length === 0) {
+          score += piece.color === 'w' ? 15 : -15; // Semi-open file
+        }
+      }
+    }
+  }
+  
+  // King safety: pawn shield bonus in middlegame
+  if (!isEndgame) {
+    // Find king positions
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const piece = board[row][col];
+        if (piece && piece.type === 'k') {
+          let shieldBonus = 0;
+          if (piece.color === 'w' && row >= 6) {
+            // Check pawns in front of white king
+            for (let c = Math.max(0, col-1); c <= Math.min(7, col+1); c++) {
+              if (board[row-1]?.[c]?.type === 'p' && board[row-1]?.[c]?.color === 'w') shieldBonus += 15;
+              if (board[row-2]?.[c]?.type === 'p' && board[row-2]?.[c]?.color === 'w') shieldBonus += 5;
+            }
+            score += shieldBonus;
+          } else if (piece.color === 'b' && row <= 1) {
+            for (let c = Math.max(0, col-1); c <= Math.min(7, col+1); c++) {
+              if (board[row+1]?.[c]?.type === 'p' && board[row+1]?.[c]?.color === 'b') shieldBonus += 15;
+              if (board[row+2]?.[c]?.type === 'p' && board[row+2]?.[c]?.color === 'b') shieldBonus += 5;
+            }
+            score -= shieldBonus;
+          }
+        }
+      }
+    }
+  }
+  
+  // Mobility: count legal moves (only if not too expensive - approximate with current side)
+  const mobility = chess.moves().length;
+  score += mobility * 3 * (chess.turn() === 'w' ? 1 : -1);
   
   return score;
 }
