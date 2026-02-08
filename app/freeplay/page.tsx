@@ -377,6 +377,7 @@ function FreePlayLobby({
   isJoining: boolean;
   onBack: () => void;
 }) {
+  const lobbyRouter = useRouter();
   const [joinCode, setJoinCode] = useState("");
   const [visible, setVisible] = useState(false);
 
@@ -664,8 +665,31 @@ function FreePlayLobby({
         </div>
       </div>
 
+      {/* Browse lobby button */}
+      <div style={fadeUp(0.36)}>
+        <button
+          onClick={() => lobbyRouter.push("/freeplay-lobby")}
+          style={{
+            width: "100%",
+            maxWidth: 560,
+            padding: "14px 24px",
+            borderRadius: 14,
+            background: "rgba(0,255,163,0.04)",
+            border: "1px solid rgba(0,255,163,0.15)",
+            color: "#00ffa3",
+            fontSize: 15,
+            fontWeight: 600,
+            cursor: "pointer",
+            transition: "all 0.2s",
+            fontFamily: "'Outfit', sans-serif",
+          }}
+        >
+          Browse Open Games →
+        </button>
+      </div>
+
       {/* Back button */}
-      <div style={fadeUp(0.4)}>
+      <div style={fadeUp(0.44)}>
         <button
           onClick={onBack}
           style={{

@@ -999,6 +999,25 @@ io.on('connection', (socket) => {
     socket.leave('lobby');
   });
 
+  // Free play lobby - browse available free play games
+  socket.on('freeplayLobby:subscribe', () => {
+    socket.join('freeplay-lobby');
+    const freePlayRooms = (global as any).freePlayRooms as Map<string, any> | undefined;
+    const rooms: any[] = [];
+    if (freePlayRooms) {
+      for (const [code, room] of freePlayRooms.entries()) {
+        if (!room.guestSocketId && !room.ready) {
+          rooms.push({ code, hostWallet: room.hostWallet, createdAt: room.createdAt || Date.now() });
+        }
+      }
+    }
+    socket.emit('freeplayLobby:rooms', { rooms });
+  });
+
+  socket.on('freeplayLobby:unsubscribe', () => {
+    socket.leave('freeplay-lobby');
+  });
+
   // ============ FREE PLAY (NO BLOCKCHAIN) EVENTS ============
   
   // Store for free play rooms (in-memory, no persistence needed)
@@ -1024,10 +1043,12 @@ io.on('connection', (socket) => {
       }
     }
     
-    freePlayRooms.set(code, { hostSocketId: socket.id, hostWallet: playerId });
+    const createdAt = Date.now();
+    freePlayRooms.set(code, { hostSocketId: socket.id, hostWallet: playerId, createdAt });
     console.log(`Free play room created: ${code} by ${playerId?.slice(0, 8) || 'anonymous'}`);
-    
+
     socket.emit('freeplay:hosted', { code });
+    io.to('freeplay-lobby').emit('freeplayLobby:newRoom', { code, hostWallet: playerId, createdAt });
   });
   
   // Join a free play game
@@ -1076,7 +1097,10 @@ io.on('connection', (socket) => {
     room.guestWallet = playerId;
     room.hostColor = 'w'; // Default: host is white
     room.ready = false; // Not started yet
-    
+
+    // Remove from lobby listing
+    io.to('freeplay-lobby').emit('freeplayLobby:roomRemoved', { code: code.toUpperCase() });
+
     console.log(`Free play room ${code} - guest ${playerId.slice(0, 8)} joined lobby`);
     
     // Notify host that guest joined (lobby state)
@@ -1227,9 +1251,11 @@ io.on('connection', (socket) => {
   
   // Cancel free play hosting
   socket.on('freeplay:cancel', ({ code }) => {
-    const room = freePlayRooms.get(code?.toUpperCase());
+    const upperCode = code?.toUpperCase();
+    const room = freePlayRooms.get(upperCode);
     if (room && room.hostSocketId === socket.id) {
-      freePlayRooms.delete(code.toUpperCase());
+      freePlayRooms.delete(upperCode);
+      io.to('freeplay-lobby').emit('freeplayLobby:roomRemoved', { code: upperCode });
       console.log(`Free play room ${code} cancelled`);
     }
   });
@@ -1314,6 +1340,7 @@ io.on('connection', (socket) => {
             io.to(room.guestSocketId).emit('freeplay:hostLeft', { code });
           }
           freePlayRooms.delete(code);
+          io.to('freeplay-lobby').emit('freeplayLobby:roomRemoved', { code });
           console.log(`Free play room ${code} deleted - host disconnected`);
         } else if (room.guestSocketId === socket.id) {
           // Guest left - notify host
