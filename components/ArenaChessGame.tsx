@@ -260,8 +260,8 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
       setBoard([...chess.board()]);
       setLastMove({ from: bestMove.from as Square, to: bestMove.to as Square });
 
-      // Capture the updated move count before state update
-      const updatedMoveCount = moveCount + 1;
+      // Count full moves (white + black = 1 move), standard chess convention
+      const updatedMoveCount = Math.ceil(chess.history().length / 2);
       setMoveCount(updatedMoveCount);
 
       // Play sound
@@ -284,7 +284,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
     }
 
     setIsAiThinking(false);
-  }, [chess, gameOver, playerColor, moveCount]);
+  }, [chess, gameOver, playerColor]);
 
   // Trigger AI move when it's AI's turn
   useEffect(() => {
@@ -307,8 +307,8 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
       setBoard([...chess.board()]);
       setLastMove({ from, to });
 
-      // Capture the updated move count before state update
-      const updatedMoveCount = moveCount + 1;
+      // Count full moves (white + black = 1 move), standard chess convention
+      const updatedMoveCount = Math.ceil(chess.history().length / 2);
       setMoveCount(updatedMoveCount);
       setPendingPromotion(null);
 
@@ -834,7 +834,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
                     fontFamily: "'Outfit', sans-serif",
                   }}>You</div>
                   <div style={{ fontSize: 11, color: '#444', fontFamily: "'Space Mono', monospace" }}>
-                    Move {Math.ceil(moveCount / 2)}
+                    Move {moveCount}
                   </div>
                 </div>
               </div>

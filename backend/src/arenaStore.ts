@@ -5,7 +5,7 @@ import fs from 'fs';
 // Arena configuration
 const MAX_GAMES_PER_DAY = 20;
 const COOLDOWN_SECONDS = 30;
-const MIN_MOVES_TO_COUNT = 10;
+const MIN_MOVES_TO_COUNT = 10; // Full moves (white + black = 1 move)
 const SHARE_BONUS = 0.25;
 
 interface ArenaGame {
