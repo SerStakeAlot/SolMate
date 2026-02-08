@@ -34,6 +34,9 @@ interface LeaderboardEntry {
   score: number;
 }
 
+// In-memory daily bonus allowances (admin override, resets on restart)
+const dailyBonusGames: Map<string, number> = new Map();
+
 class ArenaStore {
   private db: Database.Database;
 
@@ -124,11 +127,24 @@ class ArenaStore {
     return row?.played_at || null;
   }
 
+  // Get effective daily limit (base + any admin bonus)
+  getEffectiveDailyLimit(walletAddress: string): number {
+    const bonus = dailyBonusGames.get(walletAddress) || 0;
+    return MAX_GAMES_PER_DAY + bonus;
+  }
+
+  // Admin: grant extra daily games
+  grantBonusGames(walletAddress: string, count: number): void {
+    const current = dailyBonusGames.get(walletAddress) || 0;
+    dailyBonusGames.set(walletAddress, current + count);
+  }
+
   // Check if player can start a new game
   canStartGame(walletAddress: string): { canPlay: boolean; reason?: string; cooldownEndsAt?: number } {
-    // Check daily limit
+    // Check daily limit (including any admin bonus)
     const gamesToday = this.getGamesToday(walletAddress);
-    if (gamesToday >= MAX_GAMES_PER_DAY) {
+    const effectiveLimit = this.getEffectiveDailyLimit(walletAddress);
+    if (gamesToday >= effectiveLimit) {
       return { canPlay: false, reason: `Daily limit reached (${MAX_GAMES_PER_DAY} games)` };
     }
 
@@ -213,9 +229,10 @@ class ArenaStore {
     `);
     const rankRow = rankStmt.get(walletAddress) as { rank: number };
 
-    // Get games remaining today
+    // Get games remaining today (including any admin bonus)
     const gamesToday = this.getGamesToday(walletAddress);
-    const gamesRemaining = Math.max(0, MAX_GAMES_PER_DAY - gamesToday);
+    const effectiveLimit = this.getEffectiveDailyLimit(walletAddress);
+    const gamesRemaining = Math.max(0, effectiveLimit - gamesToday);
 
     // Get cooldown
     const lastGame = this.getLastGameTime(walletAddress);

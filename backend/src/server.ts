@@ -481,8 +481,8 @@ app.post('/api/admin/arena/adjust-stats', (req, res) => {
   }
 });
 
-// Admin endpoint to set games remaining today (bulk remove daily records, preserve stats)
-app.post('/api/admin/arena/set-daily-remaining', (req, res) => {
+// Admin endpoint to grant bonus daily games (adds to 20-game limit without touching records)
+app.post('/api/admin/arena/grant-bonus-games', (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
     const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
@@ -491,46 +491,28 @@ app.post('/api/admin/arena/set-daily-remaining', (req, res) => {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    const { walletAddress, targetRemaining = 1 } = req.body;
+    const { walletAddress, bonusGames = 1 } = req.body;
 
     if (!walletAddress) {
       return res.status(400).json({ error: 'walletAddress is required' });
     }
 
-    const gamesToday = arenaStore.getGamesToday(walletAddress);
-    const targetGames = 20 - targetRemaining;
-    const toRemove = gamesToday - targetGames;
-
-    if (toRemove <= 0) {
-      const stats = arenaStore.getPlayerStats(walletAddress);
-      return res.json({
-        message: `Already has ${stats.gamesRemainingToday}/20 remaining (${gamesToday} games today)`,
-        gamesToday,
-        gamesRemainingToday: stats.gamesRemainingToday,
-        removed: 0,
-      });
-    }
-
-    let removed = 0;
-    for (let i = 0; i < toRemove; i++) {
-      const result = arenaStore.removeTodayGame(walletAddress, true);
-      if (!result.removed) break;
-      removed++;
-    }
+    arenaStore.grantBonusGames(walletAddress, bonusGames);
 
     const stats = arenaStore.getPlayerStats(walletAddress);
+    const canPlay = arenaStore.canStartGame(walletAddress);
     res.json({
-      message: `Removed ${removed} daily game records for ${walletAddress}`,
+      message: `Granted ${bonusGames} bonus game(s) to ${walletAddress}`,
       gamesToday: arenaStore.getGamesToday(walletAddress),
       gamesRemainingToday: stats.gamesRemainingToday,
-      removed,
+      canPlay: canPlay.canPlay,
       matchesPlayed: stats.matchesPlayed,
       wins: stats.wins,
       score: stats.score,
     });
   } catch (error) {
-    console.error('Error setting daily remaining:', error);
-    res.status(500).json({ error: 'Failed to set daily remaining' });
+    console.error('Error granting bonus games:', error);
+    res.status(500).json({ error: 'Failed to grant bonus games' });
   }
 });
 
