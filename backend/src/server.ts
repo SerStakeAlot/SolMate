@@ -481,8 +481,8 @@ app.post('/api/admin/arena/adjust-stats', (req, res) => {
   }
 });
 
-// Admin endpoint to remove the most recent daily game record (frees up a game slot)
-app.post('/api/admin/arena/remove-daily-game', (req, res) => {
+// Admin endpoint to set games remaining today (bulk remove daily records, preserve stats)
+app.post('/api/admin/arena/set-daily-remaining', (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
     const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
@@ -491,21 +491,46 @@ app.post('/api/admin/arena/remove-daily-game', (req, res) => {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    const { walletAddress, preserveStats = true } = req.body;
+    const { walletAddress, targetRemaining = 1 } = req.body;
 
     if (!walletAddress) {
       return res.status(400).json({ error: 'walletAddress is required' });
     }
 
-    const result = arenaStore.removeTodayGame(walletAddress, preserveStats);
+    const gamesToday = arenaStore.getGamesToday(walletAddress);
+    const targetGames = 20 - targetRemaining;
+    const toRemove = gamesToday - targetGames;
 
+    if (toRemove <= 0) {
+      const stats = arenaStore.getPlayerStats(walletAddress);
+      return res.json({
+        message: `Already has ${stats.gamesRemainingToday}/20 remaining (${gamesToday} games today)`,
+        gamesToday,
+        gamesRemainingToday: stats.gamesRemainingToday,
+        removed: 0,
+      });
+    }
+
+    let removed = 0;
+    for (let i = 0; i < toRemove; i++) {
+      const result = arenaStore.removeTodayGame(walletAddress, true);
+      if (!result.removed) break;
+      removed++;
+    }
+
+    const stats = arenaStore.getPlayerStats(walletAddress);
     res.json({
-      ...result,
-      message: `Removed daily game for ${walletAddress}`,
+      message: `Removed ${removed} daily game records for ${walletAddress}`,
+      gamesToday: arenaStore.getGamesToday(walletAddress),
+      gamesRemainingToday: stats.gamesRemainingToday,
+      removed,
+      matchesPlayed: stats.matchesPlayed,
+      wins: stats.wins,
+      score: stats.score,
     });
   } catch (error) {
-    console.error('Error removing daily game:', error);
-    res.status(500).json({ error: 'Failed to remove daily game' });
+    console.error('Error setting daily remaining:', error);
+    res.status(500).json({ error: 'Failed to set daily remaining' });
   }
 });
 
@@ -515,7 +540,8 @@ app.get('/api/arena/status/:walletAddress', (req, res) => {
     const { walletAddress } = req.params;
     const stats = arenaStore.getPlayerStats(walletAddress);
     const canPlay = arenaStore.canStartGame(walletAddress);
-    res.json({ ...stats, ...canPlay });
+    const gamesToday = arenaStore.getGamesToday(walletAddress);
+    res.json({ ...stats, ...canPlay, gamesToday });
   } catch (error) {
     console.error('Error fetching arena status:', error);
     res.status(500).json({ error: 'Failed to fetch arena status' });
