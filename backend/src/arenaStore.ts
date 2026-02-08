@@ -320,6 +320,41 @@ class ArenaStore {
   }
 
   // Admin: Manually adjust player stats (for correcting bugs/issues)
+  removeTodayGame(walletAddress: string, preserveStats: boolean = true): { success: boolean; removed: boolean; gamesRemainingToday: number } {
+    const startOfToday = this.getStartOfToday();
+    // Find the most recent game today
+    const findStmt = this.db.prepare(
+      'SELECT rowid, result, counts FROM arena_games WHERE wallet_address = ? AND played_at >= ? ORDER BY played_at DESC LIMIT 1'
+    );
+    const row = findStmt.get(walletAddress, startOfToday) as { rowid: number; result: string; counts: number } | undefined;
+
+    if (!row) {
+      const stats = this.getPlayerStats(walletAddress);
+      return { success: true, removed: false, gamesRemainingToday: stats.gamesRemainingToday };
+    }
+
+    // Delete the game record
+    const deleteStmt = this.db.prepare('DELETE FROM arena_games WHERE rowid = ?');
+    deleteStmt.run(row.rowid);
+
+    // Only reverse stats if explicitly requested (preserveStats=false)
+    if (!preserveStats && row.counts) {
+      const winDecrement = row.result === 'win' ? -1 : 0;
+      const scoreDecrement = -(1.0 + (row.result === 'win' ? 0.5 : 0));
+      const updateStmt = this.db.prepare(`
+        UPDATE arena_stats
+        SET matches_played = matches_played - 1,
+            wins = wins + ?,
+            score = score + ?
+        WHERE wallet_address = ?
+      `);
+      updateStmt.run(winDecrement, scoreDecrement, walletAddress);
+    }
+
+    const stats = this.getPlayerStats(walletAddress);
+    return { success: true, removed: true, gamesRemainingToday: stats.gamesRemainingToday };
+  }
+
   adjustPlayerStats(
     walletAddress: string,
     matchesIncrement: number = 0,

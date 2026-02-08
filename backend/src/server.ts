@@ -481,6 +481,34 @@ app.post('/api/admin/arena/adjust-stats', (req, res) => {
   }
 });
 
+// Admin endpoint to remove the most recent daily game record (frees up a game slot)
+app.post('/api/admin/arena/remove-daily-game', (req, res) => {
+  try {
+    const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
+    const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
+
+    if (adminKey !== expectedKey) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const { walletAddress, preserveStats = true } = req.body;
+
+    if (!walletAddress) {
+      return res.status(400).json({ error: 'walletAddress is required' });
+    }
+
+    const result = arenaStore.removeTodayGame(walletAddress, preserveStats);
+
+    res.json({
+      ...result,
+      message: `Removed daily game for ${walletAddress}`,
+    });
+  } catch (error) {
+    console.error('Error removing daily game:', error);
+    res.status(500).json({ error: 'Failed to remove daily game' });
+  }
+});
+
 // Get arena status for a wallet (games remaining, cooldown, stats)
 app.get('/api/arena/status/:walletAddress', (req, res) => {
   try {
