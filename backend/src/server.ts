@@ -472,9 +472,8 @@ app.post('/api/admin/arena/adjust-stats', (req, res) => {
     );
 
     res.json({
-      success: true,
-      message: `Adjusted stats for ${walletAddress}`,
       ...result,
+      message: `Adjusted stats for ${walletAddress}`,
     });
   } catch (error) {
     console.error('Error adjusting arena stats:', error);
