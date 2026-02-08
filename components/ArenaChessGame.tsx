@@ -243,24 +243,27 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
   // AI move using simple evaluation (no external engine needed)
   const makeAiMove = useCallback(async () => {
     if (gameOver || chess.turn() === playerColor) return;
-    
+
     setIsAiThinking(true);
-    
+
     // Simulate thinking time
     await new Promise(resolve => setTimeout(resolve, AI_THINK_TIME_MS));
-    
+
     // Get best move using iterative deepening minimax
     const bestMove = findBestMove(chess, AI_MAX_DEPTH);
-    
+
     if (bestMove) {
       const isCapture = chess.get(bestMove.to as Square) !== null;
       const isCastle = bestMove.san?.includes('O-O') || (bestMove.piece === 'k' && Math.abs(bestMove.from.charCodeAt(0) - bestMove.to.charCodeAt(0)) === 2);
-      
+
       chess.move(bestMove);
       setBoard([...chess.board()]);
       setLastMove({ from: bestMove.from as Square, to: bestMove.to as Square });
-      setMoveCount(prev => prev + 1);
-      
+
+      // Capture the updated move count before state update
+      const updatedMoveCount = moveCount + 1;
+      setMoveCount(updatedMoveCount);
+
       // Play sound
       if (chess.isCheck()) {
         playSound('check');
@@ -271,17 +274,17 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
       } else {
         playSound('move');
       }
-      
-      // Check for game end
+
+      // Check for game end - use the updated move count
       if (chess.isCheckmate()) {
-        handleGameEnd('loss', 'checkmate');
+        handleGameEnd('loss', 'checkmate', updatedMoveCount);
       } else if (chess.isDraw()) {
-        handleGameEnd('draw', 'draw');
+        handleGameEnd('draw', 'draw', updatedMoveCount);
       }
     }
-    
+
     setIsAiThinking(false);
-  }, [chess, gameOver, playerColor]);
+  }, [chess, gameOver, playerColor, moveCount]);
 
   // Trigger AI move when it's AI's turn
   useEffect(() => {
@@ -303,7 +306,10 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
     if (move) {
       setBoard([...chess.board()]);
       setLastMove({ from, to });
-      setMoveCount(prev => prev + 1);
+
+      // Capture the updated move count before state update
+      const updatedMoveCount = moveCount + 1;
+      setMoveCount(updatedMoveCount);
       setPendingPromotion(null);
 
       if (chess.isCheck()) {
@@ -316,10 +322,11 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
         playSound('move');
       }
 
+      // Check for game end - use the updated move count
       if (chess.isCheckmate()) {
-        handleGameEnd('win', 'checkmate');
+        handleGameEnd('win', 'checkmate', updatedMoveCount);
       } else if (chess.isDraw()) {
-        handleGameEnd('draw', 'draw');
+        handleGameEnd('draw', 'draw', updatedMoveCount);
       }
     }
     setSelectedSquare(null);
@@ -366,14 +373,17 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
   };
 
   // Handle game end
-  const handleGameEnd = async (gameResult: 'win' | 'loss' | 'draw', reason: string) => {
+  const handleGameEnd = async (gameResult: 'win' | 'loss' | 'draw', reason: string, finalMoveCount?: number) => {
     setGameOver(true);
     setResult(gameResult);
-    
+
     if (timerRef.current) clearInterval(timerRef.current);
-    
+
+    // Use the provided move count or fall back to state (for timeout/resignation cases)
+    const actualMoveCount = finalMoveCount ?? moveCount;
+
     // Check if game counts (minimum moves requirement)
-    const counts = moveCount >= MIN_MOVES_TO_COUNT;
+    const counts = actualMoveCount >= MIN_MOVES_TO_COUNT;
     
     // Create default stats in case backend fails
     const defaultStats: ArenaStats = {
@@ -392,7 +402,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
         body: JSON.stringify({
           walletAddress,
           result: gameResult,
-          moveCount,
+          moveCount: actualMoveCount,
           reason,
           counts,
         }),
