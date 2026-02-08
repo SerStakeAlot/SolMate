@@ -3,6 +3,7 @@ import "./globals.css";
 import { WalletProvider } from "@/components/WalletProvider";
 import { Navigation } from "@/components/Navigation";
 import { WalletBalanceWarning } from "@/components/WalletBalanceWarning";
+import { ClickSounds } from "@/components/ClickSounds";
 
 export const metadata: Metadata = {
   title: "SolMate - Tactical Chess on Solana",
@@ -78,6 +79,7 @@ export default function RootLayout({
               {children}
             </main>
             <WalletBalanceWarning />
+            <ClickSounds />
           </div>
         </WalletProvider>
       </body>
