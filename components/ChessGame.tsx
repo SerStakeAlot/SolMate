@@ -10,6 +10,7 @@ import { io, Socket } from 'socket.io-client';
 import { Chess, Move } from 'chess.js';
 import { EscrowClient, STAKE_TIERS, getStakeTierInfo, lamportsToSol, MatchStatus } from '@/utils/escrow';
 import { getUsername, formatDisplayName, getPlayerStats, PlayerStats } from '@/utils/username';
+import { shareToX } from '@/utils/shareToX';
 
 type Mode = 'practice' | 'wager';
 type PlayerColor = 'w' | 'b' | null;
@@ -4202,9 +4203,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                         const rewardText = mode === 'wager' && isWinner
                           ? ` Won ${(getStakeTierInfo(selectedStakeTier).stake * 1.8).toFixed(2)} SOL 💰`
                           : '';
-                        const tweetText = `${resultText}${modeText}${rewardText}\n\nPlay chess on Solana 👉 https://solmatechess.com`;
-                        const tweetUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
-                        window.open(tweetUrl, '_blank', 'noopener,noreferrer');
+                        const tweetText = `${resultText}${modeText}${rewardText}\n\nPlay chess on Solana 👉 https://playsolmate.fun`;
+                        shareToX(tweetText);
                       }}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}

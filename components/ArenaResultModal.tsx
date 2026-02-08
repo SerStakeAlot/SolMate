@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, XCircle, Minus, Share2, TrendingUp, Medal, Gamepad2, Target, X } from 'lucide-react';
+import { shareToX } from '@/utils/shareToX';
 
 interface ArenaStats {
   matchesPlayed: number;
@@ -67,23 +68,8 @@ Skill over hype.
 
 Play now: https://playsolmate.fun/arena`;
 
-  const handleShare = async () => {
-    // Try native share first (mobile)
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'SolMate Holder Arena',
-          text: shareText,
-        });
-        return;
-      } catch (err) {
-        // User cancelled or not supported, fall through to Twitter
-      }
-    }
-    
-    // Fall back to Twitter/X intent
-    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
-    window.open(twitterUrl, '_blank', 'width=550,height=420');
+  const handleShare = () => {
+    shareToX(shareText);
   };
 
   return (

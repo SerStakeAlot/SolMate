@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Chess, Square, Move } from 'chess.js';
 import { RotateCcw, Flag, Clock, Cpu, User, Bot } from 'lucide-react';
 import { ArenaResultModal } from './ArenaResultModal';
+import { shareToX } from '@/utils/shareToX';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-production.up.railway.app';
 
@@ -1143,7 +1144,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
                 onClick={async () => {
                   // Open tweet window first for better UX
                   const text = `I just ${result === 'win' ? 'defeated' : result === 'loss' ? 'lost to' : 'drew with'} the SolMate AI in ${moveCount} moves! ♟️\n\n$500 prize pool — top 3 win!\n\nPlay now: https://playsolmate.fun/arena`;
-                  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+                  shareToX(text);
                   
                   // Award share bonus if not already claimed
                   if (!hasShared) {
