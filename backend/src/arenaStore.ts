@@ -300,7 +300,7 @@ class ArenaStore {
       WHERE wallet_address = ?
     `);
     const stats = statsStmt.get(walletAddress) as AllTimeStats | undefined;
-    
+
     if (!stats) return null;
 
     // Get rank
@@ -317,6 +317,46 @@ class ArenaStore {
       wins: stats.wins,
       score: stats.score,
     };
+  }
+
+  // Admin: Manually adjust player stats (for correcting bugs/issues)
+  adjustPlayerStats(
+    walletAddress: string,
+    matchesIncrement: number = 0,
+    winsIncrement: number = 0,
+    scoreIncrement: number = 0
+  ): { success: boolean; newStats: any } {
+    // Check if player exists
+    const statsStmt = this.db.prepare(`
+      SELECT matches_played, wins, score FROM arena_stats
+      WHERE wallet_address = ?
+    `);
+    const existingStats = statsStmt.get(walletAddress) as AllTimeStats | undefined;
+
+    if (!existingStats) {
+      // Create new entry if doesn't exist
+      const insertStmt = this.db.prepare(`
+        INSERT INTO arena_stats (wallet_address, matches_played, wins, score)
+        VALUES (?, ?, ?, ?)
+      `);
+      insertStmt.run(walletAddress, matchesIncrement, winsIncrement, scoreIncrement);
+    } else {
+      // Update existing entry
+      const updateStmt = this.db.prepare(`
+        UPDATE arena_stats
+        SET matches_played = matches_played + ?,
+            wins = wins + ?,
+            score = score + ?
+        WHERE wallet_address = ?
+      `);
+      updateStmt.run(matchesIncrement, winsIncrement, scoreIncrement, walletAddress);
+    }
+
+    // Get updated stats
+    const newStats = this.getPlayerStats(walletAddress);
+    console.log(`Arena stats adjusted: ${walletAddress} +${matchesIncrement} matches, +${winsIncrement} wins, +${scoreIncrement} score`);
+
+    return { success: true, newStats };
   }
 }
 

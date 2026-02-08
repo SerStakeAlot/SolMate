@@ -448,6 +448,40 @@ app.post('/api/admin/recalculate-stats', (req, res) => {
 
 // ============= Holder Arena API Endpoints =============
 
+// Admin endpoint to manually adjust arena player stats
+app.post('/api/admin/arena/adjust-stats', (req, res) => {
+  try {
+    const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
+    const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
+
+    if (adminKey !== expectedKey) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const { walletAddress, matchesIncrement, winsIncrement, scoreIncrement } = req.body;
+
+    if (!walletAddress) {
+      return res.status(400).json({ error: 'walletAddress is required' });
+    }
+
+    const result = arenaStore.adjustPlayerStats(
+      walletAddress,
+      matchesIncrement || 0,
+      winsIncrement || 0,
+      scoreIncrement || 0
+    );
+
+    res.json({
+      success: true,
+      message: `Adjusted stats for ${walletAddress}`,
+      ...result,
+    });
+  } catch (error) {
+    console.error('Error adjusting arena stats:', error);
+    res.status(500).json({ error: 'Failed to adjust stats' });
+  }
+});
+
 // Get arena status for a wallet (games remaining, cooldown, stats)
 app.get('/api/arena/status/:walletAddress', (req, res) => {
   try {
