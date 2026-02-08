@@ -561,7 +561,7 @@ function LockedHero({ reason, mateBalance, skrBalance, onConnect }: {
                 color: '#22c55e', letterSpacing: '-0.02em',
               }}>$500</div>
               <div style={{ fontSize: 13, color: '#6b6b80', fontWeight: 500 }}>
-                Prize pool — top scorer wins!
+                Prize pool — top 3 win!
               </div>
             </div>
           </div>
@@ -856,7 +856,7 @@ function ArenaLobby({ onStartGame, walletAddress }: { onStartGame: () => void; w
               <span style={{ fontSize: 22 }}>🏆</span>
               <span style={{ fontSize: 20, fontWeight: 800, color: '#22c55e' }}>Season 1 Prize</span>
             </div>
-            <p style={{ fontSize: 14, color: '#6b6b80' }}>Top scorer wins!</p>
+            <p style={{ fontSize: 14, color: '#6b6b80' }}>Top 3 scorers win!</p>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{
@@ -867,19 +867,26 @@ function ArenaLobby({ onStartGame, walletAddress }: { onStartGame: () => void; w
             <div style={{
               fontSize: 12, color: '#6b6b80', fontWeight: 500, marginTop: 4,
               fontFamily: "'Space Mono', monospace",
-            }}>USD Prize</div>
+            }}>USD Prize Pool</div>
           </div>
         </div>
         <div style={{
           marginTop: 16, paddingTop: 14,
           borderTop: '1px solid rgba(34,197,94,0.1)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
         }}>
-          <span style={{ fontSize: 14 }}>📅</span>
-          <span style={{
-            fontSize: 13, fontWeight: 700, color: '#eab308',
-            fontFamily: "'Space Mono', monospace",
-          }}>Season ends February 20, 2026</span>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, width: '100%' }}>
+            <span style={{ fontSize: 13, fontFamily: "'Space Mono', monospace", color: '#eab308', fontWeight: 700 }}>1st $250</span>
+            <span style={{ fontSize: 13, fontFamily: "'Space Mono', monospace", color: '#a0a0b8', fontWeight: 600 }}>2nd $150</span>
+            <span style={{ fontSize: 13, fontFamily: "'Space Mono', monospace", color: '#cd7f32', fontWeight: 600 }}>3rd $100</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 14 }}>📅</span>
+            <span style={{
+              fontSize: 13, fontWeight: 700, color: '#eab308',
+              fontFamily: "'Space Mono', monospace",
+            }}>Season ends February 20, 2026</span>
+          </div>
         </div>
       </div>
 

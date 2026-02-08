@@ -1142,7 +1142,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
               <button
                 onClick={async () => {
                   // Open tweet window first for better UX
-                  const text = `I just ${result === 'win' ? 'defeated' : result === 'loss' ? 'lost to' : 'drew with'} the SolMate AI in ${moveCount} moves! ♟️\n\n$500 prize pool for top scorer!\n\nPlay now: https://playsolmate.fun/arena`;
+                  const text = `I just ${result === 'win' ? 'defeated' : result === 'loss' ? 'lost to' : 'drew with'} the SolMate AI in ${moveCount} moves! ♟️\n\n$500 prize pool — top 3 win!\n\nPlay now: https://playsolmate.fun/arena`;
                   window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
                   
                   // Award share bonus if not already claimed

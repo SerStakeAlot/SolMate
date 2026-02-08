@@ -1020,7 +1020,7 @@ export default function Home() {
               <div style={{ marginBottom: '24px', padding: '16px', borderRadius: '16px', border: '1px solid rgba(234, 179, 8, 0.3)', backgroundColor: '#1a1a1a' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
                   <div style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'black', backgroundColor: '#eab308' }}>3</div>
-                  <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: 'white', WebkitTextFillColor: 'white' }}>Holder Arena ($500 Prize!)</h3>
+                  <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: 'white', WebkitTextFillColor: 'white' }}>Holder Arena ($500 Prize Pool!)</h3>
                 </div>
                 <div style={{ color: '#d1d5db', fontSize: '14px', lineHeight: '1.6' }}>
                   <p>Hold <strong style={{ color: 'white' }}>2M+ $MATE</strong> or <strong style={{ color: 'white' }}>10K+ $SKR</strong> tokens to unlock the exclusive Holder Arena. Play vs AI, compete on the leaderboard!</p>
