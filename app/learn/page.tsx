@@ -127,6 +127,7 @@ const OPENINGS: Lesson[] = [
       'Sharp tactical play',
       'Many variations: Najdorf, Dragon, Scheveningen'
     ],
+    videoId: 'SicilianDefense',
   },
   {
     id: 'queens-gambit',
@@ -141,6 +142,7 @@ const OPENINGS: Lesson[] = [
       'Leads to strategic middlegames',
       'Declined variation is very solid'
     ],
+    videoId: 'QueensGambit',
   },
   {
     id: 'ruy-lopez',
@@ -155,6 +157,7 @@ const OPENINGS: Lesson[] = [
       'Rich in theory and ideas',
       'Played by world champions for centuries'
     ],
+    videoId: 'RuyLopez',
   },
   {
     id: 'french-defense',
@@ -452,6 +455,9 @@ const videoFiles: Record<string, string> = {
   'ChessNotation': '/videos/chess-notation.mp4',
   'OpeningPrinciples': '/videos/opening-principles.mp4',
   'ItalianGame': '/videos/italian-game.mp4',
+  'SicilianDefense': '/videos/sicilian-defense.mp4',
+  'QueensGambit': '/videos/queens-gambit.mp4',
+  'RuyLopez': '/videos/ruy-lopez.mp4',
 };
 
 function VideoModal({ lesson, onClose }: VideoModalProps) {
