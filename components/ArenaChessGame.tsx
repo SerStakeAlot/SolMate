@@ -486,13 +486,13 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
     <div style={{ maxWidth: 920, margin: '0 auto', fontFamily: "'Outfit', 'SF Pro Display', sans-serif" }}>
       {/* CSS Grid Layout */}
       <style>{`
-        .arena-chess-grid { display: grid; grid-template-columns: 576px 1fr; gap: 28px; align-items: start; }
+        .arena-chess-grid { display: grid; grid-template-columns: 620px 1fr; gap: 28px; align-items: start; }
         @media (max-width: 960px) { .arena-chess-grid { grid-template-columns: 1fr; } .arena-board-col { max-width: 100% !important; } }
       `}</style>
 
       <div className="arena-chess-grid">
         {/* ─── LEFT COLUMN: Board + Timers ─── */}
-        <div className="arena-board-col flex flex-col" style={{ width: '100%', maxWidth: 576 }}>
+        <div className="arena-board-col flex flex-col" style={{ width: '100%', maxWidth: 620 }}>
 
           {/* ─── AI TIMER (top) ─── */}
           <div style={{
@@ -579,7 +579,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
           </div>
 
           {/* ─── CHESS BOARD ─── */}
-          <div className="rounded-2xl p-0.5 sm:p-3" style={{
+          <div className="rounded-lg sm:rounded-2xl p-0 sm:p-3" style={{
             background: 'rgba(14,14,30,0.7)',
             border: '1px solid rgba(255,255,255,0.06)',
             backdropFilter: 'blur(12px)',
@@ -642,7 +642,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
                         {/* Piece */}
                         {piece && (
                           <motion.div
-                            className="relative w-[88%] h-[88%] sm:w-[80%] sm:h-[80%]"
+                            className="relative w-[92%] h-[92%] sm:w-[82%] sm:h-[82%]"
                             style={{ zIndex: 1 }}
                             initial={{ scale: 0.8, opacity: 0 }}
                             animate={{ scale: isSelected ? 1.08 : 1, opacity: 1 }}

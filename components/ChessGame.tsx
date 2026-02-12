@@ -2161,12 +2161,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   return (
     <>
       <style>{`
-        .chess-grid { display: grid; grid-template-columns: 576px 1fr; gap: 28px; align-items: start; }
+        .chess-grid { display: grid; grid-template-columns: 620px 1fr; gap: 28px; align-items: start; }
         @media (max-width: 960px) { .chess-grid { grid-template-columns: 1fr; } .chess-board-col { max-width: 100% !important; } }
       `}</style>
       <div className="chess-grid">
         {/* Left Column - Board */}
-        <div className="chess-board-col flex flex-col" style={{ width: '100%', maxWidth: 576, margin: '0 auto' }}>
+        <div className="chess-board-col flex flex-col" style={{ width: '100%', maxWidth: 620, margin: '0 auto' }}>
           {/* Match Header */}
           {mode === 'wager' && matchInfo && (
             <div style={{
@@ -2427,7 +2427,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
           )}
 
           <div className="w-full space-y-3 sm:space-y-4">
-            <div className="rounded-xl sm:rounded-2xl p-0.5 sm:p-3" style={{ background: 'rgba(14,14,30,0.7)', border: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+            <div className="rounded-lg sm:rounded-2xl p-0 sm:p-3" style={{ background: 'rgba(14,14,30,0.7)', border: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
               {/* Opponent info bar for multiplayer/free play (shown at top) */}
               {(isFreePlay || isMultiplayer) && opponentConnected && (() => {
                 const opponentColor = playerColor === 'w' ? 'b' : 'w';
@@ -2624,7 +2624,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       <motion.div
                         initial={false}
                         animate={{ scale: isSelected ? 1.1 : 1 }}
-                        className="relative w-[88%] h-[88%] sm:w-[80%] sm:h-[80%]"
+                        className="relative w-[92%] h-[92%] sm:w-[82%] sm:h-[82%]"
                         style={{ zIndex: 1 }}
                       >
                         <img
