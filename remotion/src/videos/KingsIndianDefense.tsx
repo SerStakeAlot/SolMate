@@ -1,0 +1,1066 @@
+import React from 'react';
+import { AbsoluteFill, Sequence, useCurrentFrame, interpolate, spring, useVideoConfig, staticFile, Img } from 'remotion';
+
+// Theme colors — aggressive, tense, explosive. Dark with fire/orange accents
+const COLORS = {
+  purple: '#9945FF',
+  green: '#14F195',
+  cyan: '#00D4FF',
+  gold: '#FFD700',
+  fire: '#FF6B2B',
+  deepOrange: '#E85D04',
+  amber: '#FFBA08',
+  crimson: '#DC2F02',
+  bgDark: '#0a0a0a',
+  bgGradientStart: '#1a0f0a',
+  boardLight: '#e8e0d0',
+  boardDark: '#8B5E3C',
+};
+
+const PIECES = {
+  K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙',
+  k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟',
+};
+
+const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+const RANKS = ['8', '7', '6', '5', '4', '3', '2', '1'];
+
+// ── Background ──────────────────────────────────────────────────────────────
+
+const Background: React.FC = () => {
+  return (
+    <AbsoluteFill>
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: `radial-gradient(ellipse at 50% 30%, ${COLORS.bgGradientStart} 0%, ${COLORS.bgDark} 70%)`,
+      }} />
+      <div style={{
+        position: 'absolute', inset: 0,
+        backgroundImage: `linear-gradient(rgba(255, 107, 43, 0.03) 1px, transparent 1px),
+                         linear-gradient(90deg, rgba(255, 107, 43, 0.03) 1px, transparent 1px)`,
+        backgroundSize: '50px 50px',
+      }} />
+      <div style={{
+        position: 'absolute', top: '10%', left: '50%', transform: 'translateX(-50%)',
+        width: 800, height: 400,
+        background: `radial-gradient(ellipse, ${COLORS.fire}15 0%, transparent 70%)`,
+        filter: 'blur(60px)',
+      }} />
+    </AbsoluteFill>
+  );
+};
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+const getSquarePos = (square: string, squareSize: number) => {
+  const file = FILES.indexOf(square[0]);
+  const rank = RANKS.indexOf(square[1]);
+  return { x: file * squareSize, y: rank * squareSize };
+};
+
+// ── StaticPiece ─────────────────────────────────────────────────────────────
+
+const StaticPiece: React.FC<{
+  symbol: string;
+  square: string;
+  squareSize: number;
+  opacity?: number;
+  glow?: string;
+}> = ({ symbol, square, squareSize, opacity = 1, glow }) => {
+  const pos = getSquarePos(square, squareSize);
+  return (
+    <div style={{
+      position: 'absolute', left: pos.x, top: pos.y,
+      width: squareSize, height: squareSize,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: squareSize * 0.75, color: '#ffffff',
+      textShadow: glow
+        ? `0 0 20px ${glow}, 0 0 40px ${glow}`
+        : '0 2px 4px rgba(0,0,0,0.5)',
+      zIndex: 10, opacity,
+    }}>
+      {symbol}
+    </div>
+  );
+};
+
+// ── AnimatedPiece ───────────────────────────────────────────────────────────
+
+const AnimatedPiece: React.FC<{
+  symbol: string;
+  fromSquare: string;
+  toSquare: string;
+  squareSize: number;
+  startFrame: number;
+  duration?: number;
+  glow?: string;
+}> = ({ symbol, fromSquare, toSquare, squareSize, startFrame, duration = 20, glow }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const fromPos = getSquarePos(fromSquare, squareSize);
+  const toPos = getSquarePos(toSquare, squareSize);
+
+  const progress = spring({
+    frame: frame - startFrame, fps,
+    config: { damping: 20, stiffness: 100 },
+    durationInFrames: duration,
+  });
+
+  const clampedProgress = Math.min(1, Math.max(0, progress));
+  const x = interpolate(clampedProgress, [0, 1], [fromPos.x, toPos.x]);
+  const y = interpolate(clampedProgress, [0, 1], [fromPos.y, toPos.y]);
+
+  return (
+    <div style={{
+      position: 'absolute', left: x, top: y,
+      width: squareSize, height: squareSize,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: squareSize * 0.75, color: '#ffffff',
+      textShadow: glow
+        ? `0 0 20px ${glow}, 0 0 40px ${glow}`
+        : '0 2px 4px rgba(0,0,0,0.5)',
+      zIndex: 15,
+    }}>
+      {symbol}
+    </div>
+  );
+};
+
+// ── ChessBoard ──────────────────────────────────────────────────────────────
+
+const ChessBoard: React.FC<{
+  highlightedSquares?: string[];
+  glowSquares?: string[];
+  attackLine?: string[];
+  dimSquares?: string[];
+  fireSquares?: string[];
+  children?: React.ReactNode;
+}> = ({
+  highlightedSquares = [], glowSquares = [], attackLine = [], dimSquares = [], fireSquares = [],
+  children,
+}) => {
+  const frame = useCurrentFrame();
+  const squareSize = 56;
+  const boardSize = squareSize * 8;
+  const glowPulse = interpolate(Math.sin(frame * 0.08), [-1, 1], [0.3, 0.6]);
+
+  return (
+    <div style={{
+      width: boardSize, height: boardSize,
+      borderRadius: 12, overflow: 'hidden', position: 'relative',
+      boxShadow: `0 0 60px ${COLORS.fire}30, 0 20px 40px rgba(0,0,0,0.5)`,
+    }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(8, ${squareSize}px)` }}>
+        {RANKS.map((rank, rankIdx) =>
+          FILES.map((file, fileIdx) => {
+            const square = `${file}${rank}`;
+            const isLight = (fileIdx + rankIdx) % 2 === 0;
+            const isHighlighted = highlightedSquares.includes(square);
+            const isGlow = glowSquares.includes(square);
+            const isAttackLine = attackLine.includes(square);
+            const isDim = dimSquares.includes(square);
+            const isFire = fireSquares.includes(square);
+
+            return (
+              <div key={square} style={{
+                width: squareSize, height: squareSize,
+                backgroundColor: isLight ? COLORS.boardLight : COLORS.boardDark,
+                position: 'relative',
+              }}>
+                {isHighlighted && (
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    backgroundColor: COLORS.purple, opacity: 0.4,
+                  }} />
+                )}
+                {isGlow && (
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    backgroundColor: COLORS.gold, opacity: glowPulse,
+                    boxShadow: `inset 0 0 20px ${COLORS.gold}`,
+                  }} />
+                )}
+                {isAttackLine && (
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    backgroundColor: COLORS.cyan, opacity: glowPulse * 0.6,
+                    boxShadow: `inset 0 0 15px ${COLORS.cyan}`,
+                  }} />
+                )}
+                {isDim && (
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    backgroundColor: '#000000', opacity: 0.4,
+                  }} />
+                )}
+                {isFire && (
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    backgroundColor: COLORS.fire, opacity: glowPulse * 0.7,
+                    boxShadow: `inset 0 0 20px ${COLORS.crimson}`,
+                  }} />
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+      {children}
+    </div>
+  );
+};
+
+// ── InfoBox ─────────────────────────────────────────────────────────────────
+
+const InfoBox: React.FC<{
+  title: string;
+  subtitle?: string;
+  delay?: number;
+}> = ({ title, subtitle, delay = 0 }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const slideIn = spring({ frame: frame - delay, fps, config: { damping: 20, stiffness: 100 } });
+  const opacity = interpolate(slideIn, [0, 1], [0, 1]);
+  const translateY = interpolate(slideIn, [0, 1], [30, 0]);
+
+  return (
+    <div style={{
+      position: 'absolute', bottom: 120, left: '50%',
+      transform: `translateX(-50%) translateY(${translateY}px)`,
+      backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(20px)',
+      borderRadius: 16, padding: '24px 48px',
+      border: `2px solid ${COLORS.fire}`, opacity,
+      textAlign: 'center', boxShadow: `0 0 40px ${COLORS.fire}40`,
+    }}>
+      <div style={{
+        fontSize: 36, fontWeight: 700, color: '#ffffff',
+        fontFamily: 'Inter, system-ui, sans-serif',
+        marginBottom: subtitle ? 12 : 0,
+      }}>
+        {title}
+      </div>
+      {subtitle && (
+        <div style={{
+          fontSize: 22, color: COLORS.amber,
+          fontFamily: 'Inter, system-ui, sans-serif',
+        }}>
+          {subtitle}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── BulletList ──────────────────────────────────────────────────────────────
+
+const BulletList: React.FC<{
+  header: string;
+  items: string[];
+  delay?: number;
+}> = ({ header, items, delay = 0 }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  return (
+    <div style={{
+      position: 'absolute', right: 100, top: '50%', transform: 'translateY(-50%)',
+      backgroundColor: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(20px)',
+      borderRadius: 16, padding: '32px 40px',
+      border: `2px solid ${COLORS.fire}`,
+      boxShadow: `0 0 40px ${COLORS.fire}40`, maxWidth: 450,
+    }}>
+      <div style={{
+        fontSize: 28, fontWeight: 700, color: '#ffffff',
+        fontFamily: 'Inter, system-ui, sans-serif', marginBottom: 24, textAlign: 'center',
+      }}>
+        {header}
+      </div>
+      {items.map((item, idx) => {
+        const itemDelay = delay + idx * 25;
+        const itemSpring = spring({ frame: frame - itemDelay, fps, config: { damping: 20, stiffness: 100 } });
+        const itemOpacity = interpolate(itemSpring, [0, 1], [0, 1]);
+        const translateX = interpolate(itemSpring, [0, 1], [30, 0]);
+
+        return (
+          <div key={idx} style={{
+            fontSize: 20, color: COLORS.amber,
+            fontFamily: 'Inter, system-ui, sans-serif', marginBottom: 16,
+            opacity: itemOpacity, transform: `translateX(${translateX}px)`,
+            display: 'flex', alignItems: 'flex-start', gap: 12,
+          }}>
+            <span style={{ color: COLORS.fire }}>▸</span>
+            <span>{item}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// ── Starting position helpers ───────────────────────────────────────────────
+
+const fullWhitePieces = (exclude: string[] = []) => [
+  { piece: PIECES.R, square: 'a1' }, { piece: PIECES.N, square: 'b1' },
+  { piece: PIECES.B, square: 'c1' }, { piece: PIECES.Q, square: 'd1' },
+  { piece: PIECES.K, square: 'e1' }, { piece: PIECES.B, square: 'f1' },
+  { piece: PIECES.N, square: 'g1' }, { piece: PIECES.R, square: 'h1' },
+  { piece: PIECES.P, square: 'a2' }, { piece: PIECES.P, square: 'b2' },
+  { piece: PIECES.P, square: 'c2' }, { piece: PIECES.P, square: 'd2' },
+  { piece: PIECES.P, square: 'e2' }, { piece: PIECES.P, square: 'f2' },
+  { piece: PIECES.P, square: 'g2' }, { piece: PIECES.P, square: 'h2' },
+].filter(p => !exclude.includes(p.square));
+
+const fullBlackPieces = (exclude: string[] = []) => [
+  { piece: PIECES.r, square: 'a8' }, { piece: PIECES.n, square: 'b8' },
+  { piece: PIECES.b, square: 'c8' }, { piece: PIECES.q, square: 'd8' },
+  { piece: PIECES.k, square: 'e8' }, { piece: PIECES.b, square: 'f8' },
+  { piece: PIECES.n, square: 'g8' }, { piece: PIECES.r, square: 'h8' },
+  { piece: PIECES.p, square: 'a7' }, { piece: PIECES.p, square: 'b7' },
+  { piece: PIECES.p, square: 'c7' }, { piece: PIECES.p, square: 'd7' },
+  { piece: PIECES.p, square: 'e7' }, { piece: PIECES.p, square: 'f7' },
+  { piece: PIECES.p, square: 'g7' }, { piece: PIECES.p, square: 'h7' },
+].filter(p => !exclude.includes(p.square));
+
+// ════════════════════════════════════════════════════════════════════════════
+// SCENE 1 — Title Card (0–90 frames / 3s)
+// ════════════════════════════════════════════════════════════════════════════
+
+const TitleScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const logoOpacity = spring({ frame: frame - 5, fps, config: { damping: 20, stiffness: 80 } });
+  const boardOpacity = spring({ frame: frame - 15, fps, config: { damping: 20, stiffness: 80 } });
+  const titleOpacity = spring({ frame: frame - 25, fps, config: { damping: 20, stiffness: 80 } });
+  const subtitleOpacity = spring({ frame: frame - 40, fps, config: { damping: 20, stiffness: 80 } });
+
+  const glowPulse = interpolate(Math.sin(frame * 0.1), [-1, 1], [0.3, 0.7]);
+
+  return (
+    <AbsoluteFill>
+      <Background />
+      <AbsoluteFill style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 30,
+      }}>
+        {/* Logo */}
+        <div style={{ opacity: logoOpacity, transform: `scale(${logoOpacity})` }}>
+          <Img
+            src={staticFile('images/solmate-logo.png')}
+            style={{
+              height: 100,
+              filter: `drop-shadow(0 0 40px ${COLORS.fire}80)`,
+            }}
+          />
+        </div>
+
+        {/* Mini chessboard silhouette */}
+        <div style={{
+          opacity: boardOpacity,
+          display: 'grid', gridTemplateColumns: 'repeat(4, 40px)',
+          borderRadius: 8, overflow: 'hidden',
+          boxShadow: `0 0 60px ${COLORS.fire}70`,
+        }}>
+          {[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15].map(i => {
+            const isKingside = i === 2 || i === 3 || i === 6 || i === 7;
+            return (
+              <div key={i} style={{
+                width: 40, height: 40,
+                backgroundColor: (Math.floor(i/4) + i%4) % 2 === 0 ? COLORS.boardLight : COLORS.boardDark,
+                boxShadow: isKingside ? `inset 0 0 20px ${COLORS.fire}${Math.floor(glowPulse * 255).toString(16).padStart(2, '0')}` : 'none',
+              }} />
+            );
+          })}
+        </div>
+
+        {/* Title */}
+        <div style={{
+          fontSize: 72, fontWeight: 800,
+          background: `linear-gradient(135deg, ${COLORS.fire} 0%, ${COLORS.amber} 100%)`,
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          opacity: titleOpacity,
+          fontFamily: 'Inter, system-ui, sans-serif', textAlign: 'center',
+        }}>
+          King's Indian Defense
+        </div>
+
+        {/* Subtitle */}
+        <div style={{
+          fontSize: 32, color: '#a1a1aa', opacity: subtitleOpacity,
+          fontFamily: 'Inter, system-ui, sans-serif',
+        }}>
+          Controlled Chaos
+        </div>
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// SCENE 2 — Controlled Invitation (90–240 frames / 5s)
+// ════════════════════════════════════════════════════════════════════════════
+
+const ControlledInvitationScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const squareSize = 56;
+
+  // Camera pushes toward center as White builds
+  const cameraScale = interpolate(frame, [0, 140], [1.0, 1.06], {
+    extrapolateRight: 'clamp', extrapolateLeft: 'clamp',
+  });
+
+  const boardOpacity = spring({ frame: frame - 5, fps, config: { damping: 20, stiffness: 80 } });
+
+  // Starting position minus d2 (animate to d4), g8 (animate Nf6), c2 (animate c4)
+  const whitePieces = fullWhitePieces(['d2', 'c2']);
+  const blackPieces = fullBlackPieces(['g8']);
+
+  // Center glow grows as White builds
+  const centerGlow = frame > 80 ? ['d4', 'c4'] : frame > 20 ? ['d4'] : [];
+
+  return (
+    <AbsoluteFill>
+      <Background />
+      <AbsoluteFill style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transform: `scale(${cameraScale})`, opacity: boardOpacity,
+      }}>
+        <ChessBoard glowSquares={centerGlow}>
+          {whitePieces.map(({ piece, square }) => (
+            <StaticPiece key={square} symbol={piece} square={square} squareSize={squareSize} />
+          ))}
+          {blackPieces.map(({ piece, square }) => (
+            <StaticPiece key={square} symbol={piece} square={square} squareSize={squareSize} />
+          ))}
+          {/* 1. d4 */}
+          <AnimatedPiece
+            symbol={PIECES.P} fromSquare="d2" toSquare="d4"
+            squareSize={squareSize} startFrame={15} glow={COLORS.gold}
+          />
+          {/* 1... Nf6 */}
+          <AnimatedPiece
+            symbol={PIECES.n} fromSquare="g8" toSquare="f6"
+            squareSize={squareSize} startFrame={45}
+          />
+          {/* 2. c4 */}
+          <AnimatedPiece
+            symbol={PIECES.P} fromSquare="c2" toSquare="c4"
+            squareSize={squareSize} startFrame={80} glow={COLORS.gold}
+          />
+        </ChessBoard>
+        <InfoBox title={`"Let them build the center."`} delay={90} />
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// SCENE 3 — Hypermodern Setup (240–450 frames / 7s)
+// ════════════════════════════════════════════════════════════════════════════
+
+const HypermodernSetupScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const squareSize = 56;
+  const boardSize = squareSize * 8;
+
+  const boardOpacity = spring({ frame: frame - 5, fps, config: { damping: 20, stiffness: 80 } });
+
+  // Position after 1.d4 Nf6 2.c4 — g7 pawn animates, Nc3, then Bg7
+  const whitePieces = [
+    ...fullWhitePieces(['d2', 'c2', 'b1']),
+    { piece: PIECES.P, square: 'd4' },
+    { piece: PIECES.P, square: 'c4' },
+  ];
+  const blackPieces = [
+    ...fullBlackPieces(['g8', 'g7', 'f8']),
+    { piece: PIECES.n, square: 'f6' },
+  ];
+
+  // Title impact after bishop lands
+  const titleProgress = spring({ frame: frame - 120, fps, config: { damping: 15, stiffness: 100 } });
+  const titleScale = interpolate(titleProgress, [0, 1], [1.15, 1]);
+  const titleOpacity = interpolate(titleProgress, [0, 1], [0, 1]);
+
+  // Diagonal highlight after bishop arrives
+  const diagOpacity = interpolate(frame, [130, 160], [0, 0.5], {
+    extrapolateRight: 'clamp', extrapolateLeft: 'clamp',
+  });
+
+  // Board darkens except the diagonal
+  const boardDim = interpolate(frame, [130, 170], [0, 0.3], {
+    extrapolateRight: 'clamp', extrapolateLeft: 'clamp',
+  });
+
+  // Diagonal squares from g7 to a1
+  const diagonalSquares = ['g7', 'f6', 'e5', 'd4', 'c3', 'b2', 'a1'];
+  const dimAll = FILES.flatMap((f) => RANKS.map((r) => `${f}${r}`))
+    .filter(sq => !diagonalSquares.includes(sq));
+
+  return (
+    <AbsoluteFill>
+      <Background />
+      <AbsoluteFill style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        opacity: boardOpacity,
+      }}>
+        <ChessBoard
+          glowSquares={frame > 130 ? ['g7'] : []}
+          dimSquares={frame > 130 ? dimAll.slice(0, Math.floor(dimAll.length * (boardDim / 0.3))) : []}
+        >
+          {whitePieces.map(({ piece, square }) => (
+            <StaticPiece key={square} symbol={piece} square={square} squareSize={squareSize} />
+          ))}
+          {blackPieces.map(({ piece, square }) => (
+            <StaticPiece key={square} symbol={piece} square={square} squareSize={squareSize} />
+          ))}
+          {/* ...g6 */}
+          <AnimatedPiece
+            symbol={PIECES.p} fromSquare="g7" toSquare="g6"
+            squareSize={squareSize} startFrame={20}
+          />
+          {/* 3. Nc3 */}
+          <AnimatedPiece
+            symbol={PIECES.N} fromSquare="b1" toSquare="c3"
+            squareSize={squareSize} startFrame={55}
+          />
+          {/* ...Bg7 — the key piece */}
+          <AnimatedPiece
+            symbol={PIECES.b} fromSquare="f8" toSquare="g7"
+            squareSize={squareSize} startFrame={90} duration={25} glow={COLORS.fire}
+          />
+
+          {/* Diagonal line g7→a1 */}
+          <svg style={{
+            position: 'absolute', top: 0, left: 0,
+            width: boardSize, height: boardSize, pointerEvents: 'none', zIndex: 20,
+          }}>
+            <line
+              x1={6.5 * squareSize} y1={1.5 * squareSize}
+              x2={6.5 * squareSize + (0.5 * squareSize - 6.5 * squareSize) * diagOpacity * 2}
+              y2={1.5 * squareSize + (7.5 * squareSize - 1.5 * squareSize) * diagOpacity * 2}
+              stroke={COLORS.fire} strokeWidth={3}
+              opacity={diagOpacity} strokeDasharray="8 4"
+            />
+          </svg>
+        </ChessBoard>
+      </AbsoluteFill>
+
+      {/* Title overlay */}
+      <div style={{
+        position: 'absolute', bottom: 100, left: 0, right: 0,
+        display: 'flex', justifyContent: 'center',
+        opacity: titleOpacity, transform: `scale(${titleScale})`,
+      }}>
+        <div style={{
+          fontSize: 72, fontWeight: 800,
+          background: `linear-gradient(135deg, ${COLORS.fire} 0%, ${COLORS.amber} 100%)`,
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          fontFamily: 'Inter, system-ui, sans-serif', textAlign: 'center',
+          filter: `drop-shadow(0 0 30px ${COLORS.fire}80)`,
+        }}>
+          King's Indian Defense.
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// SCENE 4 — The Hidden Power (450–690 frames / 8s)
+// ════════════════════════════════════════════════════════════════════════════
+
+const HiddenPowerScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const squareSize = 56;
+  const boardSize = squareSize * 8;
+
+  const boardSpring = spring({ frame: frame - 5, fps, config: { damping: 20, stiffness: 80 } });
+
+  // Position after 1.d4 Nf6 2.c4 g6 3.Nc3 Bg7
+  const whitePieces = [
+    ...fullWhitePieces(['d2', 'c2', 'b1']),
+    { piece: PIECES.P, square: 'd4' },
+    { piece: PIECES.P, square: 'c4' },
+    { piece: PIECES.N, square: 'c3' },
+  ];
+  const blackPieces = [
+    ...fullBlackPieces(['g8', 'g7', 'f8']),
+    { piece: PIECES.n, square: 'f6' },
+    { piece: PIECES.p, square: 'g6' },
+    { piece: PIECES.b, square: 'g7' },
+  ];
+
+  // Diagonal line animates from g7 toward d4
+  const arrowProgress = spring({ frame: frame - 30, fps, config: { damping: 15, stiffness: 80 } });
+
+  // Bishop glow pulse
+  const bishopGlow = interpolate(Math.sin(frame * 0.1), [-1, 1], [0.5, 1.0]);
+
+  // Subtle text
+  const subtitleOpacity = spring({ frame: frame - 100, fps, config: { damping: 20, stiffness: 80 } });
+  const subtitleY = interpolate(subtitleOpacity, [0, 1], [20, 0]);
+
+  return (
+    <AbsoluteFill>
+      <Background />
+      <AbsoluteFill style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        opacity: boardSpring,
+      }}>
+        <ChessBoard
+          glowSquares={['g7']}
+          highlightedSquares={['d4']}
+          attackLine={frame > 60 ? ['f6', 'e5', 'd4'] : []}
+        >
+          {whitePieces.map(({ piece, square }) => (
+            <StaticPiece key={square} symbol={piece} square={square} squareSize={squareSize} />
+          ))}
+          {blackPieces.map(({ piece, square }) => {
+            if (square === 'g7') {
+              return <StaticPiece key={square} symbol={piece} square={square} squareSize={squareSize}
+                glow={`rgba(255, 107, 43, ${bishopGlow})`} />;
+            }
+            return <StaticPiece key={square} symbol={piece} square={square} squareSize={squareSize} />;
+          })}
+
+          {/* Diagonal arrow g7→d4 */}
+          <svg style={{
+            position: 'absolute', top: 0, left: 0,
+            width: boardSize, height: boardSize, pointerEvents: 'none', zIndex: 20,
+          }}>
+            <defs>
+              <marker id="ah-kid-diag" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill={COLORS.fire} opacity={arrowProgress} />
+              </marker>
+            </defs>
+            <line
+              x1={6.5 * squareSize} y1={1.5 * squareSize}
+              x2={6.5 * squareSize + (3.5 * squareSize - 6.5 * squareSize) * arrowProgress}
+              y2={1.5 * squareSize + (4.5 * squareSize - 1.5 * squareSize) * arrowProgress}
+              stroke={COLORS.fire} strokeWidth={4}
+              markerEnd={arrowProgress > 0.8 ? 'url(#ah-kid-diag)' : undefined} opacity={0.9}
+            />
+          </svg>
+        </ChessBoard>
+
+        <InfoBox title="Fianchettoed bishop." subtitle="Long-range pressure." delay={25} />
+      </AbsoluteFill>
+
+      {/* Voiceover text */}
+      <div style={{
+        position: 'absolute', bottom: 60, left: 0, right: 0,
+        display: 'flex', justifyContent: 'center',
+        opacity: subtitleOpacity, transform: `translateY(${subtitleY}px)`,
+      }}>
+        <div style={{
+          fontSize: 22, color: '#a1a1aa',
+          fontFamily: 'Inter, system-ui, sans-serif', fontStyle: 'italic',
+          textAlign: 'center', maxWidth: 600,
+        }}>
+          Black allows the center… but targets it from distance.
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// SCENE 5 — The Storm Builds (690–930 frames / 8s)
+// ════════════════════════════════════════════════════════════════════════════
+
+const StormBuildsScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const squareSize = 56;
+
+  const boardSpring = spring({ frame: frame - 5, fps, config: { damping: 20, stiffness: 80 } });
+
+  // Typical KID position — White has e4+d4, Black preparing ...e5 or ...c5
+  const whitePieces = [
+    { piece: PIECES.R, square: 'a1' }, { piece: PIECES.B, square: 'c1' },
+    { piece: PIECES.Q, square: 'd1' }, { piece: PIECES.K, square: 'e1' },
+    { piece: PIECES.B, square: 'e2' }, { piece: PIECES.R, square: 'h1' },
+    { piece: PIECES.N, square: 'c3' }, { piece: PIECES.N, square: 'f3' },
+    { piece: PIECES.P, square: 'a2' }, { piece: PIECES.P, square: 'b2' },
+    { piece: PIECES.P, square: 'c4' }, { piece: PIECES.P, square: 'd4' },
+    { piece: PIECES.P, square: 'e4' }, { piece: PIECES.P, square: 'f2' },
+    { piece: PIECES.P, square: 'g2' }, { piece: PIECES.P, square: 'h2' },
+  ];
+
+  const blackPieces = [
+    { piece: PIECES.r, square: 'a8' }, { piece: PIECES.b, square: 'c8' },
+    { piece: PIECES.q, square: 'd8' }, { piece: PIECES.r, square: 'f8' },
+    { piece: PIECES.k, square: 'g8' },
+    { piece: PIECES.b, square: 'g7' }, { piece: PIECES.n, square: 'f6' },
+    { piece: PIECES.n, square: 'd7' },
+    { piece: PIECES.p, square: 'a7' }, { piece: PIECES.p, square: 'b7' },
+    { piece: PIECES.p, square: 'c7' }, { piece: PIECES.p, square: 'd6' },
+    { piece: PIECES.p, square: 'e7' }, { piece: PIECES.p, square: 'f7' },
+    { piece: PIECES.p, square: 'g6' }, { piece: PIECES.p, square: 'h7' },
+  ];
+
+  // Kingside pawns pulse subtly
+  const kingsidePulse = interpolate(Math.sin(frame * 0.06), [-1, 1], [0, 0.3]);
+  const kingsidePawns = ['f7', 'g6', 'h7'];
+
+  // Tension zoom
+  const zoom = interpolate(frame, [0, 200], [1.0, 1.03], {
+    extrapolateRight: 'clamp', extrapolateLeft: 'clamp',
+  });
+
+  return (
+    <AbsoluteFill>
+      <Background />
+      <AbsoluteFill style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        opacity: boardSpring, transform: `scale(${zoom})`,
+      }}>
+        <ChessBoard
+          glowSquares={['e4', 'd4']}
+          highlightedSquares={['e7', 'f7']}
+          fireSquares={kingsidePawns.filter(() => kingsidePulse > 0.15)}
+        >
+          {whitePieces.map(({ piece, square }) => (
+            <StaticPiece key={square} symbol={piece} square={square} squareSize={squareSize} />
+          ))}
+          {blackPieces.map(({ piece, square }) => (
+            <StaticPiece key={square} symbol={piece} square={square} squareSize={squareSize} />
+          ))}
+        </ChessBoard>
+
+        <InfoBox title={`"Patience before the strike."`} delay={40} />
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// SCENE 6 — The Explosion (930–1170 frames / 8s)
+// ════════════════════════════════════════════════════════════════════════════
+
+const ExplosionScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const squareSize = 56;
+
+  const boardSpring = spring({ frame: frame - 5, fps, config: { damping: 20, stiffness: 80 } });
+
+  // Position before ...e5 break
+  const whitePieces = [
+    { piece: PIECES.R, square: 'a1' }, { piece: PIECES.B, square: 'e3' },
+    { piece: PIECES.Q, square: 'd2' }, { piece: PIECES.K, square: 'g1' },
+    { piece: PIECES.R, square: 'f1' },
+    { piece: PIECES.N, square: 'c3' }, { piece: PIECES.B, square: 'e2' },
+    { piece: PIECES.P, square: 'a2' }, { piece: PIECES.P, square: 'b2' },
+    { piece: PIECES.P, square: 'c4' }, { piece: PIECES.P, square: 'd4' },
+    { piece: PIECES.P, square: 'e4' }, { piece: PIECES.P, square: 'f3' },
+    { piece: PIECES.P, square: 'g2' }, { piece: PIECES.P, square: 'h2' },
+  ];
+
+  const blackPieces = [
+    { piece: PIECES.r, square: 'a8' }, { piece: PIECES.b, square: 'c8' },
+    { piece: PIECES.q, square: 'e7' }, { piece: PIECES.r, square: 'f8' },
+    { piece: PIECES.k, square: 'g8' },
+    { piece: PIECES.b, square: 'g7' }, { piece: PIECES.n, square: 'f6' },
+    { piece: PIECES.n, square: 'c6' },
+    { piece: PIECES.p, square: 'a7' }, { piece: PIECES.p, square: 'b7' },
+    { piece: PIECES.p, square: 'c7' }, { piece: PIECES.p, square: 'd6' },
+    { piece: PIECES.p, square: 'e7' }, { piece: PIECES.p, square: 'f7' },
+    { piece: PIECES.p, square: 'g6' }, { piece: PIECES.p, square: 'h7' },
+  ];
+
+  // Board shake after ...e5 lands
+  const shakeStart = 40;
+  const shakeDecay = Math.max(0, 1 - (frame - shakeStart) / 40);
+  const shakeX = frame > shakeStart ? Math.sin(frame * 2.5) * 4 * shakeDecay : 0;
+  const shakeY = frame > shakeStart ? Math.cos(frame * 3.0) * 3 * shakeDecay : 0;
+
+  // Second text: f5 idea
+  const text2Opacity = spring({ frame: frame - 130, fps, config: { damping: 20, stiffness: 80 } });
+  const text2Y = interpolate(text2Opacity, [0, 1], [20, 0]);
+
+  return (
+    <AbsoluteFill>
+      <Background />
+      <AbsoluteFill style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        opacity: boardSpring,
+        transform: `translate(${shakeX}px, ${shakeY}px)`,
+      }}>
+        <ChessBoard
+          glowSquares={frame > 35 ? ['e5'] : []}
+          fireSquares={frame > 100 ? ['f5', 'f4'] : []}
+          highlightedSquares={['e4', 'd4']}
+        >
+          {whitePieces.map(({ piece, square }) => (
+            <StaticPiece key={square} symbol={piece} square={square} squareSize={squareSize} />
+          ))}
+          {blackPieces.filter(p => p.square !== 'e7').map(({ piece, square }) => (
+            <StaticPiece key={square} symbol={piece} square={square} squareSize={squareSize} />
+          ))}
+          {/* ...e5! — the break */}
+          <AnimatedPiece
+            symbol={PIECES.p} fromSquare="e7" toSquare="e5"
+            squareSize={squareSize} startFrame={20} duration={18} glow={COLORS.fire}
+          />
+        </ChessBoard>
+
+        <InfoBox title="Counterattack the center." delay={50} />
+      </AbsoluteFill>
+
+      {/* Second text: f5 thrust */}
+      <div style={{
+        position: 'absolute', bottom: 60, left: 0, right: 0,
+        display: 'flex', justifyContent: 'center',
+        opacity: text2Opacity, transform: `translateY(${text2Y}px)`,
+      }}>
+        <div style={{
+          fontSize: 28, fontWeight: 700, color: COLORS.amber,
+          fontFamily: 'Inter, system-ui, sans-serif',
+          textAlign: 'center',
+        }}>
+          Launch the kingside attack.
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// SCENE 7 — Tactical Complexity (1170–1350 frames / 6s)
+// ════════════════════════════════════════════════════════════════════════════
+
+const TacticalComplexityScene: React.FC = () => {
+  const squareSize = 56;
+
+  // Complex KID middlegame — knights converging, dark-square tension
+  const whitePieces = [
+    { piece: PIECES.R, square: 'a1' }, { piece: PIECES.Q, square: 'c2' },
+    { piece: PIECES.K, square: 'h1' }, { piece: PIECES.R, square: 'f1' },
+    { piece: PIECES.B, square: 'e2' }, { piece: PIECES.B, square: 'e3' },
+    { piece: PIECES.N, square: 'c3' },
+    { piece: PIECES.P, square: 'a2' }, { piece: PIECES.P, square: 'b2' },
+    { piece: PIECES.P, square: 'c4' }, { piece: PIECES.P, square: 'd5' },
+    { piece: PIECES.P, square: 'f3' }, { piece: PIECES.P, square: 'g2' },
+    { piece: PIECES.P, square: 'h2' },
+  ];
+
+  const blackPieces = [
+    { piece: PIECES.r, square: 'a8' }, { piece: PIECES.b, square: 'd7' },
+    { piece: PIECES.q, square: 'h4' }, { piece: PIECES.r, square: 'f8' },
+    { piece: PIECES.k, square: 'g8' },
+    { piece: PIECES.b, square: 'g7' }, { piece: PIECES.n, square: 'f4' },
+    { piece: PIECES.n, square: 'e5' },
+    { piece: PIECES.p, square: 'a7' }, { piece: PIECES.p, square: 'b7' },
+    { piece: PIECES.p, square: 'c7' }, { piece: PIECES.p, square: 'd6' },
+    { piece: PIECES.p, square: 'f5' }, { piece: PIECES.p, square: 'g6' },
+    { piece: PIECES.p, square: 'h5' },
+  ];
+
+  return (
+    <AbsoluteFill>
+      <Background />
+      <AbsoluteFill style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-start', paddingLeft: 150,
+      }}>
+        <ChessBoard
+          fireSquares={['f4', 'e5', 'h4', 'h5']}
+          glowSquares={['g7', 'f5']}
+          highlightedSquares={['g1', 'h1', 'h2', 'g2']}
+        >
+          {whitePieces.map(({ piece, square }) => (
+            <StaticPiece key={square} symbol={piece} square={square} squareSize={squareSize} />
+          ))}
+          {blackPieces.map(({ piece, square }) => (
+            <StaticPiece key={square} symbol={piece} square={square} squareSize={squareSize}
+              glow={['f4', 'e5', 'h4'].includes(square) ? COLORS.fire : undefined}
+            />
+          ))}
+        </ChessBoard>
+
+        <BulletList
+          header="Famous for tactical complications."
+          items={[
+            'Knights jump to e5 and f4',
+            'Dark-square domination',
+            'Pieces converge on White\'s king',
+            'Advanced players thrive in the chaos',
+          ]}
+          delay={15}
+        />
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// SCENE 8 — End Card (1350–1440 frames / 3s)
+// ════════════════════════════════════════════════════════════════════════════
+
+const EndCardScene: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const squareSize = 56;
+  const boardSize = squareSize * 8;
+
+  // Board fades dark — only bishop on g7 and kingside pawn remain
+  const boardFade = interpolate(frame, [0, 30], [0.15, 0.06], {
+    extrapolateRight: 'clamp',
+  });
+
+  const fireGlow = interpolate(Math.sin(frame * 0.1), [-1, 1], [0.5, 1.0]);
+
+  const logoScale = spring({ frame: frame - 5, fps, config: { damping: 15, stiffness: 80 } });
+  const titleOpacity = spring({ frame: frame - 15, fps, config: { damping: 20, stiffness: 80 } });
+  const brandOpacity = spring({ frame: frame - 35, fps, config: { damping: 20, stiffness: 80 } });
+
+  return (
+    <AbsoluteFill>
+      <Background />
+
+      {/* Darkened board with only bishop + pawn glowing */}
+      <AbsoluteFill style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{
+          width: boardSize, height: boardSize,
+          borderRadius: 12, overflow: 'hidden', position: 'relative',
+          opacity: boardFade, filter: 'blur(2px)',
+        }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(8, ${squareSize}px)` }}>
+            {RANKS.map((rank, rankIdx) =>
+              FILES.map((file, fileIdx) => {
+                const square = `${file}${rank}`;
+                const isLight = (fileIdx + rankIdx) % 2 === 0;
+                const isGlowing = ['g7', 'f5'].includes(square);
+
+                return (
+                  <div key={square} style={{
+                    width: squareSize, height: squareSize,
+                    backgroundColor: isLight ? COLORS.boardLight : COLORS.boardDark,
+                    position: 'relative',
+                  }}>
+                    {isGlowing && (
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        backgroundColor: COLORS.fire, opacity: fireGlow,
+                        boxShadow: `inset 0 0 20px ${COLORS.fire}`,
+                      }} />
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+          <StaticPiece symbol={PIECES.b} square="g7" squareSize={squareSize} glow={COLORS.fire} />
+          <StaticPiece symbol={PIECES.p} square="f5" squareSize={squareSize} glow={COLORS.amber} />
+        </div>
+      </AbsoluteFill>
+
+      <AbsoluteFill style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: 16,
+      }}>
+        {/* Glowing bishop symbol */}
+        <div style={{
+          fontSize: 80, color: '#ffffff',
+          textShadow: `0 0 ${30 * fireGlow}px ${COLORS.fire}, 0 0 ${60 * fireGlow}px ${COLORS.fire}, 0 0 ${90 * fireGlow}px ${COLORS.crimson}40`,
+          transform: `scale(${logoScale})`,
+          marginBottom: 10,
+        }}>
+          {PIECES.b}
+        </div>
+
+        {/* Title */}
+        <div style={{
+          fontSize: 48, fontWeight: 700,
+          background: `linear-gradient(135deg, ${COLORS.fire} 0%, ${COLORS.amber} 100%)`,
+          WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          opacity: titleOpacity,
+          fontFamily: 'Inter, system-ui, sans-serif', textAlign: 'center',
+        }}>
+          King's Indian Defense — Advanced
+        </div>
+
+        {/* Logo */}
+        <div style={{
+          opacity: brandOpacity, marginTop: 20,
+          transform: `scale(${logoScale})`,
+        }}>
+          <Img
+            src={staticFile('images/solmate-logo.png')}
+            style={{
+              height: 120,
+              filter: `drop-shadow(0 0 40px ${COLORS.fire}80)`,
+            }}
+          />
+        </div>
+
+        {/* SolMate text */}
+        <div style={{
+          fontSize: 24, color: '#a1a1aa', opacity: brandOpacity,
+          fontFamily: 'Inter, system-ui, sans-serif', marginTop: 10,
+        }}>
+          SolMate
+        </div>
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// MAIN COMPOSITION
+// ════════════════════════════════════════════════════════════════════════════
+
+export const KingsIndianDefense: React.FC = () => {
+  return (
+    <AbsoluteFill style={{ backgroundColor: COLORS.bgDark }}>
+      {/* Scene 1: Title Card (0–90 frames / 3s) */}
+      <Sequence from={0} durationInFrames={90}>
+        <TitleScene />
+      </Sequence>
+
+      {/* Scene 2: Controlled Invitation (90–240 frames / 5s) */}
+      <Sequence from={90} durationInFrames={150}>
+        <ControlledInvitationScene />
+      </Sequence>
+
+      {/* Scene 3: Hypermodern Setup (240–450 frames / 7s) */}
+      <Sequence from={240} durationInFrames={210}>
+        <HypermodernSetupScene />
+      </Sequence>
+
+      {/* Scene 4: The Hidden Power (450–690 frames / 8s) */}
+      <Sequence from={450} durationInFrames={240}>
+        <HiddenPowerScene />
+      </Sequence>
+
+      {/* Scene 5: The Storm Builds (690–930 frames / 8s) */}
+      <Sequence from={690} durationInFrames={240}>
+        <StormBuildsScene />
+      </Sequence>
+
+      {/* Scene 6: The Explosion (930–1170 frames / 8s) */}
+      <Sequence from={930} durationInFrames={240}>
+        <ExplosionScene />
+      </Sequence>
+
+      {/* Scene 7: Tactical Complexity (1170–1350 frames / 6s) */}
+      <Sequence from={1170} durationInFrames={180}>
+        <TacticalComplexityScene />
+      </Sequence>
+
+      {/* Scene 8: End Card (1350–1440 frames / 3s) */}
+      <Sequence from={1350} durationInFrames={90}>
+        <EndCardScene />
+      </Sequence>
+    </AbsoluteFill>
+  );
+};
+
+export default KingsIndianDefense;

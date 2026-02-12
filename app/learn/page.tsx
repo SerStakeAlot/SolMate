@@ -187,6 +187,7 @@ const OPENINGS: Lesson[] = [
       'Famous for tactical complications',
       'Favorite of Kasparov and Fischer'
     ],
+    videoId: 'KingsIndianDefense',
   },
   {
     id: 'london-system',
@@ -460,6 +461,7 @@ const videoFiles: Record<string, string> = {
   'QueensGambit': '/videos/queens-gambit.mp4',
   'RuyLopez': '/videos/ruy-lopez.mp4',
   'FrenchDefense': '/videos/french-defense.mp4',
+  'KingsIndianDefense': '/videos/kings-indian-defense.mp4',
 };
 
 function VideoModal({ lesson, onClose }: VideoModalProps) {

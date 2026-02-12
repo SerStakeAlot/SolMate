@@ -10,6 +10,7 @@ import { SicilianDefense } from "./videos/SicilianDefense";
 import { QueensGambit } from "./videos/QueensGambit";
 import { RuyLopez } from "./videos/RuyLopez";
 import { FrenchDefense } from "./videos/FrenchDefense";
+import { KingsIndianDefense } from "./videos/KingsIndianDefense";
 import { SolMateTeaser, SolMateTeaserSquare, SolMateTeaserVertical } from '../compositions/SolMateTeaser';
 import { SolMatePromo, SolMatePromoSquare } from '../compositions/SolMatePromo';
 import { MatrixDemo, MatrixDemoSquare } from '../compositions/MatrixDemo';
@@ -100,6 +101,16 @@ export const RemotionRoot: React.FC = () => {
       <Composition
         id="FrenchDefense"
         component={FrenchDefense}
+        durationInFrames={1440}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+
+      {/* King's Indian Defense - 48 seconds at 30fps = 1440 frames */}
+      <Composition
+        id="KingsIndianDefense"
+        component={KingsIndianDefense}
         durationInFrames={1440}
         fps={30}
         width={1920}
