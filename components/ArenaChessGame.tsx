@@ -488,6 +488,22 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
       <style>{`
         .arena-chess-grid { display: grid; grid-template-columns: 620px 1fr; gap: 28px; align-items: start; }
         @media (max-width: 960px) { .arena-chess-grid { grid-template-columns: 1fr; } .arena-board-col { max-width: 100% !important; } }
+        @media (max-width: 640px) {
+          .arena-board-wrap {
+            background: transparent !important;
+            border: none !important;
+            backdrop-filter: none !important;
+            padding: 0 !important;
+            border-radius: 0 !important;
+            margin-left: calc(-50vw + 50%) !important;
+            margin-right: calc(-50vw + 50%) !important;
+            width: 100vw !important;
+          }
+          .arena-board-wrap .arena-board-inner {
+            border-radius: 0 !important;
+            border: none !important;
+          }
+        }
       `}</style>
 
       <div className="arena-chess-grid">
@@ -579,13 +595,13 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
           </div>
 
           {/* ─── CHESS BOARD ─── */}
-          <div className="rounded-lg sm:rounded-2xl p-0 sm:p-3" style={{
+          <div className="arena-board-wrap rounded-lg sm:rounded-2xl p-0 sm:p-3" style={{
             background: 'rgba(14,14,30,0.7)',
             border: '1px solid rgba(255,255,255,0.06)',
             backdropFilter: 'blur(12px)',
           }}>
             <div className="relative">
-              <div className="aspect-square w-full overflow-hidden rounded-xl sm:rounded-2xl" style={{
+              <div className="arena-board-inner aspect-square w-full overflow-hidden rounded-xl sm:rounded-2xl" style={{
                 border: '1px solid rgba(255,255,255,0.08)',
                 boxShadow: '0 20px 60px rgba(0,0,0,0.4), 0 0 80px rgba(234,179,8,0.05)',
                 background: 'linear-gradient(135deg, rgba(234,179,8,0.02), rgba(153,69,255,0.02))',

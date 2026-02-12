@@ -2163,6 +2163,22 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       <style>{`
         .chess-grid { display: grid; grid-template-columns: 620px 1fr; gap: 28px; align-items: start; }
         @media (max-width: 960px) { .chess-grid { grid-template-columns: 1fr; } .chess-board-col { max-width: 100% !important; } }
+        @media (max-width: 640px) {
+          .chess-board-wrap {
+            background: transparent !important;
+            border: none !important;
+            backdrop-filter: none !important;
+            padding: 0 !important;
+            border-radius: 0 !important;
+            margin-left: calc(-50vw + 50%) !important;
+            margin-right: calc(-50vw + 50%) !important;
+            width: 100vw !important;
+          }
+          .chess-board-wrap .chess-board-inner {
+            border-radius: 0 !important;
+            border: none !important;
+          }
+        }
       `}</style>
       <div className="chess-grid">
         {/* Left Column - Board */}
@@ -2427,7 +2443,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
           )}
 
           <div className="w-full space-y-3 sm:space-y-4">
-            <div className="rounded-lg sm:rounded-2xl p-0 sm:p-3" style={{ background: 'rgba(14,14,30,0.7)', border: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+            <div className="chess-board-wrap rounded-lg sm:rounded-2xl p-0 sm:p-3" style={{ background: 'rgba(14,14,30,0.7)', border: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
               {/* Opponent info bar for multiplayer/free play (shown at top) */}
               {(isFreePlay || isMultiplayer) && opponentConnected && (() => {
                 const opponentColor = playerColor === 'w' ? 'b' : 'w';
@@ -2563,7 +2579,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
               
               {/* Chess Board with Coordinates */}
               <div className="relative" style={{ marginBottom: 8 }}>
-              <div className="aspect-square w-full rounded-xl sm:rounded-2xl" style={{ border: '2px solid rgba(255,255,255,0.15)', boxShadow: '0 0 40px rgba(153,69,255,0.08)', overflow: 'hidden' }}>
+              <div className="chess-board-inner aspect-square w-full rounded-xl sm:rounded-2xl" style={{ border: '2px solid rgba(255,255,255,0.15)', boxShadow: '0 0 40px rgba(153,69,255,0.08)', overflow: 'hidden' }}>
                 <div className="grid h-full w-full grid-cols-8 grid-rows-8">
               {Array.from({ length: 64 }).map((_, i) => {
                 // Flip board for black player - their pieces should be at bottom
