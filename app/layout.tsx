@@ -64,7 +64,7 @@ export default function RootLayout({
         {/* Outfit for Arena pages */}
         <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="min-h-screen bg-[#07070e] text-white antialiased overflow-x-hidden">
+      <body className="min-h-screen bg-[#07070e] text-white antialiased">
         <WalletProvider>
           <div className="relative min-h-screen">
             {/* Subtle animated gradient orbs */}
