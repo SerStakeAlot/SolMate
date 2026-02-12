@@ -9,6 +9,7 @@ import { ItalianGame } from "./videos/ItalianGame";
 import { SicilianDefense } from "./videos/SicilianDefense";
 import { QueensGambit } from "./videos/QueensGambit";
 import { RuyLopez } from "./videos/RuyLopez";
+import { FrenchDefense } from "./videos/FrenchDefense";
 import { SolMateTeaser, SolMateTeaserSquare, SolMateTeaserVertical } from '../compositions/SolMateTeaser';
 import { SolMatePromo, SolMatePromoSquare } from '../compositions/SolMatePromo';
 import { MatrixDemo, MatrixDemoSquare } from '../compositions/MatrixDemo';
@@ -90,6 +91,16 @@ export const RemotionRoot: React.FC = () => {
         id="RuyLopez"
         component={RuyLopez}
         durationInFrames={1350}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+
+      {/* French Defense - 48 seconds at 30fps = 1440 frames */}
+      <Composition
+        id="FrenchDefense"
+        component={FrenchDefense}
+        durationInFrames={1440}
         fps={30}
         width={1920}
         height={1080}

@@ -172,6 +172,7 @@ const OPENINGS: Lesson[] = [
       'Light-squared bishop can be problematic',
       'Counterattacking chances on queenside'
     ],
+    videoId: 'FrenchDefense',
   },
   {
     id: 'kings-indian',
@@ -458,6 +459,7 @@ const videoFiles: Record<string, string> = {
   'SicilianDefense': '/videos/sicilian-defense.mp4',
   'QueensGambit': '/videos/queens-gambit.mp4',
   'RuyLopez': '/videos/ruy-lopez.mp4',
+  'FrenchDefense': '/videos/french-defense.mp4',
 };
 
 function VideoModal({ lesson, onClose }: VideoModalProps) {

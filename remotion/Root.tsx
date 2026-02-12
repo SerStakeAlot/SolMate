@@ -6,6 +6,7 @@ import { ItalianGame } from './src/videos/ItalianGame';
 import { SicilianDefense } from './src/videos/SicilianDefense';
 import { QueensGambit } from './src/videos/QueensGambit';
 import { RuyLopez } from './src/videos/RuyLopez';
+import { FrenchDefense } from './src/videos/FrenchDefense';
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -105,6 +106,16 @@ export const RemotionRoot: React.FC = () => {
         id="RuyLopez"
         component={RuyLopez}
         durationInFrames={1350}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+
+      {/* French Defense - 48 seconds @ 30fps = 1440 frames */}
+      <Composition
+        id="FrenchDefense"
+        component={FrenchDefense}
+        durationInFrames={1440}
         fps={30}
         width={1920}
         height={1080}
