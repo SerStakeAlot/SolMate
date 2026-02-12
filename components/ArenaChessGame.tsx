@@ -487,7 +487,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
       {/* CSS Grid Layout */}
       <style>{`
         .arena-chess-grid { display: grid; grid-template-columns: 620px 1fr; gap: 28px; align-items: start; }
-        @media (max-width: 960px) { .arena-chess-grid { grid-template-columns: 1fr; } .arena-board-col { max-width: 100% !important; } }
+        @media (max-width: 960px) { .arena-chess-grid { grid-template-columns: 1fr; } .arena-board-col { max-width: 100% !important; overflow-x: hidden; } }
         @media (max-width: 640px) {
           .arena-board-wrap {
             background: transparent !important;
@@ -495,9 +495,6 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
             backdrop-filter: none !important;
             padding: 0 !important;
             border-radius: 0 !important;
-            margin-left: calc(-50vw + 50%) !important;
-            margin-right: calc(-50vw + 50%) !important;
-            width: 100vw !important;
           }
           .arena-board-wrap .arena-board-inner {
             border-radius: 0 !important;
