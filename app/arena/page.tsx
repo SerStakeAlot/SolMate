@@ -127,7 +127,7 @@ export default function ArenaPage() {
         }
       `}</style>
 
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: isPlaying ? 960 : 760, margin: '0 auto', padding: isPlaying ? '12px 24px 40px' : '20px 24px 80px', textAlign: 'center', transition: 'max-width 0.3s' }}>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: isPlaying ? 960 : 760, margin: '0 auto', padding: isPlaying ? '12px clamp(4px, 1.5vw, 24px) 40px' : '20px clamp(4px, 1.5vw, 24px) 80px', textAlign: 'center', transition: 'max-width 0.3s' }}>
 
         {/* Header — compact when game is active */}
         <div style={{ marginBottom: isPlaying ? 4 : 8 }}>

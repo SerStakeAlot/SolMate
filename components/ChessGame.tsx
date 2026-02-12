@@ -2162,11 +2162,11 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     <>
       <style>{`
         .chess-grid { display: grid; grid-template-columns: 576px 1fr; gap: 28px; align-items: start; }
-        @media (max-width: 960px) { .chess-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 960px) { .chess-grid { grid-template-columns: 1fr; } .chess-board-col { max-width: 100% !important; } }
       `}</style>
       <div className="chess-grid">
         {/* Left Column - Board */}
-        <div className="flex flex-col" style={{ width: '100%', maxWidth: 576, margin: '0 auto' }}>
+        <div className="chess-board-col flex flex-col" style={{ width: '100%', maxWidth: 576, margin: '0 auto' }}>
           {/* Match Header */}
           {mode === 'wager' && matchInfo && (
             <div style={{
@@ -2427,7 +2427,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
           )}
 
           <div className="w-full space-y-3 sm:space-y-4">
-            <div className="rounded-2xl p-2 sm:p-3" style={{ background: 'rgba(14,14,30,0.7)', border: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+            <div className="rounded-xl sm:rounded-2xl p-0.5 sm:p-3" style={{ background: 'rgba(14,14,30,0.7)', border: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
               {/* Opponent info bar for multiplayer/free play (shown at top) */}
               {(isFreePlay || isMultiplayer) && opponentConnected && (() => {
                 const opponentColor = playerColor === 'w' ? 'b' : 'w';
@@ -2563,7 +2563,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
               
               {/* Chess Board with Coordinates */}
               <div className="relative" style={{ marginBottom: 8 }}>
-              <div className="aspect-square w-full rounded-2xl" style={{ border: '2px solid rgba(255,255,255,0.15)', boxShadow: '0 0 40px rgba(153,69,255,0.08)', overflow: 'hidden' }}>
+              <div className="aspect-square w-full rounded-xl sm:rounded-2xl" style={{ border: '2px solid rgba(255,255,255,0.15)', boxShadow: '0 0 40px rgba(153,69,255,0.08)', overflow: 'hidden' }}>
                 <div className="grid h-full w-full grid-cols-8 grid-rows-8">
               {Array.from({ length: 64 }).map((_, i) => {
                 // Flip board for black player - their pieces should be at bottom
@@ -2624,7 +2624,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       <motion.div
                         initial={false}
                         animate={{ scale: isSelected ? 1.1 : 1 }}
-                        className="relative w-[80%] h-[80%]"
+                        className="relative w-[88%] h-[88%] sm:w-[80%] sm:h-[80%]"
                         style={{ zIndex: 1 }}
                       >
                         <img

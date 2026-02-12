@@ -487,12 +487,12 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
       {/* CSS Grid Layout */}
       <style>{`
         .arena-chess-grid { display: grid; grid-template-columns: 576px 1fr; gap: 28px; align-items: start; }
-        @media (max-width: 960px) { .arena-chess-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 960px) { .arena-chess-grid { grid-template-columns: 1fr; } .arena-board-col { max-width: 100% !important; } }
       `}</style>
 
       <div className="arena-chess-grid">
         {/* ─── LEFT COLUMN: Board + Timers ─── */}
-        <div className="flex flex-col" style={{ width: '100%', maxWidth: 576 }}>
+        <div className="arena-board-col flex flex-col" style={{ width: '100%', maxWidth: 576 }}>
 
           {/* ─── AI TIMER (top) ─── */}
           <div style={{
@@ -579,13 +579,13 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
           </div>
 
           {/* ─── CHESS BOARD ─── */}
-          <div className="rounded-2xl p-2 sm:p-3" style={{
+          <div className="rounded-2xl p-0.5 sm:p-3" style={{
             background: 'rgba(14,14,30,0.7)',
             border: '1px solid rgba(255,255,255,0.06)',
             backdropFilter: 'blur(12px)',
           }}>
             <div className="relative">
-              <div className="aspect-square w-full overflow-hidden rounded-2xl" style={{
+              <div className="aspect-square w-full overflow-hidden rounded-xl sm:rounded-2xl" style={{
                 border: '1px solid rgba(255,255,255,0.08)',
                 boxShadow: '0 20px 60px rgba(0,0,0,0.4), 0 0 80px rgba(234,179,8,0.05)',
                 background: 'linear-gradient(135deg, rgba(234,179,8,0.02), rgba(153,69,255,0.02))',
@@ -642,7 +642,7 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
                         {/* Piece */}
                         {piece && (
                           <motion.div
-                            className="relative w-[80%] h-[80%]"
+                            className="relative w-[88%] h-[88%] sm:w-[80%] sm:h-[80%]"
                             style={{ zIndex: 1 }}
                             initial={{ scale: 0.8, opacity: 0 }}
                             animate={{ scale: isSelected ? 1.08 : 1, opacity: 1 }}
