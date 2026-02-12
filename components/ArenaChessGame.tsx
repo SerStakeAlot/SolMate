@@ -495,6 +495,9 @@ export function ArenaChessGame({ walletAddress, onGameEnd }: ArenaChessGameProps
             backdrop-filter: none !important;
             padding: 0 !important;
             border-radius: 0 !important;
+            width: 100vw !important;
+            margin-left: calc(-50vw + 50%) !important;
+            margin-right: calc(-50vw + 50%) !important;
           }
           .arena-board-wrap .arena-board-inner {
             border-radius: 0 !important;

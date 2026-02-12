@@ -2170,6 +2170,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
             backdrop-filter: none !important;
             padding: 0 !important;
             border-radius: 0 !important;
+            width: 100vw !important;
+            margin-left: calc(-50vw + 50%) !important;
+            margin-right: calc(-50vw + 50%) !important;
           }
           .chess-board-wrap .chess-board-inner {
             border-radius: 0 !important;
