@@ -202,6 +202,7 @@ const OPENINGS: Lesson[] = [
       'Solid pawn structure',
       'Great for beginners to learn'
     ],
+    videoId: 'LondonSystem',
   },
   {
     id: 'caro-kann',
@@ -462,6 +463,7 @@ const videoFiles: Record<string, string> = {
   'RuyLopez': '/videos/ruy-lopez.mp4',
   'FrenchDefense': '/videos/french-defense.mp4',
   'KingsIndianDefense': '/videos/kings-indian-defense.mp4',
+  'LondonSystem': '/videos/london-system.mp4',
 };
 
 function VideoModal({ lesson, onClose }: VideoModalProps) {

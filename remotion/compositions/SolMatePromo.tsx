@@ -333,7 +333,228 @@ const ProductReveal: React.FC = () => {
 };
 
 // ============================================
-// SCENE 3: HOW IT WORKS (7-13s)
+// SCENE 3: APP INTERFACE MOCKUP (7-11s)
+// ============================================
+const AppInterfaceMockup: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  // Phone mockup animation
+  const phoneProgress = spring({
+    frame,
+    fps,
+    config: { damping: 18, stiffness: 70 },
+  });
+
+  const phoneScale = interpolate(phoneProgress, [0, 1], [0.8, 1]);
+  const phoneOpacity = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: 'clamp' });
+
+  // App interface content animations
+  const appBarOpacity = interpolate(frame, [20, 35], [0, 1], { extrapolateRight: 'clamp' });
+  const boardOpacity = interpolate(frame, [35, 50], [0, 1], { extrapolateRight: 'clamp' });
+  const statsOpacity = interpolate(frame, [50, 65], [0, 1], { extrapolateRight: 'clamp' });
+
+  return (
+    <AbsoluteFill style={{ backgroundColor: COLORS.background }}>
+      <AmbientGlow intensity={0.8} />
+      <FilmGrain />
+
+      <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
+        {/* Phone Mockup */}
+        <div
+          style={{
+            width: 380,
+            height: 760,
+            borderRadius: 40,
+            backgroundColor: '#1a1a24',
+            border: `8px solid ${COLORS.darkGray}`,
+            boxShadow: `0 0 100px ${COLORS.purple}33, 0 30px 80px rgba(0,0,0,0.6)`,
+            opacity: phoneOpacity,
+            transform: `scale(${phoneScale}) perspective(1000px) rotateY(-8deg)`,
+            overflow: 'hidden',
+            position: 'relative',
+          }}
+        >
+          {/* Status Bar */}
+          <div
+            style={{
+              height: 44,
+              padding: '0 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: 14,
+              color: COLORS.white,
+              opacity: appBarOpacity,
+            }}
+          >
+            <span>9:41</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <span>📶</span>
+              <span>🔋</span>
+            </div>
+          </div>
+
+          {/* App Bar */}
+          <div
+            style={{
+              padding: '16px 20px',
+              background: `linear-gradient(135deg, ${COLORS.purple}22, transparent)`,
+              borderBottom: `1px solid ${COLORS.purple}22`,
+              opacity: appBarOpacity,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ fontSize: 20, fontWeight: 700, color: COLORS.white, margin: 0 }}>
+                SolMate Arena
+              </h3>
+              <div
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 8,
+                  backgroundColor: COLORS.green + '22',
+                  border: `1px solid ${COLORS.green}44`,
+                  fontSize: 12,
+                  color: COLORS.green,
+                  fontWeight: 600,
+                }}
+              >
+                0.5 SOL
+              </div>
+            </div>
+          </div>
+
+          {/* Chess Board */}
+          <div
+            style={{
+              margin: '30px auto',
+              width: 320,
+              opacity: boardOpacity,
+            }}
+          >
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(8, 40px)',
+                borderRadius: 8,
+                overflow: 'hidden',
+                boxShadow: `0 0 40px ${COLORS.purple}33`,
+              }}
+            >
+              {Array.from({ length: 64 }).map((_, i) => {
+                const row = Math.floor(i / 8);
+                const col = i % 8;
+                const isLight = (row + col) % 2 === 0;
+
+                // Opening position pieces
+                const pieces: { [key: number]: string } = {
+                  0: '♜', 1: '♞', 2: '♝', 3: '♛', 4: '♚', 5: '♝', 6: '♞', 7: '♜',
+                  8: '♟', 9: '♟', 10: '♟', 11: '♟', 12: '♟', 13: '♟', 14: '♟', 15: '♟',
+                  48: '♙', 49: '♙', 50: '♙', 51: '♙', 52: '♙', 53: '♙', 54: '♙', 55: '♙',
+                  56: '♖', 57: '♘', 58: '♗', 59: '♕', 60: '♔', 61: '♗', 62: '♘', 63: '♖',
+                };
+
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      width: 40,
+                      height: 40,
+                      backgroundColor: isLight ? '#2d2d3d' : '#1c1c28',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 24,
+                    }}
+                  >
+                    {pieces[i] && (
+                      <span style={{ color: row < 2 ? COLORS.purple : COLORS.white }}>
+                        {pieces[i]}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Player Stats */}
+          <div
+            style={{
+              padding: '0 20px',
+              opacity: statsOpacity,
+            }}
+          >
+            <div
+              style={{
+                background: `linear-gradient(135deg, ${COLORS.darkGray}, ${COLORS.background})`,
+                borderRadius: 16,
+                padding: '20px',
+                border: `1px solid ${COLORS.purple}33`,
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div>
+                  <p style={{ fontSize: 12, color: COLORS.gray, margin: 0 }}>Your ELO</p>
+                  <p style={{ fontSize: 24, color: COLORS.white, margin: 0, fontWeight: 700 }}>
+                    1580
+                  </p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <p style={{ fontSize: 12, color: COLORS.gray, margin: 0 }}>Stake</p>
+                  <p style={{ fontSize: 24, color: COLORS.green, margin: 0, fontWeight: 700 }}>
+                    0.5 SOL
+                  </p>
+                </div>
+              </div>
+
+              <button
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: 12,
+                  border: 'none',
+                  background: `linear-gradient(135deg, ${COLORS.purple}, #7c3aed)`,
+                  color: COLORS.white,
+                  fontSize: 16,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  boxShadow: `0 4px 20px ${COLORS.purple}44`,
+                }}
+              >
+                Find Match
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Feature Label */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 120,
+            left: 200,
+            opacity: statsOpacity,
+          }}
+        >
+          <p
+            style={{
+              fontSize: 32,
+              color: COLORS.white,
+              fontWeight: 600,
+              textShadow: `0 0 30px ${COLORS.purple}66`,
+            }}
+          >
+            Seamless mobile experience
+          </p>
+        </div>
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
+// ============================================
+// SCENE 4: HOW IT WORKS (11-17s)
 // ============================================
 const HowItWorks: React.FC = () => {
   const frame = useCurrentFrame();
@@ -853,29 +1074,34 @@ export const SolMatePromo: React.FC = () => {
       <Sequence from={0} durationInFrames={90}>
         <IntroScene />
       </Sequence>
-      
-      {/* Scene 2: Product Reveal (3-7s / 90-210 frames) */}
-      <Sequence from={90} durationInFrames={120}>
+
+      {/* Scene 2: Product Reveal (3-6s / 90-180 frames) */}
+      <Sequence from={90} durationInFrames={90}>
         <ProductReveal />
       </Sequence>
-      
-      {/* Scene 3: How It Works (7-13s / 210-390 frames) */}
-      <Sequence from={210} durationInFrames={180}>
+
+      {/* Scene 3: App Interface Mockup (6-10s / 180-300 frames) */}
+      <Sequence from={180} durationInFrames={120}>
+        <AppInterfaceMockup />
+      </Sequence>
+
+      {/* Scene 4: How It Works (10-16s / 300-480 frames) */}
+      <Sequence from={300} durationInFrames={180}>
         <HowItWorks />
       </Sequence>
-      
-      {/* Scene 4: Philosophy (13-18s / 390-540 frames) */}
-      <Sequence from={390} durationInFrames={150}>
+
+      {/* Scene 5: Philosophy (16-20s / 480-600 frames) */}
+      <Sequence from={480} durationInFrames={120}>
         <Philosophy />
       </Sequence>
-      
-      {/* Scene 5: Victory Modal (18-23s / 540-690 frames) */}
-      <Sequence from={540} durationInFrames={150}>
+
+      {/* Scene 6: Victory Modal (20-24s / 600-720 frames) */}
+      <Sequence from={600} durationInFrames={120}>
         <VictoryModal />
       </Sequence>
-      
-      {/* Scene 6: Outro (23-30s / 690-900 frames) */}
-      <Sequence from={690} durationInFrames={210}>
+
+      {/* Scene 7: Outro (24-30s / 720-900 frames) */}
+      <Sequence from={720} durationInFrames={180}>
         <Outro />
       </Sequence>
     </AbsoluteFill>

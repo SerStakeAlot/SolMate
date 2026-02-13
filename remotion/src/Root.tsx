@@ -11,6 +11,7 @@ import { QueensGambit } from "./videos/QueensGambit";
 import { RuyLopez } from "./videos/RuyLopez";
 import { FrenchDefense } from "./videos/FrenchDefense";
 import { KingsIndianDefense } from "./videos/KingsIndianDefense";
+import { LondonSystem } from "./videos/LondonSystem";
 import { SolMateTeaser, SolMateTeaserSquare, SolMateTeaserVertical } from '../compositions/SolMateTeaser';
 import { SolMatePromo, SolMatePromoSquare } from '../compositions/SolMatePromo';
 import { MatrixDemo, MatrixDemoSquare } from '../compositions/MatrixDemo';
@@ -112,6 +113,16 @@ export const RemotionRoot: React.FC = () => {
         id="KingsIndianDefense"
         component={KingsIndianDefense}
         durationInFrames={1440}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+
+      {/* London System - 46 seconds at 30fps = 1380 frames */}
+      <Composition
+        id="LondonSystem"
+        component={LondonSystem}
+        durationInFrames={1380}
         fps={30}
         width={1920}
         height={1080}

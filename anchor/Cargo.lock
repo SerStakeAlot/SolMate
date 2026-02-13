@@ -1391,6 +1391,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "sol_mate_verification"
+version = "0.1.0"
+
+[[package]]
 name = "solana-frozen-abi"
 version = "1.16.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"

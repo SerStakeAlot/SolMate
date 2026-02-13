@@ -8,6 +8,7 @@ import { QueensGambit } from './src/videos/QueensGambit';
 import { RuyLopez } from './src/videos/RuyLopez';
 import { FrenchDefense } from './src/videos/FrenchDefense';
 import { KingsIndianDefense } from './src/videos/KingsIndianDefense';
+import { LondonSystem } from './src/videos/LondonSystem';
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -127,6 +128,16 @@ export const RemotionRoot: React.FC = () => {
         id="KingsIndianDefense"
         component={KingsIndianDefense}
         durationInFrames={1440}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+
+      {/* London System - 46 seconds @ 30fps = 1380 frames */}
+      <Composition
+        id="LondonSystem"
+        component={LondonSystem}
+        durationInFrames={1380}
         fps={30}
         width={1920}
         height={1080}
