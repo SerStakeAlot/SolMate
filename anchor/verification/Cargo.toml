@@ -1,9 +1,0 @@
-[package]
-name = "sol_mate_verification"
-version = "0.1.0"
-edition = "2021"
-description = "Kani formal verification harnesses for SolMate escrow program"
-
-[dependencies]
-
-# Kani proofs are enabled when running `cargo kani`

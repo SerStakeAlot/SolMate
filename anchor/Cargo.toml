@@ -1,7 +1,6 @@
 [workspace]
 members = [
-    "programs/sol_mate_escrow",
-    "verification"
+    "programs/sol_mate_escrow"
 ]
 resolver = "2"
 
