@@ -12,6 +12,7 @@ import { RuyLopez } from "./videos/RuyLopez";
 import { FrenchDefense } from "./videos/FrenchDefense";
 import { KingsIndianDefense } from "./videos/KingsIndianDefense";
 import { LondonSystem } from "./videos/LondonSystem";
+import { CaroKannDefense } from "./videos/CaroKannDefense";
 import { SolMateTeaser, SolMateTeaserSquare, SolMateTeaserVertical } from '../compositions/SolMateTeaser';
 import { SolMatePromo, SolMatePromoSquare } from '../compositions/SolMatePromo';
 import { MatrixDemo, MatrixDemoSquare } from '../compositions/MatrixDemo';
@@ -123,6 +124,16 @@ export const RemotionRoot: React.FC = () => {
         id="LondonSystem"
         component={LondonSystem}
         durationInFrames={1380}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+
+      {/* Caro-Kann Defense - 50 seconds at 30fps = 1500 frames */}
+      <Composition
+        id="CaroKannDefense"
+        component={CaroKannDefense}
+        durationInFrames={1500}
         fps={30}
         width={1920}
         height={1080}

@@ -9,6 +9,7 @@ import { RuyLopez } from './src/videos/RuyLopez';
 import { FrenchDefense } from './src/videos/FrenchDefense';
 import { KingsIndianDefense } from './src/videos/KingsIndianDefense';
 import { LondonSystem } from './src/videos/LondonSystem';
+import { CaroKannDefense } from './src/videos/CaroKannDefense';
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -138,6 +139,16 @@ export const RemotionRoot: React.FC = () => {
         id="LondonSystem"
         component={LondonSystem}
         durationInFrames={1380}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+
+      {/* Caro-Kann Defense - 50 seconds @ 30fps = 1500 frames */}
+      <Composition
+        id="CaroKannDefense"
+        component={CaroKannDefense}
+        durationInFrames={1500}
         fps={30}
         width={1920}
         height={1080}

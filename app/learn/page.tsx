@@ -217,6 +217,7 @@ const OPENINGS: Lesson[] = [
       'Less cramped than French Defense',
       'Favorite of Karpov and Anand'
     ],
+    videoId: 'CaroKannDefense',
   },
 ];
 
@@ -464,6 +465,7 @@ const videoFiles: Record<string, string> = {
   'FrenchDefense': '/videos/french-defense.mp4',
   'KingsIndianDefense': '/videos/kings-indian-defense.mp4',
   'LondonSystem': '/videos/london-system.mp4',
+  'CaroKannDefense': '/videos/caro-kann-defense.mp4',
 };
 
 function VideoModal({ lesson, onClose }: VideoModalProps) {
