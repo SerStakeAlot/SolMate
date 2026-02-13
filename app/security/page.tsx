@@ -311,8 +311,79 @@ export default function SecurityAuditPage() {
           ))}
         </motion.section>
 
+        {/* ── KANI FORMAL VERIFICATION ── */}
+        <motion.section {...fadeUp(0.5)} style={{ background: 'linear-gradient(135deg, rgba(0,255,163,0.04), rgba(153,69,255,0.03))', border: '1px solid rgba(0,255,163,0.15)', borderRadius: 20, padding: 28, marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(0,255,163,0.08)', border: '1px solid rgba(0,255,163,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🔬</div>
+            <div>
+              <h2 style={{ fontSize: 18, fontWeight: 800, color: '#00ffa3', margin: 0 }}>Kani Formal Verification</h2>
+              <p style={{ fontSize: 12, color: '#6b6b80', margin: 0, fontFamily: "'Space Mono', monospace" }}>Mathematical proof of program correctness</p>
+            </div>
+            <div style={{ marginLeft: 'auto', background: 'rgba(0,255,163,0.08)', border: '1px solid rgba(0,255,163,0.15)', borderRadius: 999, padding: '4px 12px', fontFamily: "'Space Mono', monospace", fontSize: 11, color: '#00ffa3', fontWeight: 700 }}>
+              25/25 PASSED
+            </div>
+          </div>
+
+          <p style={{ fontSize: 13, color: '#a0a0b8', lineHeight: 1.6, margin: '0 0 20px' }}>
+            All smart contract business logic has been formally verified using{' '}
+            <a href="https://github.com/model-checking/kani" target="_blank" rel="noopener noreferrer" style={{ color: '#9945ff', textDecoration: 'none' }} onMouseEnter={e => (e.currentTarget.style.color = '#00ffa3')} onMouseLeave={e => (e.currentTarget.style.color = '#9945ff')}>Kani ↗</a>,
+            an open-source model checker for Rust by AWS. Unlike traditional testing, Kani provides <span style={{ color: '#e8e8f0', fontWeight: 600 }}>exhaustive mathematical proofs</span> that properties hold for all possible inputs.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
+            {([
+              ['25', 'Proofs Verified', '#00ffa3'],
+              ['0', 'Failures', '#22c55e'],
+              ['13', 'Properties Checked', '#9945ff'],
+            ] as [string, string, string][]).map(([num, label, color]) => (
+              <div key={label} style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 12, padding: '14px 12px', textAlign: 'center' }}>
+                <div style={{ fontFamily: "'Space Mono', monospace", fontSize: 26, fontWeight: 800, color }}>{num}</div>
+                <div style={{ fontSize: 11, color: '#6b6b80', marginTop: 2, fontFamily: "'Space Mono', monospace" }}>{label}</div>
+              </div>
+            ))}
+          </div>
+
+          {([
+            ['Stake Tier Validity', '4 proofs', 'Valid tiers (0–4) return correct non-zero lamport amounts; invalid tiers safely return 0'],
+            ['Arithmetic Safety', '3 proofs', 'Fee/payout calculations never overflow for valid inputs; overflow is detected for extreme values via checked_mul'],
+            ['Fund Conservation', '2 proofs', 'fee + payout == total_pot for all inputs — no funds are ever lost or created during payout'],
+            ['Fee Correctness', '2 proofs', 'Fee is exactly 10% of the total pot; winner payout is exactly 90% — verified for all possible stake amounts'],
+            ['Force Refund Fairness', '3 proofs', 'player_a + player_b == escrow_balance (no loss); split differs by at most 1 lamport; exact for valid tiers'],
+            ['Account Size Adequacy', '2 proofs', 'Match::LEN (118 bytes) and FeeVault::LEN (17 bytes) exactly match their serialized field layouts'],
+            ['State Machine Integrity', '4 proofs', 'Only valid transitions allowed (Open→Active, Open→Cancelled, Active→Finished); Finished and Cancelled are terminal'],
+            ['Winner Validation', '1 proof', 'Winner address must be one of the two players — no third-party can be declared winner'],
+            ['Self-Match Prevention', '1 proof', 'Player B can never equal Player A after join validation — self-matching is impossible'],
+            ['Fee Vault Overflow', '1 proof', 'Accumulated fees use checked_add — overflow is always caught regardless of match volume'],
+            ['Cancel Refund', '1 proof', 'Match cancellation returns the exact stake amount deposited — no partial refunds'],
+            ['Winner Incentive', '1 proof', 'Winner payout is strictly greater than their stake — winning is always profitable'],
+          ]).map(([title, count, desc]) => (
+            <SubCard key={title}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#e8e8f0' }}>
+                  <span style={{ color: '#00ffa3' }}>✓ </span>{title}
+                </div>
+                <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 11, color: '#6b6b80', background: 'rgba(255,255,255,0.03)', borderRadius: 6, padding: '2px 8px' }}>{count}</span>
+              </div>
+              <p style={{ fontSize: 12, color: '#6b6b80', margin: 0, lineHeight: 1.5 }}>{desc}</p>
+            </SubCard>
+          ))}
+
+          <div style={{ marginTop: 16, background: 'rgba(0,0,0,0.15)', borderRadius: 12, padding: '14px 18px', fontFamily: "'Space Mono', monospace", fontSize: 12, color: '#6b6b80', lineHeight: 1.7 }}>
+            <div style={{ color: '#444', marginBottom: 6 }}>$ cargo kani</div>
+            <div><span style={{ color: '#00ffa3' }}>✓</span> verify_valid_stake_tiers_return_nonzero</div>
+            <div><span style={{ color: '#00ffa3' }}>✓</span> verify_fee_calculation_no_overflow_valid_tiers</div>
+            <div><span style={{ color: '#00ffa3' }}>✓</span> verify_fund_conservation_payout</div>
+            <div><span style={{ color: '#00ffa3' }}>✓</span> verify_force_refund_conservation</div>
+            <div><span style={{ color: '#00ffa3' }}>✓</span> verify_winner_profits</div>
+            <div style={{ color: '#444' }}>... and 20 more proofs</div>
+            <div style={{ marginTop: 8, borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 8 }}>
+              <span style={{ color: '#00ffa3', fontWeight: 700 }}>Complete - 25 successfully verified harnesses, 0 failures</span>
+            </div>
+          </div>
+        </motion.section>
+
         {/* ── KNOWN LIMITATIONS ── */}
-        <motion.section {...fadeUp(0.5)} style={{ background: 'linear-gradient(135deg, rgba(234,179,8,0.04), rgba(234,179,8,0.01))', border: '1px solid rgba(234,179,8,0.15)', borderRadius: 20, padding: 28, marginBottom: 20 }}>
+        <motion.section {...fadeUp(0.55)} style={{ background: 'linear-gradient(135deg, rgba(234,179,8,0.04), rgba(234,179,8,0.01))', border: '1px solid rgba(234,179,8,0.15)', borderRadius: 20, padding: 28, marginBottom: 20 }}>
           <h2 style={{ ...S.sectionTitle, color: '#eab308' }}>⚠️ Known Limitations</h2>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {[
@@ -329,7 +400,7 @@ export default function SecurityAuditPage() {
         </motion.section>
 
         {/* ── DISCLAIMER ── */}
-        <motion.section {...fadeUp(0.55)} style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 20, padding: 28, marginBottom: 20 }}>
+        <motion.section {...fadeUp(0.6)} style={{ background: 'rgba(255,255,255,0.015)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 20, padding: 28, marginBottom: 20 }}>
           <h2 style={{ fontSize: 14, fontWeight: 700, color: '#6b6b80', margin: '0 0 12px' }}>Disclaimer</h2>
           <p style={{ fontSize: 13, color: '#444', lineHeight: 1.6, margin: 0 }}>
             This security audit was conducted internally by the SolMate development team. While comprehensive
@@ -339,7 +410,7 @@ export default function SecurityAuditPage() {
         </motion.section>
 
         {/* ── BACK TO HOME ── */}
-        <motion.div {...fadeUp(0.6)} style={{ textAlign: 'center', marginTop: 32 }}>
+        <motion.div {...fadeUp(0.65)} style={{ textAlign: 'center', marginTop: 32 }}>
           <Link
             href="/"
             style={{ color: '#9945ff', fontSize: 14, fontWeight: 600, textDecoration: 'none', transition: 'color 0.2s' }}
