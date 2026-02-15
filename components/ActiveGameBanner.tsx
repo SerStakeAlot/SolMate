@@ -23,7 +23,15 @@ export function ActiveGameBanner() {
   const [activeGame, setActiveGame] = useState<ActiveGameInfo | null>(null);
 
   // Don't show banner on the game page itself
-  const isOnGamePage = pathname === '/game' || pathname?.startsWith('/game/');
+  // Check both React pathname and raw window.location for bulletproof detection
+  const isOnGamePage = (() => {
+    if (pathname === '/game' || pathname?.startsWith('/game/')) return true;
+    if (typeof window !== 'undefined') {
+      const wp = window.location.pathname;
+      if (wp === '/game' || wp.startsWith('/game/')) return true;
+    }
+    return false;
+  })();
 
   useEffect(() => {
     if (!connected || !publicKey || isOnGamePage) {
