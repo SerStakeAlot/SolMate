@@ -23,7 +23,7 @@ export function ActiveGameBanner() {
   const [activeGame, setActiveGame] = useState<ActiveGameInfo | null>(null);
 
   // Don't show banner on the game page itself
-  const isOnGamePage = pathname === '/game';
+  const isOnGamePage = pathname === '/game' || pathname?.startsWith('/game/');
 
   useEffect(() => {
     if (!connected || !publicKey || isOnGamePage) {
@@ -87,10 +87,17 @@ export function ActiveGameBanner() {
         onClick={() => {
           // Navigate to game page — the socket reconnect will restore the game state
           const params = new URLSearchParams();
-          params.set('mode', isWager ? 'wager' : 'practice');
           params.set('reconnect', 'true');
-          if (activeGame.matchPubkey) params.set('match', activeGame.matchPubkey);
-          if (activeGame.matchCode) params.set('code', activeGame.matchCode);
+          if (isWager) {
+            // Wager match: use mode=join which sets up wager socket
+            params.set('mode', 'join');
+            if (activeGame.matchPubkey) params.set('match', activeGame.matchPubkey);
+            if (activeGame.matchCode) params.set('code', activeGame.matchCode);
+            if (activeGame.stakeTier !== undefined) params.set('tier', String(activeGame.stakeTier));
+          } else {
+            // Free play: use mode=computer, reconnect will be handled by socket registration
+            params.set('mode', 'computer');
+          }
           router.push(`/game?${params.toString()}`);
         }}
         style={{

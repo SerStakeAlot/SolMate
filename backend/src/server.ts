@@ -1401,19 +1401,30 @@ io.on('connection', (socket) => {
     if (freePlayRooms) {
       for (const [code, room] of freePlayRooms.entries()) {
         if (room.hostSocketId === socket.id) {
-          // Host left - notify guest if present
-          if (room.guestSocketId) {
-            io.to(room.guestSocketId).emit('freeplay:hostLeft', { code });
+          if (room.ready) {
+            // Game already started — let gameRoomManager.handleDisconnect handle it
+            // Don't delete the room or send hostLeft
+            console.log(`Free play room ${code} - host disconnected during active game, deferring to gameRoomManager`);
+          } else {
+            // Game hasn't started — clean up lobby state
+            if (room.guestSocketId) {
+              io.to(room.guestSocketId).emit('freeplay:hostLeft', { code });
+            }
+            freePlayRooms.delete(code);
+            io.to('freeplay-lobby').emit('freeplayLobby:roomRemoved', { code });
+            console.log(`Free play room ${code} deleted - host disconnected`);
           }
-          freePlayRooms.delete(code);
-          io.to('freeplay-lobby').emit('freeplayLobby:roomRemoved', { code });
-          console.log(`Free play room ${code} deleted - host disconnected`);
         } else if (room.guestSocketId === socket.id) {
-          // Guest left - notify host
-          io.to(room.hostSocketId).emit('freeplay:guestLeft', { code });
-          room.guestSocketId = undefined;
-          room.guestWallet = undefined;
-          console.log(`Free play room ${code} - guest disconnected`);
+          if (room.ready) {
+            // Game already started — let gameRoomManager.handleDisconnect handle it
+            console.log(`Free play room ${code} - guest disconnected during active game, deferring to gameRoomManager`);
+          } else {
+            // Game hasn't started — clean up lobby state
+            io.to(room.hostSocketId).emit('freeplay:guestLeft', { code });
+            room.guestSocketId = undefined;
+            room.guestWallet = undefined;
+            console.log(`Free play room ${code} - guest disconnected`);
+          }
         } else if (room.spectators && room.spectators.includes(socket.id)) {
           // Spectator left - remove from list and notify players
           room.spectators = room.spectators.filter((id: string) => id !== socket.id);

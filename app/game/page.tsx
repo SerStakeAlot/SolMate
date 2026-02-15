@@ -126,6 +126,7 @@ function GameContent() {
   const tierParam = searchParams.get("tier");
   const freePlayCode = searchParams.get("freeplay"); // Join free play via link
   const spectateRoom = searchParams.get("room"); // Spectate wager match by room ID
+  const isReconnect = searchParams.get("reconnect") === "true"; // Reconnecting to active game
 
   // Host setup: if mode=host but no match param, show host setup flow
   const isHostSetup = playMode === "host" && !matchParam;
@@ -915,13 +916,14 @@ function GameContent() {
       >
         <ChessGame
           initialMode={initialMode}
-          showModeSelector={playMode === "computer" && !freePlayCode && !isSpectating}
+          showModeSelector={playMode === "computer" && !freePlayCode && !isSpectating && !isReconnect}
           matchPubkey={matchParam || undefined}
           playerRole={playerRole as "host" | "join" | undefined}
           matchCode={codeParam || undefined}
           initialStakeTier={stakeTier}
           freePlayJoinCode={freePlayCode || undefined}
           spectateRoomId={spectateRoom || undefined}
+          forceReconnect={isReconnect}
         />
       </div>
     </div>

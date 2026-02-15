@@ -151,6 +151,7 @@ type ChessGameProps = {
   onFreePlayGameStarted?: () => void; // Callback when opponent joins and game starts
   onFreePlayOpponentJoined?: () => void; // Callback when opponent enters lobby (before game starts)
   spectateRoomId?: string; // Spectate a wager match by room ID
+  forceReconnect?: boolean; // Force socket connection for reconnect (from ActiveGameBanner)
 };
 
 const BACKEND_URL = 'https://solmate-production.up.railway.app';
@@ -191,6 +192,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   onFreePlayGameStarted,
   onFreePlayOpponentJoined,
   spectateRoomId,
+  forceReconnect,
 }) => {
   const wallet = useWallet();
   const { connection } = useConnection();
@@ -582,6 +584,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     // Game end notification
     newSocket.on('game:end', ({ winner, reason, yourColor }) => {
       console.log('Game over:', winner, reason, 'My color:', yourColor);
+      if (yourColor) setPlayerColor(yourColor);
       setGameWinner(winner);
       setShowResultModal(true);
     });
@@ -666,6 +669,102 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       newSocket.disconnect();
     };
   }, [isMultiplayer, publicKey, matchCode, actualPlayerRole, currentMatchPubkey, selectedStakeTier, hasJoinerStaked]);
+
+  // Forced reconnect: when navigating from ActiveGameBanner in practice/freeplay mode
+  // Creates a socket, registers, and waits for game:reconnect from server
+  useEffect(() => {
+    if (!forceReconnect || !publicKey || isMultiplayer || isFreePlay) return;
+    // Don't reconnect if we already have a socket (wager/freeplay useEffects handle it)
+    if (socket) return;
+
+    console.log('Force reconnect: connecting to restore active game...');
+    const newSocket = io(BACKEND_URL, { transports: ['websocket', 'polling'] });
+
+    newSocket.on('connect', () => {
+      console.log('Force reconnect: connected, registering...');
+      newSocket.emit('player:register', { walletAddress: publicKey.toString() });
+    });
+
+    newSocket.on('game:reconnect', (gameState: {
+      roomId: string;
+      fen: string;
+      moves: string[];
+      yourColor: 'w' | 'b';
+      currentTurn: 'w' | 'b';
+      whiteTimeMs: number;
+      blackTimeMs: number;
+      matchPubkey?: string;
+      matchCode?: string;
+      stakeTier?: number;
+      opponentWallet?: string;
+    }) => {
+      console.log('Force reconnect: restoring game state', gameState.roomId);
+      const chess = chessRef.current!;
+      chess.load(gameState.fen);
+      setFen(gameState.fen);
+      setGameRoomId(gameState.roomId);
+      setPlayerColor(gameState.yourColor);
+      setOpponentConnected(true);
+      setWhiteTimeMs(gameState.whiteTimeMs);
+      setBlackTimeMs(gameState.blackTimeMs);
+      lastTickRef.current = Date.now();
+
+      // Detect if this is a freeplay or wager game and set mode accordingly
+      if (gameState.stakeTier !== undefined && gameState.stakeTier >= 0) {
+        setMode('wager');
+        setIsMultiplayer(true);
+        if (gameState.matchCode) setWagerMatchCode(gameState.matchCode);
+        if (gameState.matchPubkey) setCurrentMatchPubkey(new PublicKey(gameState.matchPubkey));
+        if (gameState.stakeTier !== undefined) setSelectedStakeTier(gameState.stakeTier);
+      } else {
+        // Free play game
+        setIsFreePlay(true);
+      }
+      setInWagerLobby(false);
+
+      if (gameState.opponentWallet) {
+        setOpponentWallet(gameState.opponentWallet);
+        getUsername(gameState.opponentWallet).then(setOpponentUsername);
+        getPlayerStats(gameState.opponentWallet).then(setOpponentStats);
+      }
+    });
+
+    newSocket.on('game:move', ({ move, timeUpdate }: any) => {
+      const chess = chessRef.current!;
+      try {
+        chess.move(move);
+        setFen(chess.fen());
+        if (timeUpdate) {
+          setWhiteTimeMs(timeUpdate.whiteTimeMs);
+          setBlackTimeMs(timeUpdate.blackTimeMs);
+          lastTickRef.current = Date.now();
+        }
+      } catch (e) {
+        console.error('Force reconnect: invalid move received', e);
+      }
+    });
+
+    newSocket.on('game:end', ({ winner, reason, yourColor }: any) => {
+      console.log('Force reconnect: game ended', winner, reason, 'My color:', yourColor);
+      if (yourColor) setPlayerColor(yourColor);
+      setGameWinner(winner);
+      setShowResultModal(true);
+    });
+
+    newSocket.on('game:opponentDisconnected', () => {
+      setOpponentConnected(false);
+    });
+
+    newSocket.on('game:opponentReconnected', () => {
+      setOpponentConnected(true);
+    });
+
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [forceReconnect, publicKey, isMultiplayer, isFreePlay]);
 
   // WebSocket connection for FREE PLAY mode (no blockchain)
   useEffect(() => {
@@ -923,8 +1022,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     });
     
     // Game end notification
-    newSocket.on('game:end', ({ winner, reason }) => {
-      console.log('Game over:', winner, reason);
+    newSocket.on('game:end', ({ winner, reason, yourColor }) => {
+      console.log('Game over:', winner, reason, 'My color:', yourColor);
+      if (yourColor) setPlayerColor(yourColor);
       setGameWinner(winner);
       setShowResultModal(true);
     });
