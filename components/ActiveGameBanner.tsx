@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -16,22 +16,46 @@ interface ActiveGameInfo {
   moves?: number;
 }
 
+function isGamePath(path: string | null | undefined): boolean {
+  if (!path) return false;
+  return path === '/game' || path.startsWith('/game/') || path.startsWith('/game?');
+}
+
 export function ActiveGameBanner() {
   const { publicKey, connected } = useWallet();
   const pathname = usePathname();
   const router = useRouter();
   const [activeGame, setActiveGame] = useState<ActiveGameInfo | null>(null);
+  const [isOnGamePage, setIsOnGamePage] = useState(false);
 
-  // Don't show banner on the game page itself
-  // Check both React pathname and raw window.location for bulletproof detection
-  const isOnGamePage = (() => {
-    if (pathname === '/game' || pathname?.startsWith('/game/')) return true;
-    if (typeof window !== 'undefined') {
-      const wp = window.location.pathname;
-      if (wp === '/game' || wp.startsWith('/game/')) return true;
+  // Track game page state reactively via useEffect
+  useEffect(() => {
+    const check = () => {
+      const onGame = isGamePath(pathname) ||
+        (typeof window !== 'undefined' && isGamePath(window.location.pathname));
+      setIsOnGamePage(onGame);
+    };
+    check();
+
+    // Also listen for popstate (back/forward navigation)
+    window.addEventListener('popstate', check);
+    return () => window.removeEventListener('popstate', check);
+  }, [pathname]);
+
+  const checkActiveGame = useCallback(async () => {
+    if (!publicKey) return;
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/active-game/${publicKey.toBase58()}`);
+      const data = await res.json();
+      if (data.hasActiveGame) {
+        setActiveGame(data);
+      } else {
+        setActiveGame(null);
+      }
+    } catch {
+      // Silently fail — don't block the UI
     }
-    return false;
-  })();
+  }, [publicKey]);
 
   useEffect(() => {
     if (!connected || !publicKey || isOnGamePage) {
@@ -39,25 +63,11 @@ export function ActiveGameBanner() {
       return;
     }
 
-    const checkActiveGame = async () => {
-      try {
-        const res = await fetch(`${BACKEND_URL}/api/active-game/${publicKey.toBase58()}`);
-        const data = await res.json();
-        if (data.hasActiveGame) {
-          setActiveGame(data);
-        } else {
-          setActiveGame(null);
-        }
-      } catch {
-        // Silently fail — don't block the UI
-      }
-    };
-
     checkActiveGame();
     // Re-check every 10 seconds in case a game starts while on another page
     const interval = setInterval(checkActiveGame, 10000);
     return () => clearInterval(interval);
-  }, [connected, publicKey, isOnGamePage, pathname]);
+  }, [connected, publicKey, isOnGamePage, checkActiveGame]);
 
   if (!activeGame?.hasActiveGame || isOnGamePage) return null;
 
@@ -66,7 +76,7 @@ export function ActiveGameBanner() {
   return (
     <div style={{
       position: 'fixed',
-      top: 56,
+      top: 'calc(56px + env(safe-area-inset-top, 0px))',
       left: 0,
       right: 0,
       zIndex: 49,

@@ -226,6 +226,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [isMultiplayer, setIsMultiplayer] = useState(!!playerRole);
   const [playerColor, setPlayerColor] = useState<PlayerColor>(playerRole === 'host' ? 'w' : playerRole === 'join' ? 'b' : null);
   const [opponentConnected, setOpponentConnected] = useState(false);
+  const [opponentDisconnectCountdown, setOpponentDisconnectCountdown] = useState<number | null>(null);
+  const opponentDisconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [gameRoomId, setGameRoomId] = useState<string | null>(null); // This is the backend roomId, not matchCode
   const [dynamicPlayerRole, setDynamicPlayerRole] = useState<'host' | 'join' | undefined>(playerRole);
   const actualPlayerRole = dynamicPlayerRole || playerRole;
@@ -420,6 +422,28 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       }
     }
   }, [whiteTimeMs, blackTimeMs, mode, isFreePlay, aiGameStarted, gameWinner, opponentConnected, isMultiplayer, socket]);
+
+  // Helper: start opponent disconnect countdown
+  const startDisconnectCountdown = useCallback((deadlineMs: number) => {
+    if (opponentDisconnectTimerRef.current) clearInterval(opponentDisconnectTimerRef.current);
+    const endTime = Date.now() + deadlineMs;
+    setOpponentDisconnectCountdown(Math.ceil(deadlineMs / 1000));
+    opponentDisconnectTimerRef.current = setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
+      setOpponentDisconnectCountdown(remaining);
+      if (remaining <= 0 && opponentDisconnectTimerRef.current) {
+        clearInterval(opponentDisconnectTimerRef.current);
+      }
+    }, 1000);
+  }, []);
+
+  const clearDisconnectCountdown = useCallback(() => {
+    if (opponentDisconnectTimerRef.current) {
+      clearInterval(opponentDisconnectTimerRef.current);
+      opponentDisconnectTimerRef.current = null;
+    }
+    setOpponentDisconnectCountdown(null);
+  }, []);
 
   // WebSocket connection for multiplayer
   useEffect(() => {
@@ -647,12 +671,14 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     newSocket.on('game:opponentDisconnected', ({ reconnectDeadlineMs, lockedIn }: { reconnectDeadlineMs: number; lockedIn: boolean }) => {
       console.log(`Opponent disconnected. Reconnect window: ${reconnectDeadlineMs / 1000}s. Locked in: ${lockedIn}`);
       setOpponentConnected(false);
+      startDisconnectCountdown(reconnectDeadlineMs);
     });
 
     // Opponent reconnected — clear warning
     newSocket.on('game:opponentReconnected', () => {
       console.log('Opponent reconnected!');
       setOpponentConnected(true);
+      clearDisconnectCountdown();
     });
 
     newSocket.on('disconnect', () => {
@@ -751,12 +777,16 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setShowResultModal(true);
     });
 
-    newSocket.on('game:opponentDisconnected', () => {
+    newSocket.on('game:opponentDisconnected', ({ reconnectDeadlineMs, lockedIn }: { reconnectDeadlineMs: number; lockedIn: boolean }) => {
+      console.log(`Opponent disconnected (reconnect). Window: ${reconnectDeadlineMs / 1000}s. Locked in: ${lockedIn}`);
       setOpponentConnected(false);
+      startDisconnectCountdown(reconnectDeadlineMs);
     });
 
     newSocket.on('game:opponentReconnected', () => {
+      console.log('Opponent reconnected!');
       setOpponentConnected(true);
+      clearDisconnectCountdown();
     });
 
     setSocket(newSocket);
@@ -991,13 +1021,13 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       console.log('!!! Spectator count received:', count);
       setSpectatorCount(count);
     });
-    
+
     // Game start notification
     newSocket.on('game:start', ({ whiteTimeMs, blackTimeMs }) => {
       console.log('Game started! White time:', whiteTimeMs, 'Black time:', blackTimeMs);
       setOpponentConnected(true);
     });
-    
+
     // Receive opponent's move
     newSocket.on('game:move', ({ move, timeUpdate }) => {
       console.log('Received move from opponent:', move);
@@ -1020,15 +1050,30 @@ export const ChessGame: React.FC<ChessGameProps> = ({
         console.error('Invalid move received:', e);
       }
     });
-    
+
     // Game end notification
     newSocket.on('game:end', ({ winner, reason, yourColor }) => {
-      console.log('Game over:', winner, reason, 'My color:', yourColor);
+      console.log('Game over (freeplay):', winner, reason, 'My color:', yourColor);
       if (yourColor) setPlayerColor(yourColor);
       setGameWinner(winner);
       setShowResultModal(true);
+      clearDisconnectCountdown();
     });
-    
+
+    // Opponent disconnected during active freeplay game — show 2-min countdown
+    newSocket.on('game:opponentDisconnected', ({ reconnectDeadlineMs, lockedIn }: { reconnectDeadlineMs: number; lockedIn: boolean }) => {
+      console.log(`Opponent disconnected (freeplay). Window: ${reconnectDeadlineMs / 1000}s. Locked in: ${lockedIn}`);
+      setOpponentConnected(false);
+      startDisconnectCountdown(reconnectDeadlineMs);
+    });
+
+    // Opponent reconnected — clear countdown
+    newSocket.on('game:opponentReconnected', () => {
+      console.log('Opponent reconnected (freeplay)!');
+      setOpponentConnected(true);
+      clearDisconnectCountdown();
+    });
+
     // Receive emoji reaction from opponent
     newSocket.on('game:reaction', ({ emoji }) => {
       console.log('Received reaction:', emoji);
@@ -2469,7 +2514,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           fontFamily: "'Space Mono', monospace",
                           color: opponentConnected ? '#00ffa3' : '#f59e0b',
                         }}>
-                          {opponentConnected ? 'Opponent ready' : 'Waiting for opponent...'}
+                          {opponentConnected ? 'Opponent ready' : opponentDisconnectCountdown !== null ? `Opponent disconnected (${Math.floor(opponentDisconnectCountdown / 60)}:${String(opponentDisconnectCountdown % 60).padStart(2, '0')})` : 'Waiting for opponent...'}
                         </span>
                       </div>
                     </div>
@@ -2592,6 +2637,36 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
           <div className="w-full space-y-3 sm:space-y-4">
             <div className="chess-board-wrap rounded-lg sm:rounded-2xl p-0 sm:p-3" style={{ background: 'rgba(14,14,30,0.7)', border: '1px solid rgba(255,255,255,0.06)', backdropFilter: 'blur(12px)' }}>
+              {/* Opponent disconnect countdown banner */}
+              {opponentDisconnectCountdown !== null && !opponentConnected && (
+                <div style={{
+                  background: 'linear-gradient(90deg, rgba(239,68,68,0.15), rgba(234,179,8,0.1))',
+                  border: '1px solid rgba(239,68,68,0.3)',
+                  borderRadius: 8,
+                  padding: '10px 16px',
+                  marginBottom: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                }}>
+                  <div style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: '#ef4444',
+                    animation: 'pulse 1.5s infinite',
+                  }} />
+                  <span style={{
+                    color: '#fbbf24',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    fontFamily: "'Outfit', sans-serif",
+                  }}>
+                    Opponent disconnected — reconnect window: {Math.floor(opponentDisconnectCountdown / 60)}:{String(opponentDisconnectCountdown % 60).padStart(2, '0')}
+                  </span>
+                </div>
+              )}
               {/* Opponent info bar for multiplayer/free play (shown at top) */}
               {(isFreePlay || isMultiplayer) && opponentConnected && (() => {
                 const opponentColor = playerColor === 'w' ? 'b' : 'w';
