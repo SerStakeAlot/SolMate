@@ -61,7 +61,8 @@ pub fn handler(ctx: Context<JoinMatch>) -> Result<()> {
     // Update match state
     match_account.player_b = Some(ctx.accounts.player_b.key());
     match_account.status = MatchStatus::Active;
-    
+    match_account.activated_at = clock.unix_timestamp;
+
     msg!("Player B joined match. Match is now Active.");
     msg!("Escrow holds {} lamports", stake_amount * 2);
     

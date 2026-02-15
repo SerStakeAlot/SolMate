@@ -367,20 +367,89 @@ class GameRoomManager {
     }
 
     const isWhite = room.playerWhite.id === playerId;
-    const winner = isWhite ? 'b' : 'w';
-    
-    // Give player 30 seconds to reconnect before declaring abandonment
-    const disconnectDelay = 30000;
-    
-    console.log(`Player ${playerId.slice(0, 8)} disconnected from room ${roomId}. Waiting ${disconnectDelay/1000}s for reconnect...`);
+    const disconnectedColor: 'w' | 'b' = isWhite ? 'w' : 'b';
+    const winner: 'w' | 'b' = isWhite ? 'b' : 'w';
 
-    setTimeout(() => {
+    // 2-minute reconnect window
+    const disconnectDelay = 120000;
+
+    console.log(`Player ${playerId.slice(0, 8)} disconnected from room ${roomId}. Moves: ${room.moves.length}. Waiting ${disconnectDelay / 1000}s for reconnect...`);
+
+    // Mark which player is disconnected
+    room.disconnectedPlayer = disconnectedColor;
+
+    // Notify the remaining player
+    const remainingSocketId = isWhite ? room.playerBlack.socketId : room.playerWhite.socketId;
+    io.to(remainingSocketId).emit('game:opponentDisconnected', {
+      reconnectDeadlineMs: disconnectDelay,
+      lockedIn: room.moves.length >= 4,
+    });
+
+    // Clear any existing timeout for this room (prevent double-triggers)
+    if (room.disconnectTimeout) {
+      clearTimeout(room.disconnectTimeout);
+    }
+
+    room.disconnectTimeout = setTimeout(() => {
       const currentRoom = this.rooms.get(roomId);
-      if (currentRoom && currentRoom.status === 'active') {
+      if (currentRoom && currentRoom.status === 'active' && currentRoom.disconnectedPlayer === disconnectedColor) {
         console.log(`Player did not reconnect. ${winner === 'w' ? 'White' : 'Black'} wins by abandonment.`);
         this.endGame(roomId, winner, 'abandonment', io);
       }
     }, disconnectDelay);
+  }
+
+  handleReconnect(playerId: string, newSocketId: string, io: SocketServer): { roomId: string; gameState: any } | null {
+    const roomId = this.playerToRoom.get(playerId);
+    if (!roomId) {
+      return null;
+    }
+
+    const room = this.rooms.get(roomId);
+    if (!room || room.status !== 'active') {
+      return null;
+    }
+
+    const isWhite = room.playerWhite.id === playerId;
+
+    // Update the socket ID
+    if (isWhite) {
+      room.playerWhite.socketId = newSocketId;
+    } else {
+      room.playerBlack.socketId = newSocketId;
+    }
+
+    // Clear the disconnect state and timeout
+    if (room.disconnectedPlayer) {
+      room.disconnectedPlayer = undefined;
+      if (room.disconnectTimeout) {
+        clearTimeout(room.disconnectTimeout);
+        room.disconnectTimeout = undefined;
+      }
+
+      // Notify the other player that opponent reconnected
+      const otherSocketId = isWhite ? room.playerBlack.socketId : room.playerWhite.socketId;
+      io.to(otherSocketId).emit('game:opponentReconnected');
+    }
+
+    console.log(`Player ${playerId.slice(0, 8)} reconnected to room ${roomId}`);
+
+    // Build full game state for the reconnecting player
+    const gameState = {
+      roomId,
+      fen: room.currentFen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+      moves: room.moves,
+      yourColor: isWhite ? 'w' : 'b',
+      currentTurn: room.currentTurn,
+      whiteTimeMs: room.whiteTimeMs,
+      blackTimeMs: room.blackTimeMs,
+      matchPubkey: room.matchPubkey,
+      matchCode: room.matchCode,
+      stakeTier: room.stakeTier,
+      opponentWallet: isWhite ? room.playerBlack.walletAddress : room.playerWhite.walletAddress,
+    };
+
+    return { roomId, gameState };
   }
 
   getAllRooms(): GameRoom[] {

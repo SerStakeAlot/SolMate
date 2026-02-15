@@ -10,11 +10,12 @@ pub struct Match {
     pub winner: Option<Pubkey>,     // 33 (1 + 32)
     pub bump: u8,                   // 1
     pub escrow_bump: u8,            // 1
+    pub activated_at: i64,          // 8 — timestamp when match went Active (player B joined)
 }
 
 impl Match {
-    pub const LEN: usize = 8 + 32 + 33 + 1 + 8 + 1 + 33 + 1 + 1; // 118 bytes + discriminator
-    
+    pub const LEN: usize = 8 + 32 + 33 + 1 + 8 + 1 + 33 + 1 + 1 + 8; // 126 bytes + discriminator
+
     pub fn stake_amount_lamports(&self) -> u64 {
         match self.stake_tier {
             0 => 500_000_000,      // 0.5 SOL

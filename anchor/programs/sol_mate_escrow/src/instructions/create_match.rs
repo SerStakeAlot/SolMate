@@ -56,6 +56,7 @@ pub fn handler(
     match_account.winner = None;
     match_account.bump = *ctx.bumps.get("match_account").unwrap();
     match_account.escrow_bump = *ctx.bumps.get("escrow").unwrap();
+    match_account.activated_at = 0;
     
     // Calculate stake amount
     let stake_amount = match_account.stake_amount_lamports();

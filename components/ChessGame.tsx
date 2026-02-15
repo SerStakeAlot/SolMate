@@ -601,21 +601,72 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setUnreadCount(prev => prev + 1);
     });
     
+    // Reconnect: server sends full game state if we have an active game
+    newSocket.on('game:reconnect', (gameState: {
+      roomId: string;
+      fen: string;
+      moves: string[];
+      yourColor: 'w' | 'b';
+      currentTurn: 'w' | 'b';
+      whiteTimeMs: number;
+      blackTimeMs: number;
+      matchPubkey?: string;
+      matchCode?: string;
+      stakeTier?: number;
+      opponentWallet?: string;
+    }) => {
+      console.log('Reconnecting to active game:', gameState.roomId, 'Color:', gameState.yourColor);
+
+      // Restore full game state
+      const chess = chessRef.current!;
+      chess.load(gameState.fen);
+      setFen(gameState.fen);
+      setGameRoomId(gameState.roomId);
+      setPlayerColor(gameState.yourColor);
+      setOpponentConnected(true);
+      setInWagerLobby(false);
+      setWhiteTimeMs(gameState.whiteTimeMs);
+      setBlackTimeMs(gameState.blackTimeMs);
+      lastTickRef.current = Date.now();
+
+      if (gameState.matchCode) setWagerMatchCode(gameState.matchCode);
+      if (gameState.matchPubkey) {
+        setCurrentMatchPubkey(new PublicKey(gameState.matchPubkey));
+      }
+      if (gameState.opponentWallet) {
+        setOpponentWallet(gameState.opponentWallet);
+        getUsername(gameState.opponentWallet).then(setOpponentUsername);
+        getPlayerStats(gameState.opponentWallet).then(setOpponentStats);
+      }
+    });
+
+    // Opponent disconnected — show countdown
+    newSocket.on('game:opponentDisconnected', ({ reconnectDeadlineMs, lockedIn }: { reconnectDeadlineMs: number; lockedIn: boolean }) => {
+      console.log(`Opponent disconnected. Reconnect window: ${reconnectDeadlineMs / 1000}s. Locked in: ${lockedIn}`);
+      setOpponentConnected(false);
+    });
+
+    // Opponent reconnected — clear warning
+    newSocket.on('game:opponentReconnected', () => {
+      console.log('Opponent reconnected!');
+      setOpponentConnected(true);
+    });
+
     newSocket.on('disconnect', () => {
       console.log('Disconnected from game server');
     });
-    
+
     newSocket.on('error', ({ message }) => {
       console.error('Socket error:', message);
     });
-    
+
     setSocket(newSocket);
-    
+
     return () => {
       newSocket.disconnect();
     };
   }, [isMultiplayer, publicKey, matchCode, actualPlayerRole, currentMatchPubkey, selectedStakeTier, hasJoinerStaked]);
-  
+
   // WebSocket connection for FREE PLAY mode (no blockchain)
   useEffect(() => {
     if (!isFreePlay) return;

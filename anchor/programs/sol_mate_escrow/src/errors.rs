@@ -55,4 +55,7 @@ pub enum EscrowError {
     
     #[msg("Caller is not a player in this match")]
     NotAPlayer,
+
+    #[msg("Match is locked in. Abandon only allowed within 2 min of start or after 2 hours.")]
+    MatchLockedIn,
 }

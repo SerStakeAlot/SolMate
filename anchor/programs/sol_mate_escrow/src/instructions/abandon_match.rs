@@ -4,8 +4,9 @@ use crate::state::*;
 use crate::errors::*;
 
 /// Abandon an active match that has no winner.
-/// Either player can call this after a timeout period (e.g., 1 hour from match start).
-/// Both players get their stakes refunded.
+/// Time-gated: only allowed within the first 2 minutes (connection issues)
+/// or after 2 hours (truly stuck match). Between those windows the game is
+/// locked in — if someone leaves, the remaining player wins via submit_result.
 #[derive(Accounts)]
 pub struct AbandonMatch<'info> {
     #[account(
@@ -15,7 +16,7 @@ pub struct AbandonMatch<'info> {
         close = player_a
     )]
     pub match_account: Account<'info, Match>,
-    
+
     #[account(
         mut,
         seeds = [b"escrow", match_account.key().as_ref()],
@@ -23,38 +24,62 @@ pub struct AbandonMatch<'info> {
     )]
     /// CHECK: PDA for holding escrow funds
     pub escrow: AccountInfo<'info>,
-    
+
     /// CHECK: Player A receives their stake back and rent from closed account
     #[account(
         mut,
         constraint = player_a.key() == match_account.player_a
     )]
     pub player_a: AccountInfo<'info>,
-    
+
     /// CHECK: Player B receives their stake back
     #[account(
         mut,
         constraint = match_account.player_b.is_some() && player_b.key() == match_account.player_b.unwrap() @ EscrowError::InvalidPlayerB
     )]
     pub player_b: AccountInfo<'info>,
-    
+
     /// The player calling this instruction (must be either player_a or player_b)
     #[account(
-        constraint = caller.key() == match_account.player_a || 
-                    (match_account.player_b.is_some() && caller.key() == match_account.player_b.unwrap()) 
+        constraint = caller.key() == match_account.player_a ||
+                    (match_account.player_b.is_some() && caller.key() == match_account.player_b.unwrap())
                     @ EscrowError::NotAPlayer
     )]
     pub caller: Signer<'info>,
-    
+
     pub system_program: Program<'info, System>,
 }
 
 pub fn handler(ctx: Context<AbandonMatch>) -> Result<()> {
     let match_account = &ctx.accounts.match_account;
-    
+    let clock = Clock::get()?;
+
+    // Time-gate: abandon is only allowed in two windows:
+    // 1. Within the first 2 minutes after activation (connection issues / failed start)
+    // 2. After 2 hours of inactivity (truly stuck match, no winner submitted)
+    // Between 2 min and 2 hours, the game is "locked in" and players must finish.
+    // If someone leaves during this window, the remaining player submits the result.
+    let seconds_since_activation = clock.unix_timestamp
+        .checked_sub(match_account.activated_at)
+        .ok_or(EscrowError::ArithmeticOverflow)?;
+
+    let early_window: i64 = 120;   // 2 minutes
+    let stuck_window: i64 = 7200;  // 2 hours
+
+    let in_early_window = seconds_since_activation <= early_window;
+    let in_stuck_window = seconds_since_activation >= stuck_window;
+
+    // For legacy matches with activated_at == 0, allow abandon (backwards compat)
+    let is_legacy = match_account.activated_at == 0;
+
+    require!(
+        in_early_window || in_stuck_window || is_legacy,
+        EscrowError::MatchLockedIn
+    );
+
     // Get stake amount
     let stake_amount = match_account.stake_amount_lamports();
-    
+
     // Build escrow signer seeds
     let match_key = match_account.key();
     let escrow_bump = match_account.escrow_bump;
@@ -63,7 +88,7 @@ pub fn handler(ctx: Context<AbandonMatch>) -> Result<()> {
         match_key.as_ref(),
         &[escrow_bump],
     ];
-    
+
     // Refund Player A
     transfer(
         CpiContext::new_with_signer(
@@ -76,7 +101,7 @@ pub fn handler(ctx: Context<AbandonMatch>) -> Result<()> {
         ),
         stake_amount,
     )?;
-    
+
     // Refund Player B
     transfer(
         CpiContext::new_with_signer(
@@ -89,8 +114,8 @@ pub fn handler(ctx: Context<AbandonMatch>) -> Result<()> {
         ),
         stake_amount,
     )?;
-    
+
     msg!("Match abandoned. Stakes refunded to both players.");
-    
+
     Ok(())
 }

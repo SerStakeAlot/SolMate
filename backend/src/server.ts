@@ -106,6 +106,27 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Check if a wallet has an active game (for reconnect prompts)
+app.get('/api/active-game/:walletAddress', (req, res) => {
+  const { walletAddress } = req.params;
+  const room = gameRoomManager.getRoomByPlayer(walletAddress);
+
+  if (room && room.status === 'active') {
+    const isWhite = room.playerWhite.walletAddress === walletAddress;
+    res.json({
+      hasActiveGame: true,
+      roomId: room.id,
+      matchCode: room.matchCode,
+      matchPubkey: room.matchPubkey,
+      yourColor: isWhite ? 'w' : 'b',
+      stakeTier: room.stakeTier,
+      moves: room.moves.length,
+    });
+  } else {
+    res.json({ hasActiveGame: false });
+  }
+});
+
 // Get username count and list
 app.get('/api/usernames', (req, res) => {
   try {
@@ -701,6 +722,15 @@ io.on('connection', (socket) => {
       gamesPlayed: player.gamesPlayed,
       gamesWon: player.gamesWon,
     });
+
+    // Check if this player has an active game they can reconnect to
+    if (!isGuest) {
+      const reconnectResult = gameRoomManager.handleReconnect(walletAddress, socket.id, io);
+      if (reconnectResult) {
+        console.log(`Player ${walletAddress.slice(0, 8)} has active game in room ${reconnectResult.roomId}, sending reconnect state`);
+        socket.emit('game:reconnect', reconnectResult.gameState);
+      }
+    }
   });
 
   // Join matchmaking queue

@@ -3,6 +3,7 @@ import "./globals.css";
 import { WalletProvider } from "@/components/WalletProvider";
 import { Navigation } from "@/components/Navigation";
 import { WalletBalanceWarning } from "@/components/WalletBalanceWarning";
+import { ActiveGameBanner } from "@/components/ActiveGameBanner";
 import { ClickSounds } from "@/components/ClickSounds";
 
 export const metadata: Metadata = {
@@ -75,6 +76,7 @@ export default function RootLayout({
             </div>
             
             <Navigation />
+            <ActiveGameBanner />
             <main className="relative z-10" style={{ paddingTop: 72 }}>
               {children}
             </main>

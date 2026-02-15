@@ -99,8 +99,10 @@ export interface GameRoom {
   status: 'waiting' | 'active' | 'finished';
   gameStarted?: boolean; // Whether the clock has started (first move made)
   winner?: 'w' | 'b' | 'draw';
-  endReason?: 'checkmate' | 'timeout' | 'resignation' | 'draw';
+  endReason?: 'checkmate' | 'timeout' | 'resignation' | 'draw' | 'abandonment';
   spectators?: string[]; // Socket IDs of spectators watching this game
+  disconnectedPlayer?: 'w' | 'b'; // Which player is currently disconnected
+  disconnectTimeout?: NodeJS.Timeout; // Pending abandonment timeout
 }
 
 export interface ChessMove {
