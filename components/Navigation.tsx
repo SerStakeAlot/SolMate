@@ -200,7 +200,6 @@ export function Navigation() {
           align-items: center;
           justify-content: space-between;
           padding: 14px 16px;
-          padding-top: calc(14px + env(safe-area-inset-top, 0px));
           max-width: 1200px;
           margin: 0 auto;
           gap: 8px;

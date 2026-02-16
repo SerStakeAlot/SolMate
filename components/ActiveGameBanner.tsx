@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { useSelectedLayoutSegment, useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-production.up.railway.app';
 
@@ -18,28 +18,12 @@ interface ActiveGameInfo {
 
 export function ActiveGameBanner() {
   const { publicKey, connected } = useWallet();
+  const pathname = usePathname();
   const router = useRouter();
-  // useSelectedLayoutSegment returns the active child route segment for the layout
-  // When on /game or /game?..., segment === 'game'. This updates synchronously with navigation.
-  const segment = useSelectedLayoutSegment();
-  const isOnGamePage = segment === 'game';
-
   const [activeGame, setActiveGame] = useState<ActiveGameInfo | null>(null);
 
-  const checkActiveGame = useCallback(async () => {
-    if (!publicKey) return;
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/active-game/${publicKey.toBase58()}`);
-      const data = await res.json();
-      if (data.hasActiveGame) {
-        setActiveGame(data);
-      } else {
-        setActiveGame(null);
-      }
-    } catch {
-      // Silently fail — don't block the UI
-    }
-  }, [publicKey]);
+  // Don't show banner on the game page itself
+  const isOnGamePage = pathname === '/game';
 
   useEffect(() => {
     if (!connected || !publicKey || isOnGamePage) {
@@ -47,10 +31,25 @@ export function ActiveGameBanner() {
       return;
     }
 
+    const checkActiveGame = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/active-game/${publicKey.toBase58()}`);
+        const data = await res.json();
+        if (data.hasActiveGame) {
+          setActiveGame(data);
+        } else {
+          setActiveGame(null);
+        }
+      } catch {
+        // Silently fail — don't block the UI
+      }
+    };
+
     checkActiveGame();
+    // Re-check every 10 seconds in case a game starts while on another page
     const interval = setInterval(checkActiveGame, 10000);
     return () => clearInterval(interval);
-  }, [connected, publicKey, isOnGamePage, checkActiveGame]);
+  }, [connected, publicKey, isOnGamePage, pathname]);
 
   if (!activeGame?.hasActiveGame || isOnGamePage) return null;
 
@@ -59,7 +58,7 @@ export function ActiveGameBanner() {
   return (
     <div style={{
       position: 'fixed',
-      top: 'calc(68px + env(safe-area-inset-top, 0px))',
+      top: 56,
       left: 0,
       right: 0,
       zIndex: 49,
@@ -86,16 +85,12 @@ export function ActiveGameBanner() {
       </span>
       <button
         onClick={() => {
+          // Navigate to game page — the socket reconnect will restore the game state
           const params = new URLSearchParams();
+          params.set('mode', isWager ? 'wager' : 'practice');
           params.set('reconnect', 'true');
-          if (isWager) {
-            params.set('mode', 'join');
-            if (activeGame.matchPubkey) params.set('match', activeGame.matchPubkey);
-            if (activeGame.matchCode) params.set('code', activeGame.matchCode);
-            if (activeGame.stakeTier !== undefined) params.set('tier', String(activeGame.stakeTier));
-          } else {
-            params.set('mode', 'computer');
-          }
+          if (activeGame.matchPubkey) params.set('match', activeGame.matchPubkey);
+          if (activeGame.matchCode) params.set('code', activeGame.matchCode);
           router.push(`/game?${params.toString()}`);
         }}
         style={{
