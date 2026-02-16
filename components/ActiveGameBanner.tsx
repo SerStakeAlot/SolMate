@@ -48,9 +48,13 @@ export function ActiveGameBanner() {
 
   const checkActiveGame = useCallback(async () => {
     if (!publicKey) return;
+    // Guard: never fetch/store active game data while on the game page
+    if (typeof window !== 'undefined' && isGamePath(window.location.pathname)) return;
     try {
       const res = await fetch(`${BACKEND_URL}/api/active-game/${publicKey.toBase58()}`);
       const data = await res.json();
+      // Re-check after async fetch in case user navigated during the request
+      if (typeof window !== 'undefined' && isGamePath(window.location.pathname)) return;
       if (data.hasActiveGame) {
         setActiveGame(data);
       } else {
@@ -73,7 +77,9 @@ export function ActiveGameBanner() {
     return () => clearInterval(interval);
   }, [connected, publicKey, isOnGamePage, checkActiveGame]);
 
-  if (!activeGame?.hasActiveGame || isOnGamePage) return null;
+  // Final guard: direct window.location check bypasses all state timing issues
+  const onGameNow = typeof window !== 'undefined' && isGamePath(window.location.pathname);
+  if (!activeGame?.hasActiveGame || isOnGamePage || onGameNow) return null;
 
   const isWager = activeGame.stakeTier !== undefined && activeGame.stakeTier >= 0;
 
