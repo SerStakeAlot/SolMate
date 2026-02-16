@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useSelectedLayoutSegment, useRouter } from 'next/navigation';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-production.up.railway.app';
 
@@ -16,45 +16,21 @@ interface ActiveGameInfo {
   moves?: number;
 }
 
-function isGamePath(path: string | null | undefined): boolean {
-  if (!path) return false;
-  return path === '/game' || path.startsWith('/game/') || path.startsWith('/game?');
-}
-
 export function ActiveGameBanner() {
   const { publicKey, connected } = useWallet();
-  const pathname = usePathname();
   const router = useRouter();
+  // useSelectedLayoutSegment returns the active child route segment for the layout
+  // When on /game or /game?..., segment === 'game'. This updates synchronously with navigation.
+  const segment = useSelectedLayoutSegment();
+  const isOnGamePage = segment === 'game';
+
   const [activeGame, setActiveGame] = useState<ActiveGameInfo | null>(null);
-  // Initialize from window.location immediately to prevent flash on game page
-  const [isOnGamePage, setIsOnGamePage] = useState(() => {
-    if (typeof window !== 'undefined') return isGamePath(window.location.pathname);
-    return false;
-  });
-
-  // Track game page state reactively via useEffect
-  useEffect(() => {
-    const check = () => {
-      const onGame = isGamePath(pathname) ||
-        (typeof window !== 'undefined' && isGamePath(window.location.pathname));
-      setIsOnGamePage(onGame);
-    };
-    check();
-
-    // Also listen for popstate (back/forward navigation)
-    window.addEventListener('popstate', check);
-    return () => window.removeEventListener('popstate', check);
-  }, [pathname]);
 
   const checkActiveGame = useCallback(async () => {
     if (!publicKey) return;
-    // Guard: never fetch/store active game data while on the game page
-    if (typeof window !== 'undefined' && isGamePath(window.location.pathname)) return;
     try {
       const res = await fetch(`${BACKEND_URL}/api/active-game/${publicKey.toBase58()}`);
       const data = await res.json();
-      // Re-check after async fetch in case user navigated during the request
-      if (typeof window !== 'undefined' && isGamePath(window.location.pathname)) return;
       if (data.hasActiveGame) {
         setActiveGame(data);
       } else {
@@ -72,14 +48,11 @@ export function ActiveGameBanner() {
     }
 
     checkActiveGame();
-    // Re-check every 10 seconds in case a game starts while on another page
     const interval = setInterval(checkActiveGame, 10000);
     return () => clearInterval(interval);
   }, [connected, publicKey, isOnGamePage, checkActiveGame]);
 
-  // Final guard: direct window.location check bypasses all state timing issues
-  const onGameNow = typeof window !== 'undefined' && isGamePath(window.location.pathname);
-  if (!activeGame?.hasActiveGame || isOnGamePage || onGameNow) return null;
+  if (!activeGame?.hasActiveGame || isOnGamePage) return null;
 
   const isWager = activeGame.stakeTier !== undefined && activeGame.stakeTier >= 0;
 
@@ -113,17 +86,14 @@ export function ActiveGameBanner() {
       </span>
       <button
         onClick={() => {
-          // Navigate to game page — the socket reconnect will restore the game state
           const params = new URLSearchParams();
           params.set('reconnect', 'true');
           if (isWager) {
-            // Wager match: use mode=join which sets up wager socket
             params.set('mode', 'join');
             if (activeGame.matchPubkey) params.set('match', activeGame.matchPubkey);
             if (activeGame.matchCode) params.set('code', activeGame.matchCode);
             if (activeGame.stakeTier !== undefined) params.set('tier', String(activeGame.stakeTier));
           } else {
-            // Free play: use mode=computer, reconnect will be handled by socket registration
             params.set('mode', 'computer');
           }
           router.push(`/game?${params.toString()}`);
