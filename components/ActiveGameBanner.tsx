@@ -26,7 +26,11 @@ export function ActiveGameBanner() {
   const pathname = usePathname();
   const router = useRouter();
   const [activeGame, setActiveGame] = useState<ActiveGameInfo | null>(null);
-  const [isOnGamePage, setIsOnGamePage] = useState(false);
+  // Initialize from window.location immediately to prevent flash on game page
+  const [isOnGamePage, setIsOnGamePage] = useState(() => {
+    if (typeof window !== 'undefined') return isGamePath(window.location.pathname);
+    return false;
+  });
 
   // Track game page state reactively via useEffect
   useEffect(() => {
@@ -76,7 +80,7 @@ export function ActiveGameBanner() {
   return (
     <div style={{
       position: 'fixed',
-      top: 'calc(56px + env(safe-area-inset-top, 0px))',
+      top: 'calc(68px + env(safe-area-inset-top, 0px))',
       left: 0,
       right: 0,
       zIndex: 49,
