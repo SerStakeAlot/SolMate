@@ -174,30 +174,52 @@ export default function RefundPage() {
           message: `Refund claimed! Your stake was returned. Signature: ${signature.slice(0, 8)}...`,
         });
       }
-      // Use forceRefund for Finished matches (payout failed), abandonMatch for Active
+      // For Finished matches, use confirmPayout (forceRefund requires Active status)
       else if (match.account.status === MatchStatus.Finished) {
-        if (!match.account.playerB) {
-          throw new Error("No Player B - cannot force refund");
+        // If the match has a winner on-chain, try confirmPayout
+        if (match.account.winner) {
+          // Check if the current user is the on-chain winner
+          const userIsOnChainWinner = match.account.winner.equals(publicKey);
+          if (userIsOnChainWinner || match.isBackendWinner) {
+            signature = await client.confirmPayout(
+              match.pubkey,
+              match.account.winner,
+              match.account.playerA
+            );
+            setResult({
+              success: true,
+              message: `🎉 Winnings claimed! Signature: ${signature.slice(0, 8)}...`,
+            });
+          } else {
+            throw new Error("This match has ended and the winner has been declared on-chain. Only the winner can claim the pot.");
+          }
+        } else {
+          throw new Error("Match is finished but no winner was recorded on-chain. Please contact support.");
         }
-        signature = await client.forceRefund(
-          match.pubkey,
-          match.account.playerA,
-          match.account.playerB
-        );
-        
-        setResult({
-          success: true,
-          message: `Refund claimed! Both players received their stake. Signature: ${signature.slice(0, 8)}...`,
-        });
       } else {
         if (!match.account.playerB) {
           throw new Error("No Player B - cannot abandon match");
         }
-        signature = await client.abandonMatch(
-          match.pubkey,
-          match.account.playerA,
-          match.account.playerB
-        );
+        try {
+          signature = await client.abandonMatch(
+            match.pubkey,
+            match.account.playerA,
+            match.account.playerB
+          );
+        } catch (abandonErr: any) {
+          const errMsg = abandonErr?.message || String(abandonErr);
+          // If abandonMatch fails due to time gate, fall back to forceRefund (both require Active)
+          if (errMsg.includes('MatchLockedIn')) {
+            console.log('abandonMatch time-gated, trying forceRefund...');
+            signature = await client.forceRefund(
+              match.pubkey,
+              match.account.playerA,
+              match.account.playerB!
+            );
+          } else {
+            throw abandonErr;
+          }
+        }
         
         setResult({
           success: true,

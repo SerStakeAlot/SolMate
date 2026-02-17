@@ -1886,8 +1886,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
         setRefundComplete(true);
         return;
       }
-      if (msg.includes('MatchLockedIn') || msg.includes('MatchNotActive')) {
-        // If abandon_match fails due to time gate or match already finished, try force_refund
+      if (msg.includes('MatchLockedIn')) {
+        // If abandon_match fails due to time gate, try force_refund (both require Active status)
         try {
           const client = new EscrowClient(connection, wallet);
           const matchData = await client.fetchMatch(currentMatchPubkey);
@@ -1900,6 +1900,22 @@ export const ChessGame: React.FC<ChessGameProps> = ({
           }
         } catch (forceErr: any) {
           console.error('Force refund also failed:', forceErr);
+        }
+      }
+      if (msg.includes('MatchNotActive')) {
+        // Match is no longer Active (likely Finished) - try confirmPayout if there's a winner
+        try {
+          const client = new EscrowClient(connection, wallet);
+          const matchData = await client.fetchMatch(currentMatchPubkey);
+          if (matchData && matchData.winner && matchData.status === MatchStatus.Finished) {
+            const signature = await client.confirmPayout(currentMatchPubkey, matchData.winner, matchData.playerA);
+            console.log('Confirm payout complete:', signature);
+            setTxSignature(signature);
+            setRefundComplete(true);
+            return;
+          }
+        } catch (payoutErr: any) {
+          console.error('Confirm payout also failed:', payoutErr);
         }
       }
       alert(`Refund failed. You can use the Refund page to recover funds. Error: ${msg}`);
