@@ -4339,6 +4339,74 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                 );
               }
 
+              // Non-wager draw (freeplay / practice) — yellow draw modal without refund
+              if (isDraw) {
+                return (
+                  <>
+                    <div style={{
+                      height: 3,
+                      background: 'linear-gradient(90deg, transparent, #fbbf24, #9945ff, transparent)',
+                    }} />
+                    <div style={{ padding: '32px 28px 28px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+                        <div style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 10,
+                          padding: '10px 24px', borderRadius: 100,
+                          background: 'linear-gradient(135deg, rgba(251,191,36,0.12), rgba(153,69,255,0.08))',
+                          border: '1px solid rgba(251,191,36,0.25)',
+                          boxShadow: '0 0 24px rgba(251,191,36,0.1)',
+                        }}>
+                          <span style={{ fontSize: 20 }}>🤝</span>
+                          <span style={{
+                            fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em',
+                            fontFamily: "'Outfit', sans-serif", color: '#fbbf24',
+                          }}>
+                            Draw
+                          </span>
+                        </div>
+                      </div>
+
+                      <p style={{
+                        textAlign: 'center', fontSize: 14, color: '#6b6b80',
+                        fontFamily: "'Outfit', sans-serif", marginBottom: 20, lineHeight: 1.6,
+                      }}>
+                        {isEarlyEnd
+                          ? 'Game ended before 2 full moves — no result recorded.'
+                          : 'The game ended in a draw.'}
+                      </p>
+
+                      <motion.button
+                        onClick={() => {
+                          setShowResultModal(false);
+                          if (mode === 'practice') resetPractice();
+                        }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        style={{
+                          width: '100%', padding: '14px 24px',
+                          borderRadius: 14, border: 'none', cursor: 'pointer',
+                          background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                          color: '#07070e', fontSize: 15, fontWeight: 800,
+                          fontFamily: "'Outfit', sans-serif",
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                          boxShadow: '0 4px 24px rgba(251,191,36,0.3)',
+                          transition: 'all 0.3s',
+                        }}
+                      >
+                        {mode === 'practice' ? (
+                          <>
+                            <RefreshCw style={{ width: 18, height: 18 }} />
+                            Play Again
+                          </>
+                        ) : (
+                          'Close'
+                        )}
+                      </motion.button>
+                    </div>
+                  </>
+                );
+              }
+
               return (
                 <>
                   {/* Top accent gradient bar */}
