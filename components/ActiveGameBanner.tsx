@@ -58,7 +58,7 @@ export function ActiveGameBanner() {
   return (
     <div style={{
       position: 'fixed',
-      top: 56,
+      top: 'max(56px, env(safe-area-inset-top, 0px) + 48px)',
       left: 0,
       right: 0,
       zIndex: 49,
@@ -87,10 +87,15 @@ export function ActiveGameBanner() {
         onClick={() => {
           // Navigate to game page — the socket reconnect will restore the game state
           const params = new URLSearchParams();
-          params.set('mode', isWager ? 'wager' : 'practice');
           params.set('reconnect', 'true');
-          if (activeGame.matchPubkey) params.set('match', activeGame.matchPubkey);
-          if (activeGame.matchCode) params.set('code', activeGame.matchCode);
+          if (isWager) {
+            params.set('mode', 'join');
+            if (activeGame.matchPubkey) params.set('match', activeGame.matchPubkey);
+            if (activeGame.matchCode) params.set('code', activeGame.matchCode);
+            if (activeGame.stakeTier !== undefined) params.set('tier', String(activeGame.stakeTier));
+          } else {
+            params.set('mode', 'computer');
+          }
           router.push(`/game?${params.toString()}`);
         }}
         style={{
