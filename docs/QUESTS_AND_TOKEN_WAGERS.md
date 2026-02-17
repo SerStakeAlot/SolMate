@@ -15,6 +15,7 @@
 4. [Anti-Abuse Measures](#anti-abuse-measures)
 5. [Implementation Phases](#implementation-phases)
 6. [Technical Architecture](#technical-architecture)
+7. [CRITICAL: Deployer Keypair Incident & Program Redeployment](#critical-deployer-keypair-incident--program-redeployment)
 
 ---
 
@@ -606,3 +607,180 @@ Match completes (checkmate/timeout)
 3. **Quest reward amounts** — Start with proposed amounts (3K/5K/8K/15K) and adjust after 2 weeks of data?
 4. **Token-2022 support** — $MATE and $SKR appear to use standard Token Program. Confirm neither uses Token-2022 extensions that would change transfer logic.
 5. **Hot wallet security** — How to secure the server-side keypair for quest distributions? Options: environment variable, AWS KMS, or dedicated signer service.
+
+---
+
+## CRITICAL: Deployer Keypair Incident & Program Redeployment
+
+> **Date of Incident:** 2026-02-17
+> **Severity:** High — Upgrade authority permanently lost
+> **Impact:** Current on-chain program can never be upgraded
+
+### What Happened
+
+The original Solana escrow program (`H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV`) was deployed from a GitHub Codespace using a keypair generated with `solana-keygen new`. The keypair was stored at `~/.config/solana/id.json` inside the Codespace container. The corresponding deployer/upgrade authority address is:
+
+```
+2BGfqbcPHCxJ9Bnvq6TQ4sPym83cv1c9QRF7UmdEp5aK
+```
+
+During keypair generation, `solana-keygen` displayed a 12-word BIP39 seed phrase in the terminal output. A BIP39 passphrase ("Godislight11") was set during generation. **Neither the seed phrase nor the keypair JSON file were saved anywhere persistent.** They existed only:
+- In the terminal scrollback of that Codespace session
+- In `~/.config/solana/id.json` inside the container filesystem
+
+When the GitHub Codespace container was rebuilt (containers are ephemeral), both were permanently destroyed.
+
+### What Was Lost
+
+- **Deployer keypair** (`~/.config/solana/id.json`) — the private key for `2BGfqb...`
+- **Upgrade authority** over program `H1Sn4JQ...` — this program can NEVER be upgraded
+- **Ability to deploy `admin_rescue`** or any other new instruction to the existing program
+
+### What Still Works
+
+The existing program is **fully functional** for normal gameplay:
+- `create_match` — works
+- `join_match` — works
+- `submit_result` — works
+- `confirm_payout` — works (90% to winner, 10% fee)
+- `force_refund` — works (50/50 split on active matches)
+- `cancel_match` — works
+- `withdraw_fees` — works (admin wallet `7BKqim...` can still withdraw accumulated fees)
+
+The program just cannot be modified. If a match ever gets stuck with no valid code path to drain it, those funds are locked forever.
+
+### Recovery Attempts Made (All Failed)
+
+| Method | Result |
+|--------|--------|
+| Search `~/.config/solana/` | File does not exist (container rebuilt) |
+| Git history (`git log --all --diff-filter=A`) | Keypair was never committed |
+| Git dangling objects (`git fsck`) | No keypair content found |
+| Full filesystem search (`find / -name "*.json"`) | Not on disk |
+| VS Code internal storage / state.vscdb | No keypair stored |
+| GitHub Codespace secrets | Never saved there |
+| GitHub Codespace persistent `/workspaces/` | Only repo files persisted |
+| BIP39 passphrase alone ("Godislight11") | Useless without the 12-word seed phrase |
+| Brute-force seed phrase | Computationally impossible (2048^12 combinations) |
+
+**Conclusion: The keypair is cryptographically irrecoverable.**
+
+### Incident That Prompted This
+
+A bug in the frontend `handleSubmitResult` function caused the WRONG player to be recorded as the on-chain winner when an opponent resigned. Specifically:
+
+- Player B resigned → backend correctly determined Player A won
+- Frontend's old code used an unreliable `isHost` variable instead of comparing wallet pubkeys
+- Player A's browser submitted Player B's pubkey as the winner on-chain
+- 0.2 SOL was locked in escrow with wrong winner recorded
+- Without `admin_rescue`, we couldn't drain the stuck escrow directly
+
+**Recovery:** Since both wallets were controlled by the same person (testing), we claimed via `confirmPayout` as the on-chain winner (Player B), then manually transferred the SOL back.
+
+**The frontend bug was fixed** in commit `13e6ab6` — winner determination now uses direct wallet pubkey comparison against on-chain data, not role-based variables.
+
+---
+
+### Redeployment Plan: New Program With Admin Rescue
+
+Since the token wager instructions (Part 1 of this document) require a new on-chain program anyway, we will include `admin_rescue` from day one.
+
+#### New Program Will Include
+
+**Existing SOL escrow instructions** (carried over):
+- `create_match`, `join_match`, `submit_result`, `confirm_payout`
+- `cancel_match`, `force_refund`, `withdraw_fees`
+
+**New token wager instructions** (from Part 1 above):
+- `create_token_match`, `join_token_match`, `submit_token_result`
+- `confirm_token_payout`, `cancel_token_match`, `force_token_refund`
+- `withdraw_token_fees`
+
+**Admin safety instructions** (new):
+- `admin_rescue` — Drain any stuck escrow PDA (SOL or tokens) to admin wallet. Restricted to hardcoded admin pubkey `7BKqimAdco1XsknW88N38qf4PgXGieWN8USPgKxcf87B`.
+
+#### Deployment Steps
+
+```bash
+# 1. Generate new deployer keypair
+solana-keygen new -o deployer-keypair.json
+
+# !!!! IMMEDIATELY SAVE THE SEED PHRASE (see Keypair Safety Protocol below) !!!!
+
+# 2. Fund the deployer (needs ~3 SOL for program deployment)
+solana transfer <DEPLOYER_ADDRESS> 3 --from <funded-wallet>
+
+# 3. Build the program
+cd anchor
+cargo build-sbf
+
+# 4. Deploy (creates new program ID)
+solana program deploy target/deploy/sol_mate_escrow.so \
+  --keypair deployer-keypair.json \
+  --program-id target/deploy/sol_mate_escrow-keypair.json
+
+# 5. Note the NEW program ID and update frontend
+```
+
+#### Frontend Updates After Redeployment
+
+Files that reference the program ID and must be updated:
+
+| File | What to Update |
+|------|----------------|
+| `utils/escrow.ts` | `PROGRAM_ID` constant |
+| `anchor/programs/sol_mate_escrow/src/lib.rs` | `declare_id!("...")` |
+| `Anchor.toml` | Program ID in `[programs.mainnet]` |
+| `scripts/fee-manager.ts` | Program ID reference |
+| `scripts/recover-escrow.ts` | Program ID reference |
+
+All PDA addresses (escrow, fee vault, match accounts) are derived from the program ID, so they will automatically be new addresses.
+
+#### Transition Plan
+
+1. Deploy new program → get new program ID
+2. Update frontend to use new program ID
+3. Keep old program ID in refund page as fallback for any unclaimed old matches
+4. Once all old matches are settled, remove old program references
+
+---
+
+### Keypair Safety Protocol (MANDATORY for all future deployments)
+
+This protocol is NON-NEGOTIABLE. Every step must be completed before proceeding with any deployment.
+
+#### During `solana-keygen new`:
+
+1. **WRITE DOWN the 12-word seed phrase on paper immediately** — do not rely on terminal scrollback
+2. **Record the BIP39 passphrase** (if used) alongside the seed phrase
+3. **Verify recovery works** before deploying anything:
+   ```bash
+   solana-keygen recover -o /tmp/test-recover.json
+   # Enter seed phrase + passphrase
+   # Confirm the recovered address matches
+   rm /tmp/test-recover.json
+   ```
+
+#### Save the keypair JSON in multiple locations:
+
+| Location | How | Priority |
+|----------|-----|----------|
+| **GitHub Codespace Secret** | Settings → Codespaces → Secrets → `DEPLOYER_KEYPAIR` (paste JSON content) | CRITICAL |
+| **Password Manager** | Store as secure note (1Password, Bitwarden, etc.) | CRITICAL |
+| **Encrypted USB** | Copy `deployer-keypair.json` to encrypted USB drive | RECOMMENDED |
+| **Git repo (encrypted)** | `gpg -c deployer-keypair.json` → commit the `.gpg` file | OPTIONAL |
+
+#### On every new Codespace session:
+
+```bash
+# Restore keypair from Codespace secret
+echo "$DEPLOYER_KEYPAIR" > ~/.config/solana/id.json
+solana address  # Verify it prints the expected address
+```
+
+#### NEVER rely on:
+
+- Terminal scrollback for seed phrases (gets cleared)
+- Container filesystem for keypair storage (gets destroyed on rebuild)
+- Memory — write it down immediately
+- A single storage location — always have at least 2 backups
