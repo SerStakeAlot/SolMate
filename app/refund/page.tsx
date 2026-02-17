@@ -498,10 +498,14 @@ export default function RefundPage() {
                     const tierInfo = getStakeTierInfo(match.account.stakeTier);
                     const isAbandoning = abandoningMatch === match.pubkey.toBase58();
                     const potAmount = tierInfo.stake * 2; // Both players' stakes
+                    // Special case: on-chain winner who backend says lost (missubmission)
+                    // They should still be able to claim since confirmPayout uses on-chain winner
+                    const isOnChainWinnerOverride = match.isWinner && match.isBackendLoser;
                     // Backend is source of truth for game outcomes — on-chain winner can be wrong
                     // if submit_result was called with wrong pubkey (missubmission bug)
-                    const isLoserMatch = match.isBackendLoser;
-                    const isWinnerMatch = !isLoserMatch && (match.isWinner || match.isBackendWinner);
+                    // BUT if you're the on-chain winner, you CAN still claim (program enforces it)
+                    const isLoserMatch = match.isBackendLoser && !match.isWinner;
+                    const isWinnerMatch = match.isWinner || (!isLoserMatch && match.isBackendWinner);
 
                     return (
                       <motion.div
@@ -555,6 +559,20 @@ export default function RefundPage() {
                                   color: '#eab308',
                                 }}>
                                   (Pending on-chain)
+                                </span>
+                              )}
+                              {isOnChainWinnerOverride && (
+                                <span style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '8px',
+                                  fontSize: '11px',
+                                  fontWeight: 700,
+                                  fontFamily: "'Space Mono', monospace",
+                                  background: 'rgba(234,179,8,0.1)',
+                                  border: '1px solid rgba(234,179,8,0.2)',
+                                  color: '#eab308',
+                                }}>
+                                  ⚠️ On-chain Winner (Recovery)
                                 </span>
                               )}
                               {isLoserMatch && (
