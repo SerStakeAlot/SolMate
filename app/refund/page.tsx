@@ -117,9 +117,19 @@ export default function RefundPage() {
     }
 
     // Block losers from claiming refund - the winner gets the pot
-    if (match.isBackendLoser) {
+    // Backend is source of truth (on-chain winner can be wrong due to missubmission)
+    if (match.isBackendLoser && !match.isWinner) {
       alert("You lost this match. The winner will claim the winnings.");
       return;
+    }
+    // Edge case: on-chain winner but backend says loser (missubmission bug)
+    // Allow them to trigger confirmPayout since only the on-chain winner can claim
+    if (match.isBackendLoser && match.isWinner) {
+      const proceed = confirm(
+        "⚠️ Note: The backend recorded you as the loser, but the on-chain winner is your wallet. " +
+        "This may be due to a result submission error. Do you want to proceed with claiming?"
+      );
+      if (!proceed) return;
     }
 
     setAbandoningMatch(match.pubkey.toBase58());
@@ -488,8 +498,10 @@ export default function RefundPage() {
                     const tierInfo = getStakeTierInfo(match.account.stakeTier);
                     const isAbandoning = abandoningMatch === match.pubkey.toBase58();
                     const potAmount = tierInfo.stake * 2; // Both players' stakes
-                    const isWinnerMatch = match.isWinner || match.isBackendWinner;
+                    // Backend is source of truth for game outcomes — on-chain winner can be wrong
+                    // if submit_result was called with wrong pubkey (missubmission bug)
                     const isLoserMatch = match.isBackendLoser;
+                    const isWinnerMatch = !isLoserMatch && (match.isWinner || match.isBackendWinner);
 
                     return (
                       <motion.div

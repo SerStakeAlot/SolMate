@@ -1789,16 +1789,34 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       }
 
       // IMPORTANT: The winner is the current player (we only call this if playerColor === gameWinner)
-      // playerA = host (match creator), playerB = guest (joiner)
       // Determine which on-chain account we are by comparing wallet pubkeys
-      // (actualPlayerRole can be wrong after reconnect since banner always uses mode=join)
+      // On-chain: playerA = match creator, playerB = joiner
+      // Game: colors are randomly assigned, so playerA could be white OR black
       const myPubkeyStr = publicKey.toBase58();
-      const isHost = matchData.playerA.toBase58() === myPubkeyStr;
-      const winnerPubkey = isHost ? matchData.playerA : matchData.playerB!;
+      const isPlayerA = matchData.playerA.toBase58() === myPubkeyStr;
+      const isPlayerB = matchData.playerB?.toBase58() === myPubkeyStr;
+      
+      if (!isPlayerA && !isPlayerB) {
+        throw new Error(`Your wallet ${myPubkeyStr.slice(0,8)}... is not a player in this match. Cannot submit result.`);
+      }
+      
+      // Winner = ME (this function only runs if playerColor === gameWinner)
+      const winnerPubkey = isPlayerA ? matchData.playerA : matchData.playerB!;
+      
+      // Safety log for debugging
+      console.log('Winner determination:', {
+        myWallet: myPubkeyStr.slice(0,8),
+        isPlayerA,
+        playerA: matchData.playerA.toBase58().slice(0,8),
+        playerB: matchData.playerB?.toBase58().slice(0,8),
+        winnerPubkey: winnerPubkey.toBase58().slice(0,8),
+        playerColor,
+        gameWinner,
+      });
       
       // STEP 1: Submit result first - this records the winner on-chain
       // Even if payout fails later, the winner is locked in and loser can't abandon
-      console.log('Submitting result... Winner:', winnerPubkey.toBase58(), 'isHost:', isHost, 'playerColor:', playerColor, 'gameWinner:', gameWinner);
+      console.log('Submitting result... Winner:', winnerPubkey.toBase58(), 'isPlayerA:', isPlayerA, 'playerColor:', playerColor, 'gameWinner:', gameWinner);
       const resultSignature = await client.submitResult(currentMatchPubkey, winnerPubkey);
       console.log('Result submitted:', resultSignature);
       setTxSignature(resultSignature);
