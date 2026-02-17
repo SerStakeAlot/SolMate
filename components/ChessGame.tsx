@@ -211,7 +211,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [currentMatchPubkey, setCurrentMatchPubkey] = useState<PublicKey | null>(
     matchPubkey ? new PublicKey(matchPubkey) : null
   );
-  const [gameWinner, setGameWinner] = useState<'w' | 'b' | null>(null);
+  const [gameWinner, setGameWinner] = useState<'w' | 'b' | 'draw' | null>(null);
+  const [gameEndReason, setGameEndReason] = useState<string | null>(null);
   const [isSubmittingResult, setIsSubmittingResult] = useState(false);
   const [payoutComplete, setPayoutComplete] = useState(false);
   const [txSignature, setTxSignature] = useState<string>('');
@@ -612,9 +613,10 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       console.log('Game over:', winner, reason, 'My color:', yourColor);
       if (yourColor) setPlayerColor(yourColor);
       setGameWinner(winner);
+      setGameEndReason(reason);
       setShowResultModal(true);
     });
-    
+
     // Receive emoji reaction from opponent
     newSocket.on('game:reaction', ({ emoji }) => {
       console.log('Received reaction:', emoji);
@@ -776,6 +778,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       console.log('Force reconnect: game ended', winner, reason, 'My color:', yourColor);
       if (yourColor) setPlayerColor(yourColor);
       setGameWinner(winner);
+      setGameEndReason(reason);
       setShowResultModal(true);
     });
 
@@ -1058,6 +1061,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       console.log('Game over (freeplay):', winner, reason, 'My color:', yourColor);
       if (yourColor) setPlayerColor(yourColor);
       setGameWinner(winner);
+      setGameEndReason(reason);
       setShowResultModal(true);
       clearDisconnectCountdown();
     });
@@ -1464,6 +1468,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     chessRef.current = new Chess();
     setSelectedSquare(null);
     setGameWinner(null);
+    setGameEndReason(null);
     setShowResultModal(false);
     setLastMove(null);
     setFen(chessRef.current.fen());
@@ -1837,6 +1842,63 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       console.error('Error confirming payout:', error);
       // Don't mark as complete if payout failed
       alert(`Payout failed. You can claim your funds from the Refund page. Error: ${error}`);
+    }
+  };
+
+  // Handle early draw refund — calls abandon_match on-chain to refund both players
+  const [isRefunding, setIsRefunding] = useState(false);
+  const [refundComplete, setRefundComplete] = useState(false);
+
+  const handleDrawRefund = async () => {
+    if (!connected || !publicKey || !currentMatchPubkey) {
+      return;
+    }
+    setIsRefunding(true);
+    try {
+      const client = new EscrowClient(connection, wallet);
+      const matchData = await client.fetchMatch(currentMatchPubkey);
+      if (!matchData) {
+        console.log('Match account not found — already refunded or closed');
+        setRefundComplete(true);
+        return;
+      }
+      if (matchData.status !== MatchStatus.Active) {
+        console.log(`Match already in ${matchData.status} status`);
+        setRefundComplete(true);
+        return;
+      }
+      const playerA = matchData.playerA;
+      const playerB = matchData.playerB!;
+      const signature = await client.abandonMatch(currentMatchPubkey, playerA, playerB);
+      console.log('Draw refund complete:', signature);
+      setTxSignature(signature);
+      setRefundComplete(true);
+    } catch (error: any) {
+      console.error('Refund failed:', error);
+      const msg = error?.message || String(error);
+      if (msg.includes('AccountNotInitialized') || msg.includes('not found')) {
+        setRefundComplete(true);
+        return;
+      }
+      if (msg.includes('MatchLockedIn')) {
+        // If abandon_match fails due to time gate, try force_refund
+        try {
+          const client = new EscrowClient(connection, wallet);
+          const matchData = await client.fetchMatch(currentMatchPubkey);
+          if (matchData) {
+            const signature = await client.forceRefund(currentMatchPubkey, matchData.playerA, matchData.playerB!);
+            console.log('Force refund complete:', signature);
+            setTxSignature(signature);
+            setRefundComplete(true);
+            return;
+          }
+        } catch (forceErr: any) {
+          console.error('Force refund also failed:', forceErr);
+        }
+      }
+      alert(`Refund failed. You can use the Refund page to recover funds. Error: ${msg}`);
+    } finally {
+      setIsRefunding(false);
     }
   };
 
@@ -4104,10 +4166,138 @@ export const ChessGame: React.FC<ChessGameProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             {(() => {
+              const isDraw = gameWinner === 'draw';
               const myColor = (mode === 'practice' && !isFreePlay) ? aiPlayerColor : (playerColor || 'w');
-              const isWinner = gameWinner === myColor;
-              const winnerColor = gameWinner || 'w';
+              const isWinner = !isDraw && gameWinner === myColor;
+              const winnerColor = isDraw ? 'w' : (gameWinner || 'w');
               const loserColor = gameWinner === 'w' ? 'b' : 'w';
+              const isEarlyEnd = gameEndReason === 'early_abandonment' || gameEndReason === 'early_resignation';
+
+              // Early draw — show refund UI for wager matches
+              if (isDraw && mode === 'wager' && currentMatchPubkey) {
+                return (
+                  <>
+                    <div style={{
+                      height: 3,
+                      background: 'linear-gradient(90deg, transparent, #fbbf24, #9945ff, transparent)',
+                    }} />
+                    <div style={{ padding: '32px 28px 28px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+                        <div style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 10,
+                          padding: '10px 24px', borderRadius: 100,
+                          background: 'linear-gradient(135deg, rgba(251,191,36,0.12), rgba(153,69,255,0.08))',
+                          border: '1px solid rgba(251,191,36,0.25)',
+                          boxShadow: '0 0 24px rgba(251,191,36,0.1)',
+                        }}>
+                          <span style={{ fontSize: 20 }}>🤝</span>
+                          <span style={{
+                            fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em',
+                            fontFamily: "'Outfit', sans-serif", color: '#fbbf24',
+                          }}>
+                            Draw
+                          </span>
+                        </div>
+                      </div>
+
+                      <p style={{
+                        textAlign: 'center', fontSize: 14, color: '#6b6b80',
+                        fontFamily: "'Outfit', sans-serif", marginBottom: 20, lineHeight: 1.6,
+                      }}>
+                        {isEarlyEnd
+                          ? 'Game ended before 2 full moves — both players receive a full refund.'
+                          : 'The game ended in a draw.'}
+                      </p>
+
+                      <div style={{
+                        padding: '16px 20px', borderRadius: 14,
+                        background: 'linear-gradient(135deg, rgba(251,191,36,0.06), rgba(153,69,255,0.04))',
+                        border: '1px solid rgba(251,191,36,0.15)',
+                        textAlign: 'center', marginBottom: 16,
+                      }}>
+                        <span style={{
+                          display: 'block', fontSize: 10, fontWeight: 600,
+                          textTransform: 'uppercase', letterSpacing: '0.1em',
+                          color: '#6b6b80', marginBottom: 6,
+                          fontFamily: "'Space Mono', monospace",
+                        }}>Refund</span>
+                        <span style={{
+                          display: 'block', fontSize: 28, fontWeight: 800,
+                          fontFamily: "'Space Mono', monospace",
+                          color: '#fbbf24', letterSpacing: '-0.02em',
+                        }}>
+                          {getStakeTierInfo(selectedStakeTier).stake} SOL
+                        </span>
+                      </div>
+
+                      {refundComplete ? (
+                        <div style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          gap: 6, marginTop: 12, padding: '10px 16px', borderRadius: 12,
+                          background: 'rgba(0,255,163,0.08)', border: '1px solid rgba(0,255,163,0.15)',
+                        }}>
+                          <CheckCircle2 style={{ width: 14, height: 14, color: '#00ffa3' }} />
+                          <span style={{ fontSize: 13, fontWeight: 600, color: '#00ffa3', fontFamily: "'Space Mono', monospace" }}>
+                            Refund complete
+                          </span>
+                        </div>
+                      ) : (
+                        <motion.button
+                          onClick={() => {
+                            setShowResultModal(false);
+                            handleDrawRefund();
+                          }}
+                          disabled={isRefunding}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          style={{
+                            width: '100%', marginTop: 12, padding: '14px 24px',
+                            borderRadius: 14, border: 'none',
+                            cursor: isRefunding ? 'not-allowed' : 'pointer',
+                            background: isRefunding
+                              ? 'rgba(255,255,255,0.08)'
+                              : 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                            color: isRefunding ? '#6b6b80' : '#07070e',
+                            fontSize: 15, fontWeight: 800,
+                            fontFamily: "'Outfit', sans-serif",
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                            boxShadow: isRefunding ? 'none' : '0 4px 24px rgba(251,191,36,0.3)',
+                            transition: 'all 0.3s',
+                          }}
+                        >
+                          {isRefunding ? (
+                            <>
+                              <Loader2 style={{ width: 18, height: 18, animation: 'spin 1s linear infinite' }} />
+                              Refunding...
+                            </>
+                          ) : (
+                            <>
+                              <Coins style={{ width: 18, height: 18 }} />
+                              Claim Refund
+                            </>
+                          )}
+                        </motion.button>
+                      )}
+
+                      <motion.button
+                        onClick={() => setShowResultModal(false)}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        style={{
+                          width: '100%', marginTop: 8, padding: '12px 24px',
+                          borderRadius: 14, cursor: 'pointer',
+                          background: 'rgba(255,255,255,0.04)',
+                          border: '1px solid rgba(255,255,255,0.1)',
+                          color: '#6b6b80', fontSize: 14, fontWeight: 600,
+                          fontFamily: "'Outfit', sans-serif",
+                        }}
+                      >
+                        Close
+                      </motion.button>
+                    </div>
+                  </>
+                );
+              }
 
               return (
                 <>

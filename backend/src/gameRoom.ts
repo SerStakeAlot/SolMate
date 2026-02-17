@@ -289,20 +289,26 @@ class GameRoomManager {
     }
 
     // Notify both players
-    io.to(room.playerWhite.socketId).emit('game:end', {
+    const endPayload = {
       winner,
       reason,
-      yourColor: 'w',
       whiteTimeMs: room.whiteTimeMs,
       blackTimeMs: room.blackTimeMs,
+      totalMoves: room.moves.length,
+      matchPubkey: room.matchPubkey,
+      stakeTier: room.stakeTier,
+      playerAWallet: room.playerWhite.walletAddress,
+      playerBWallet: room.playerBlack.walletAddress,
+    };
+
+    io.to(room.playerWhite.socketId).emit('game:end', {
+      ...endPayload,
+      yourColor: 'w',
     });
 
     io.to(room.playerBlack.socketId).emit('game:end', {
-      winner,
-      reason,
+      ...endPayload,
       yourColor: 'b',
-      whiteTimeMs: room.whiteTimeMs,
-      blackTimeMs: room.blackTimeMs,
     });
     
     // Notify spectators for wager matches
@@ -336,6 +342,13 @@ class GameRoomManager {
   handleResignation(roomId: string, playerId: string, io: SocketServer): void {
     const room = this.rooms.get(roomId);
     if (!room || room.status !== 'active') {
+      return;
+    }
+
+    // Before 4 half-moves (2 full moves each), resign = draw with refund
+    if (room.moves.length < 4) {
+      console.log(`Early resignation in room ${roomId} (${room.moves.length} moves) — ending as draw`);
+      this.endGame(roomId, 'draw', 'early_resignation', io);
       return;
     }
 
@@ -393,8 +406,14 @@ class GameRoomManager {
     room.disconnectTimeout = setTimeout(() => {
       const currentRoom = this.rooms.get(roomId);
       if (currentRoom && currentRoom.status === 'active' && currentRoom.disconnectedPlayer === disconnectedColor) {
-        console.log(`Player did not reconnect. ${winner === 'w' ? 'White' : 'Black'} wins by abandonment.`);
-        this.endGame(roomId, winner, 'abandonment', io);
+        // Before 4 half-moves (2 full moves each), disconnect = draw with refund
+        if (currentRoom.moves.length < 4) {
+          console.log(`Early abandonment in room ${roomId} (${currentRoom.moves.length} moves) — ending as draw`);
+          this.endGame(roomId, 'draw', 'early_abandonment', io);
+        } else {
+          console.log(`Player did not reconnect. ${winner === 'w' ? 'White' : 'Black'} wins by abandonment.`);
+          this.endGame(roomId, winner, 'abandonment', io);
+        }
       }
     }, disconnectDelay);
   }
