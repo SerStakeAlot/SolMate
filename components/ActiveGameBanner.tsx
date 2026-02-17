@@ -56,7 +56,7 @@ export function ActiveGameBanner() {
   return (
     <div style={{
       position: 'fixed',
-      top: 'calc(72px + env(safe-area-inset-top, 0px))',
+      top: 'calc(80px + env(safe-area-inset-top, 0px))',
       left: 0,
       right: 0,
       zIndex: 49,
