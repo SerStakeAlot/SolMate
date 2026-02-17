@@ -448,6 +448,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   // WebSocket connection for multiplayer
   useEffect(() => {
     if (!isMultiplayer || !publicKey) return;
+    // If reconnecting, let the forceReconnect useEffect handle the socket
+    if (forceReconnect) return;
     
     // For host, we need matchPubkey; for joiner, we need matchCode
     if (actualPlayerRole === 'host' && !currentMatchPubkey) {
@@ -699,8 +701,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   // Forced reconnect: when navigating from ActiveGameBanner in practice/freeplay mode
   // Creates a socket, registers, and waits for game:reconnect from server
   useEffect(() => {
-    if (!forceReconnect || !publicKey || isMultiplayer || isFreePlay) return;
-    // Don't reconnect if we already have a socket (wager/freeplay useEffects handle it)
+    if (!forceReconnect || !publicKey || isFreePlay) return;
+    // Don't reconnect if we already have a socket
     if (socket) return;
 
     console.log('Force reconnect: connecting to restore active game...');
@@ -2609,6 +2611,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     }}>
                       Share this code with your opponent to join
                     </p>
+                    {/* Only show cancel button before game starts (no moves made) */}
+                    {!opponentConnected && (chessRef.current?.history()?.length || 0) === 0 && (
                     <button
                       onClick={handleCancelMatch}
                       disabled={isCancellingMatch}
@@ -2629,6 +2633,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     >
                       {isCancellingMatch ? 'Cancelling...' : 'Cancel Match & Refund SOL'}
                     </button>
+                    )}
                   </div>
                 )}
               </div>
