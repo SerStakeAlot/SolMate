@@ -739,6 +739,10 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setBlackTimeMs(gameState.blackTimeMs);
       lastTickRef.current = Date.now();
 
+      // Set player role based on color (white = host, black = joiner)
+      // This is critical for correct winner determination in claim flow
+      setDynamicPlayerRole(gameState.yourColor === 'w' ? 'host' : 'join');
+
       // Detect if this is a freeplay or wager game and set mode accordingly
       if (gameState.stakeTier !== undefined && gameState.stakeTier >= 0) {
         setMode('wager');
@@ -1786,8 +1790,10 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
       // IMPORTANT: The winner is the current player (we only call this if playerColor === gameWinner)
       // playerA = host (match creator), playerB = guest (joiner)
-      // We use actualPlayerRole to determine which on-chain account is the winner
-      const isHost = actualPlayerRole === 'host';
+      // Determine which on-chain account we are by comparing wallet pubkeys
+      // (actualPlayerRole can be wrong after reconnect since banner always uses mode=join)
+      const myPubkeyStr = publicKey.toBase58();
+      const isHost = matchData.playerA.toBase58() === myPubkeyStr;
       const winnerPubkey = isHost ? matchData.playerA : matchData.playerB!;
       
       // STEP 1: Submit result first - this records the winner on-chain
@@ -1880,8 +1886,8 @@ export const ChessGame: React.FC<ChessGameProps> = ({
         setRefundComplete(true);
         return;
       }
-      if (msg.includes('MatchLockedIn')) {
-        // If abandon_match fails due to time gate, try force_refund
+      if (msg.includes('MatchLockedIn') || msg.includes('MatchNotActive')) {
+        // If abandon_match fails due to time gate or match already finished, try force_refund
         try {
           const client = new EscrowClient(connection, wallet);
           const matchData = await client.fetchMatch(currentMatchPubkey);
