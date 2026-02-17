@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { usePathname, useRouter } from 'next/navigation';
+import { useSelectedLayoutSegment, useRouter } from 'next/navigation';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-production.up.railway.app';
 
@@ -18,12 +18,10 @@ interface ActiveGameInfo {
 
 export function ActiveGameBanner() {
   const { publicKey, connected } = useWallet();
-  const pathname = usePathname();
   const router = useRouter();
+  const segment = useSelectedLayoutSegment();
+  const isOnGamePage = segment === 'game';
   const [activeGame, setActiveGame] = useState<ActiveGameInfo | null>(null);
-
-  // Don't show banner on the game page itself
-  const isOnGamePage = pathname === '/game';
 
   useEffect(() => {
     if (!connected || !publicKey || isOnGamePage) {
@@ -49,7 +47,7 @@ export function ActiveGameBanner() {
     // Re-check every 10 seconds in case a game starts while on another page
     const interval = setInterval(checkActiveGame, 10000);
     return () => clearInterval(interval);
-  }, [connected, publicKey, isOnGamePage, pathname]);
+  }, [connected, publicKey, isOnGamePage]);
 
   if (!activeGame?.hasActiveGame || isOnGamePage) return null;
 
@@ -58,7 +56,7 @@ export function ActiveGameBanner() {
   return (
     <div style={{
       position: 'fixed',
-      top: 'calc(64px + env(safe-area-inset-top, 0px))',
+      top: 'calc(72px + env(safe-area-inset-top, 0px))',
       left: 0,
       right: 0,
       zIndex: 49,
@@ -85,7 +83,6 @@ export function ActiveGameBanner() {
       </span>
       <button
         onClick={() => {
-          // Navigate to game page — the socket reconnect will restore the game state
           const params = new URLSearchParams();
           params.set('reconnect', 'true');
           if (isWager) {
