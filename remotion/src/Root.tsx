@@ -13,6 +13,7 @@ import { FrenchDefense } from "./videos/FrenchDefense";
 import { KingsIndianDefense } from "./videos/KingsIndianDefense";
 import { LondonSystem } from "./videos/LondonSystem";
 import { CaroKannDefense } from "./videos/CaroKannDefense";
+import { Forks } from "./videos/Forks";
 import { SolMateTeaser, SolMateTeaserSquare, SolMateTeaserVertical } from '../compositions/SolMateTeaser';
 import { SolMatePromo, SolMatePromoSquare } from '../compositions/SolMatePromo';
 import { MatrixDemo, MatrixDemoSquare } from '../compositions/MatrixDemo';
@@ -134,6 +135,16 @@ export const RemotionRoot: React.FC = () => {
         id="CaroKannDefense"
         component={CaroKannDefense}
         durationInFrames={1500}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+
+      {/* Forks (Beginner Tactics) - 45 seconds at 30fps = 1350 frames */}
+      <Composition
+        id="Forks"
+        component={Forks}
+        durationInFrames={1350}
         fps={30}
         width={1920}
         height={1080}

@@ -307,6 +307,7 @@ const TACTICS: Lesson[] = [
     description: 'Attack two or more pieces at once with a single piece.',
     difficulty: 'beginner',
     category: 'tactics',
+    videoId: 'Forks',
     keyPoints: [
       'Knights are the best forking pieces',
       'Fork the king and queen for material gain',
@@ -466,6 +467,7 @@ const videoFiles: Record<string, string> = {
   'KingsIndianDefense': '/videos/kings-indian-defense.mp4',
   'LondonSystem': '/videos/london-system.mp4',
   'CaroKannDefense': '/videos/caro-kann-defense.mp4',
+  'Forks': '/videos/forks.mp4',
 };
 
 function VideoModal({ lesson, onClose }: VideoModalProps) {
