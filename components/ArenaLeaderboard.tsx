@@ -128,12 +128,13 @@ export function ArenaLeaderboard({ walletAddress }: ArenaLeaderboardProps) {
             fontSize: 12, fontWeight: 600, textTransform: 'uppercase',
             letterSpacing: '0.1em', color: '#eab308',
             fontFamily: "'Space Mono', monospace",
-          }}>Season 1 Rankings</span>
+          }}>Season 1 — Final Rankings</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{
-              fontSize: 12, color: '#444',
+              fontSize: 12, color: '#22c55e',
               fontFamily: "'Space Mono', monospace",
-            }}>Ends Feb 20, 2026</span>
+              fontWeight: 600,
+            }}>✓ Season Complete</span>
             <button
               onClick={fetchLeaderboard}
               style={{

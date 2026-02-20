@@ -5,7 +5,6 @@ import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Trophy, Zap, Shield, Crown, ExternalLink, Loader2, DollarSign, Gift, Calendar, Copy, Check } from 'lucide-react';
 import { WalletButton } from '@/components/WalletButton';
-import { ArenaChessGame } from '@/components/ArenaChessGame';
 import { ArenaLeaderboard } from '@/components/ArenaLeaderboard';
 import { 
   checkHolderArenaAccess, 
@@ -31,7 +30,6 @@ export default function ArenaPage() {
     error?: string;
   }>({ checked: false, hasAccess: false, balance: 0 });
   
-  const [isPlaying, setIsPlaying] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   // Check token gate access
@@ -127,28 +125,26 @@ export default function ArenaPage() {
         }
       `}</style>
 
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: isPlaying ? 960 : 760, margin: '0 auto', padding: isPlaying ? '12px clamp(0px, 0.5vw, 24px) 40px' : '20px clamp(0px, 0.5vw, 24px) 80px', textAlign: 'center', transition: 'max-width 0.3s' }}>
+      <div style={{ position: 'relative', zIndex: 1, maxWidth: 760, margin: '0 auto', padding: '20px clamp(0px, 0.5vw, 24px) 80px', textAlign: 'center' }}>
 
-        {/* Header — compact when game is active */}
-        <div style={{ marginBottom: isPlaying ? 4 : 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: isPlaying ? 4 : 8 }}>
-            <span style={{ fontSize: isPlaying ? 20 : 28 }}>👑</span>
-            <h1 style={{ fontSize: isPlaying ? 24 : 36, fontWeight: 800, letterSpacing: '-0.03em' }}>
+        {/* Header */}
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 8 }}>
+            <span style={{ fontSize: 28 }}>👑</span>
+            <h1 style={{ fontSize: 36, fontWeight: 800, letterSpacing: '-0.03em' }}>
               <span className="arena-gold-shimmer">Holder Arena</span>
             </h1>
-            <span style={{ fontSize: isPlaying ? 20 : 28 }}>👑</span>
+            <span style={{ fontSize: 28 }}>👑</span>
           </div>
-          {!isPlaying && (
-            <p style={{ fontSize: 15, color: '#6b6b80' }}>
-              Exclusive AI challenge for $MATE & $SKR token holders
-            </p>
-          )}
+          <p style={{ fontSize: 15, color: '#6b6b80' }}>
+            Season 1 Complete — $500 Prize Pool Awarded!
+          </p>
         </div>
 
         {/* Access badge */}
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
-          padding: '6px 16px', borderRadius: 100, marginBottom: isPlaying ? 12 : 28,
+          padding: '6px 16px', borderRadius: 100, marginBottom: 28,
           background: 'rgba(34,197,94,0.06)',
           border: '1px solid rgba(34,197,94,0.2)',
         }}>
@@ -165,19 +161,18 @@ export default function ArenaPage() {
           </span>
         </div>
 
-        {/* Tab Navigation — hidden when game active */}
-        {!isPlaying && (
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 32 }}>
-            {[
-              { id: 'play', label: '⚡ Play Arena', active: !showLeaderboard && !isPlaying },
-              { id: 'leaderboard', label: '🏆 Leaderboard', active: showLeaderboard },
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  if (tab.id === 'play') { setShowLeaderboard(false); setIsPlaying(false); }
-                  else { setShowLeaderboard(true); setIsPlaying(false); }
-                }}
+        {/* Tab Navigation */}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 32 }}>
+          {[
+            { id: 'play', label: '🏆 Season 1 Winners', active: !showLeaderboard },
+            { id: 'leaderboard', label: '📊 Leaderboard', active: showLeaderboard },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                if (tab.id === 'play') { setShowLeaderboard(false); }
+                else { setShowLeaderboard(true); }
+              }}
                 style={{
                   padding: '12px 28px', borderRadius: 12,
                   fontSize: 14, fontWeight: 700,
@@ -194,11 +189,10 @@ export default function ArenaPage() {
                     : 'none',
                 }}
               >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        )}
+              {tab.label}
+            </button>
+          ))}
+        </div>
         {/* Content */}
         <AnimatePresence mode="wait">
           {showLeaderboard ? (
@@ -210,18 +204,6 @@ export default function ArenaPage() {
             >
               <ArenaLeaderboard walletAddress={publicKey?.toBase58()} />
             </motion.div>
-          ) : isPlaying ? (
-            <motion.div
-              key="game"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-            >
-              <ArenaChessGame 
-                walletAddress={publicKey?.toBase58() || ''} 
-                onGameEnd={() => setIsPlaying(false)}
-              />
-            </motion.div>
           ) : (
             <motion.div
               key="lobby"
@@ -229,7 +211,7 @@ export default function ArenaPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
             >
-              <ArenaLobby onStartGame={() => setIsPlaying(true)} walletAddress={publicKey?.toBase58() || ''} />
+              <ArenaLobby walletAddress={publicKey?.toBase58() || ''} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -561,7 +543,7 @@ function LockedHero({ reason, mateBalance, skrBalance, onConnect }: {
                 color: '#22c55e', letterSpacing: '-0.02em',
               }}>$500</div>
               <div style={{ fontSize: 13, color: '#6b6b80', fontWeight: 500 }}>
-                Prize pool — top 3 win!
+                Season 1 complete — winners below!
               </div>
             </div>
           </div>
@@ -794,230 +776,164 @@ function LockedHero({ reason, mateBalance, skrBalance, onConnect }: {
   );
 }
 
-// Arena Lobby Component
+// Arena Lobby Component — Season 1 Complete, Winners Showcase
 const ARENA_BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-production.up.railway.app';
-const MAX_DAILY_GAMES = 20;
 
-function ArenaLobby({ onStartGame, walletAddress }: { onStartGame: () => void; walletAddress: string }) {
-  const [hoveredRule, setHoveredRule] = useState<number | null>(null);
-  const [gamesRemaining, setGamesRemaining] = useState<number | null>(null);
-  const [limitReached, setLimitReached] = useState(false);
-  const [cooldownEndsAt, setCooldownEndsAt] = useState<number | undefined>();
+const SEASON_1_WINNERS = [
+  {
+    rank: 1,
+    username: 'Jchess',
+    wallet: 'HhwjAgZ4LWqVDTeG2zVwoj5WjXEoTfpJaycyWMh6h6y9',
+    score: 449.75,
+    matches: 267,
+    wins: 250,
+    prize: '$250',
+    color: '#eab308',
+    emoji: '🥇',
+    gradient: 'linear-gradient(135deg, rgba(234,179,8,0.12), rgba(234,179,8,0.04))',
+    border: 'rgba(234,179,8,0.3)',
+    glow: 'rgba(234,179,8,0.15)',
+  },
+  {
+    rank: 2,
+    username: 'ryuking',
+    wallet: 'GDpM8APxrZeYWaZ6ZqH6BdPafyZf7kCT3zkeYQzJwmWs',
+    score: 372.0,
+    matches: 218,
+    wins: 217,
+    prize: '$150',
+    color: '#a0a0b8',
+    emoji: '🥈',
+    gradient: 'linear-gradient(135deg, rgba(160,160,184,0.1), rgba(160,160,184,0.03))',
+    border: 'rgba(160,160,184,0.25)',
+    glow: 'rgba(160,160,184,0.1)',
+  },
+  {
+    rank: 3,
+    username: 'Chessthragg',
+    wallet: '5cPCR3ZjJrLjmbQzDGUVkYzQx4SuYaACfEBGnZ1UkrFj',
+    score: 349.75,
+    matches: 206,
+    wins: 173,
+    prize: '$100',
+    color: '#cd7f32',
+    emoji: '🥉',
+    gradient: 'linear-gradient(135deg, rgba(205,127,50,0.1), rgba(205,127,50,0.03))',
+    border: 'rgba(205,127,50,0.25)',
+    glow: 'rgba(205,127,50,0.1)',
+  },
+];
 
-  useEffect(() => {
-    if (!walletAddress) return;
-    const fetchStatus = async () => {
-      try {
-        const res = await fetch(`${ARENA_BACKEND_URL}/api/arena/status/${walletAddress}`);
-        const data = await res.json();
-        const remaining = data.gamesRemainingToday ?? MAX_DAILY_GAMES;
-        setGamesRemaining(remaining);
-        setLimitReached(remaining <= 0);
-        if (data.cooldownEndsAt) setCooldownEndsAt(data.cooldownEndsAt);
-      } catch {
-        // If we can't reach backend, allow play (backend will enforce)
-        setGamesRemaining(null);
-        setLimitReached(false);
-      }
-    };
-    fetchStatus();
-  }, [walletAddress]);
-
-  const RULES = [
-    'Play against SolMate AI (~1500 ELO with opening book)',
-    'Maximum 20 games per day per wallet',
-    'Games must have at least 10 moves to count',
-    'Resignation is allowed \u2014 losses still count toward participation',
-    'All-time leaderboard \u2014 your progress is permanent!',
-  ];
-
-  const SCORING = [
-    { label: 'Each match played', points: '+1.0 pts', color: '#eab308' },
-    { label: 'Win bonus', points: '+0.5 pts', color: '#22c55e' },
-    { label: 'Share on X bonus', points: '+0.25 pts', color: '#3b82f6' },
-  ];
+function ArenaLobby({ walletAddress }: { walletAddress: string }) {
+  const [hoveredWinner, setHoveredWinner] = useState<number | null>(null);
 
   return (
-    <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'left' }}>
-      {/* Season Prize Card */}
+    <div style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
+      {/* Season 1 Complete Banner */}
       <div style={{
-        background: 'linear-gradient(135deg, rgba(34,197,94,0.06), rgba(16,185,129,0.02))',
-        border: '1px solid rgba(34,197,94,0.2)',
-        borderRadius: 20, padding: '24px 28px', marginBottom: 20,
+        background: 'linear-gradient(135deg, rgba(234,179,8,0.08), rgba(234,179,8,0.02))',
+        border: '1px solid rgba(234,179,8,0.25)',
+        borderRadius: 20, padding: '28px 28px 24px', marginBottom: 24,
         position: 'relative', overflow: 'hidden',
       }}>
         <div style={{
           position: 'absolute', top: 0, left: '30%', width: 200, height: 1,
-          background: 'linear-gradient(90deg, transparent, rgba(34,197,94,0.4), transparent)',
+          background: 'linear-gradient(90deg, transparent, rgba(234,179,8,0.5), transparent)',
         }} />
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-              <span style={{ fontSize: 22 }}>🏆</span>
-              <span style={{ fontSize: 20, fontWeight: 800, color: '#22c55e' }}>Season 1 Prize</span>
-            </div>
-            <p style={{ fontSize: 14, color: '#6b6b80' }}>Top 3 scorers win!</p>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{
-              fontSize: 42, fontWeight: 800,
-              fontFamily: "'Space Mono', monospace",
-              color: '#22c55e', letterSpacing: '-0.03em', lineHeight: 1,
-            }}>$500</div>
-            <div style={{
-              fontSize: 12, color: '#6b6b80', fontWeight: 500, marginTop: 4,
-              fontFamily: "'Space Mono', monospace",
-            }}>USD Prize Pool</div>
-          </div>
-        </div>
-        <div style={{
-          marginTop: 16, paddingTop: 14,
-          borderTop: '1px solid rgba(34,197,94,0.1)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, width: '100%' }}>
-            <span style={{ fontSize: 13, fontFamily: "'Space Mono', monospace", color: '#eab308', fontWeight: 700 }}>1st $250</span>
-            <span style={{ fontSize: 13, fontFamily: "'Space Mono', monospace", color: '#a0a0b8', fontWeight: 600 }}>2nd $150</span>
-            <span style={{ fontSize: 13, fontFamily: "'Space Mono', monospace", color: '#cd7f32', fontWeight: 600 }}>3rd $100</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 14 }}>📅</span>
-            <span style={{
-              fontSize: 13, fontWeight: 700, color: '#eab308',
-              fontFamily: "'Space Mono', monospace",
-            }}>Season ends February 20, 2026</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Rules Card */}
-      <div style={{
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 20, padding: '24px 28px', marginBottom: 20,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-          <span style={{ fontSize: 18 }}>🛡️</span>
-          <span style={{
-            fontSize: 14, fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.08em', color: '#eab308',
-            fontFamily: "'Space Mono', monospace",
-          }}>Arena Rules</span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {RULES.map((rule, i) => (
-            <div
-              key={i}
-              onMouseEnter={() => setHoveredRule(i)}
-              onMouseLeave={() => setHoveredRule(null)}
-              style={{
-                display: 'flex', alignItems: 'flex-start', gap: 12,
-                padding: '12px 16px', borderRadius: 12,
-                background: hoveredRule === i
-                  ? 'rgba(234,179,8,0.04)'
-                  : 'rgba(255,255,255,0.015)',
-                border: `1px solid ${hoveredRule === i
-                  ? 'rgba(234,179,8,0.1)'
-                  : 'rgba(255,255,255,0.03)'}`,
-                transition: 'all 0.2s',
-              }}
-            >
-              <span style={{ fontSize: 8, color: '#eab308', marginTop: 6, flexShrink: 0 }}>●</span>
-              <span style={{ fontSize: 14, color: '#a0a0b8', lineHeight: 1.5 }}>{rule}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Scoring System Card */}
-      <div style={{
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        borderRadius: 20, padding: '24px 28px', marginBottom: 20,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-          <span style={{ fontSize: 18 }}>🏆</span>
-          <span style={{
-            fontSize: 14, fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.08em', color: '#eab308',
-            fontFamily: "'Space Mono', monospace",
-          }}>Scoring System</span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {SCORING.map((s, i) => (
-            <div key={i} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '14px 18px', borderRadius: 12,
-              background: s.color === '#3b82f6'
-                ? 'rgba(59,130,246,0.06)'
-                : 'rgba(255,255,255,0.015)',
-              border: `1px solid ${s.color === '#3b82f6'
-                ? 'rgba(59,130,246,0.15)'
-                : 'rgba(255,255,255,0.04)'}`,
-            }}>
-              <span style={{ fontSize: 14, color: '#a0a0b8' }}>{s.label}</span>
-              <span style={{
-                fontFamily: "'Space Mono', monospace",
-                fontSize: 15, fontWeight: 700, color: s.color,
-              }}>{s.points}</span>
-            </div>
-          ))}
-        </div>
+        <div style={{ fontSize: 36, marginBottom: 8 }}>🏆</div>
+        <h2 style={{
+          fontSize: 26, fontWeight: 800, color: '#eab308', marginBottom: 6,
+          fontFamily: "'Outfit', sans-serif", letterSpacing: '-0.02em',
+        }}>Season 1 Complete!</h2>
+        <p style={{ fontSize: 14, color: '#6b6b80', marginBottom: 4 }}>
+          The Holder Arena giveaway has ended — congratulations to our winners!
+        </p>
         <p style={{
-          marginTop: 14, textAlign: 'center',
-          fontSize: 12, color: '#444',
+          fontSize: 13, color: '#444',
           fontFamily: "'Space Mono', monospace",
-        }}>
-          Min 10 moves per game • Share after each match for extra points!
+        }}>$500 Prize Pool • Ended February 20, 2026</p>
+      </div>
+
+      {/* Winners Cards */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 28 }}>
+        {SEASON_1_WINNERS.map((winner, i) => (
+          <div
+            key={winner.rank}
+            onMouseEnter={() => setHoveredWinner(i)}
+            onMouseLeave={() => setHoveredWinner(null)}
+            style={{
+              background: hoveredWinner === i
+                ? winner.gradient
+                : 'rgba(255,255,255,0.02)',
+              border: `1px solid ${hoveredWinner === i ? winner.border : 'rgba(255,255,255,0.06)'}`,
+              borderRadius: 20, padding: '24px 28px',
+              transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+              transform: hoveredWinner === i ? 'translateY(-2px)' : 'translateY(0)',
+              boxShadow: hoveredWinner === i ? `0 8px 32px ${winner.glow}` : 'none',
+              cursor: 'default',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{
+                  fontSize: 32, width: 56, height: 56, borderRadius: 16,
+                  background: `${winner.color}15`,
+                  border: `1px solid ${winner.color}30`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>{winner.emoji}</div>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{
+                    fontSize: 18, fontWeight: 800, color: winner.color,
+                    fontFamily: "'Outfit', sans-serif",
+                    marginBottom: 4,
+                  }}>{winner.username}</div>
+                  <div style={{
+                    fontSize: 12, color: '#6b6b80',
+                    fontFamily: "'Space Mono', monospace",
+                  }}>
+                    {winner.matches} matches • {winner.wins} wins • Score: {winner.score}
+                  </div>
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{
+                  fontSize: 28, fontWeight: 800,
+                  fontFamily: "'Space Mono', monospace",
+                  color: '#22c55e', letterSpacing: '-0.02em',
+                }}>{winner.prize}</div>
+                <div style={{
+                  fontSize: 11, color: '#6b6b80',
+                  fontFamily: "'Space Mono', monospace",
+                  marginTop: 2,
+                }}>#{winner.rank} Place</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Thanks message */}
+      <div style={{
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 20, padding: '24px 28px', marginBottom: 24,
+      }}>
+        <p style={{ fontSize: 15, color: '#a0a0b8', lineHeight: 1.7 }}>
+          Thank you to everyone who competed in Season 1! 🎉<br/>
+          <span style={{ color: '#6b6b80', fontSize: 13 }}>
+            Stay tuned for future seasons and events.
+          </span>
         </p>
       </div>
 
-      {/* Start Match Button */}
-      <div style={{ textAlign: 'center' }}>
-        <motion.button
-          whileHover={!limitReached ? { scale: 1.05 } : {}}
-          whileTap={!limitReached ? { scale: 0.95 } : {}}
-          onClick={!limitReached ? onStartGame : undefined}
-          disabled={limitReached}
-          style={{
-            padding: '18px 56px', borderRadius: 16,
-            background: limitReached
-              ? 'linear-gradient(135deg, #444 0%, #555 50%, #444 100%)'
-              : 'linear-gradient(135deg, #eab308 0%, #f59e0b 50%, #eab308 100%)',
-            color: limitReached ? '#888' : '#07070e',
-            fontSize: 18, fontWeight: 800, border: 'none',
-            cursor: limitReached ? 'not-allowed' : 'pointer',
-            fontFamily: "'Outfit', sans-serif",
-            letterSpacing: '0.01em',
-            boxShadow: limitReached
-              ? 'none'
-              : '0 8px 40px rgba(234,179,8,0.3), 0 0 60px rgba(234,179,8,0.08)',
-            transition: 'all 0.3s',
-            opacity: limitReached ? 0.6 : 1,
-            display: 'inline-flex', alignItems: 'center', gap: 10,
-            WebkitTextFillColor: limitReached ? '#888' : '#07070e',
-          }}
-        >
-          <span style={{ fontSize: 20 }}>{limitReached ? '🔒' : '⚡'}</span>
-          {limitReached ? 'Daily Limit Reached' : 'Start Arena Match'}
-        </motion.button>
-        {limitReached && (
-          <p style={{
-            marginTop: 12, fontSize: 13, color: '#eab308',
-            fontFamily: "'Space Mono', monospace",
-          }}>
-            You've played {MAX_DAILY_GAMES} games today. Come back tomorrow!
-          </p>
-        )}
-        {gamesRemaining !== null && !limitReached && (
-          <p style={{
-            marginTop: 10, fontSize: 12, color: '#6b6b80',
-            fontFamily: "'Space Mono', monospace",
-          }}>
-            {gamesRemaining} / {MAX_DAILY_GAMES} games remaining today
-          </p>
-        )}
-      </div>
+      {/* View Full Leaderboard hint */}
+      <p style={{
+        fontSize: 13, color: '#444',
+        fontFamily: "'Space Mono', monospace",
+      }}>
+        View the full final standings in the Leaderboard tab above
+      </p>
     </div>
   );
 }
