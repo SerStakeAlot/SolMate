@@ -310,6 +310,39 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   const [opponentUsername, setOpponentUsername] = useState<string | null>(null);
   const [opponentStats, setOpponentStats] = useState<PlayerStats | null>(null);
   const [myUsername, setMyUsername] = useState<string | null>(null);
+
+  // Currency-aware stake display helper
+  const isTokenMatch = currency !== 'SOL';
+  const stakeDisplay = (() => {
+    if (isTokenMatch) {
+      const tokenInfo = getTokenStakeTierInfo(currency, selectedStakeTier);
+      if (tokenInfo) {
+        const amt = tokenInfo.displayAmount;
+        const sym = `$${currency}`;
+        return {
+          label: tokenInfo.label,
+          amount: amt,
+          symbol: sym,
+          stakeText: `${amt.toLocaleString()} ${sym}`,
+          rewardText: `+${(amt * 1.8).toLocaleString()} ${sym}`,
+          lossText: `-${amt.toLocaleString()} ${sym}`,
+          refundText: `${amt.toLocaleString()} ${sym}`,
+          potText: `${(amt * 2 * 0.9).toLocaleString()} ${sym}`,
+        };
+      }
+    }
+    const solInfo = getStakeTierInfo(selectedStakeTier);
+    return {
+      label: solInfo.label,
+      amount: solInfo.stake,
+      symbol: 'SOL',
+      stakeText: `${solInfo.stake} SOL`,
+      rewardText: `+${(solInfo.stake * 1.8).toFixed(2)} SOL`,
+      lossText: `-${solInfo.stake} SOL`,
+      refundText: `${solInfo.stake} SOL`,
+      potText: `${(solInfo.stake * 2 * 0.9).toFixed(2)} SOL`,
+    };
+  })();
   
   // Emoji reactions state
   const REACTION_EMOJIS = ['👍', '👏', '🔥', '😮', '😂', '😅', '🤔', '💀'];
@@ -2481,10 +2514,9 @@ export const ChessGame: React.FC<ChessGameProps> = ({
 
   const getMatchInfo = () => {
     if (!matchCreated) return null;
-    const tier = getStakeTierInfo(selectedStakeTier);
     return {
-      stake: tier.label,
-      pot: `${(tier.stake * 2 * 0.9).toFixed(2)} SOL`, // 2 players, minus 10% fee
+      stake: stakeDisplay.label,
+      pot: stakeDisplay.potText,
     };
   };
 
@@ -3341,7 +3373,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       Stake to Join Match
                     </h3>
                     <p style={{ fontSize: 13, color: '#6b6b80', margin: 0, fontFamily: "'Outfit', sans-serif" }}>
-                      You must stake SOL on-chain to enter this wager match
+                      You must stake {isTokenMatch ? `$${currency} tokens` : 'SOL'} on-chain to enter this wager match
                     </p>
                   </div>
 
@@ -3362,7 +3394,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                       <div style={{
                         fontSize: 18, fontWeight: 800, color: '#e8e8f0',
                         fontFamily: "'Space Mono', monospace",
-                      }}>{getStakeTierInfo(selectedStakeTier).label}</div>
+                      }}>{stakeDisplay.label}</div>
                     </div>
                     <div style={{ width: 1, background: 'rgba(153,69,255,0.2)' }} />
                     <div style={{ textAlign: 'center' }}>
@@ -3377,7 +3409,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                         background: 'linear-gradient(135deg, #00ffa3, #9945ff)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
-                      }}>{(getStakeTierInfo(selectedStakeTier).stake * 2 * 0.9).toFixed(2)} SOL</div>
+                      }}>{stakeDisplay.potText}</div>
                     </div>
                   </div>
 
@@ -3444,7 +3476,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                     ) : connected ? (
                       <>
                         <Coins style={{ width: 18, height: 18 }} />
-                        Stake {getStakeTierInfo(selectedStakeTier).label} &amp; Join Match
+                        Stake {stakeDisplay.label} &amp; Join Match
                       </>
                     ) : (
                       'Connect Wallet to Join'
@@ -4000,7 +4032,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 13, color: '#6b6b80' }}>Stakes</span>
               <span style={{ fontSize: 13, fontWeight: 600, color: '#e8e8f0' }}>
-                {mode === 'practice' || isFreePlay ? 'None' : `${getStakeTierInfo(selectedStakeTier).stake} SOL`}
+                {mode === 'practice' || isFreePlay ? 'None' : stakeDisplay.stakeText}
               </span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -4298,7 +4330,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           fontFamily: "'Space Mono', monospace",
                           color: '#fbbf24', letterSpacing: '-0.02em',
                         }}>
-                          {getStakeTierInfo(selectedStakeTier).stake} SOL
+                          {stakeDisplay.refundText}
                         </span>
                       </div>
 
@@ -4662,7 +4694,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                             WebkitTextFillColor: 'transparent',
                             letterSpacing: '-0.02em',
                           }}>
-                            +{(getStakeTierInfo(selectedStakeTier).stake * 1.8).toFixed(2)} SOL
+                            {stakeDisplay.rewardText}
                           </span>
                         </div>
 
@@ -4762,7 +4794,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           color: '#ef4444',
                           letterSpacing: '-0.02em',
                         }}>
-                          -{getStakeTierInfo(selectedStakeTier).stake} SOL
+                          {stakeDisplay.lossText}
                         </span>
                       </div>
                     )}
@@ -4775,7 +4807,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
                           ? ` a wager match on SolMate Chess!`
                           : ` a game on SolMate Chess!`;
                         const rewardText = mode === 'wager' && isWinner
-                          ? ` Won ${(getStakeTierInfo(selectedStakeTier).stake * 1.8).toFixed(2)} SOL 💰`
+                          ? ` Won ${stakeDisplay.rewardText.replace('+', '')} 💰`
                           : '';
                         const tweetText = `${resultText}${modeText}${rewardText}\n\nPlay chess on Solana 👉 https://playsolmate.fun`;
                         shareToX(tweetText);
