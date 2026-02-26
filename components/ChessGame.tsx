@@ -400,13 +400,13 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   useEffect(() => {
     // For free play: need opponent connected
     // For AI: need game to have started (first move made)
-    // For wager/multiplayer: need opponent connected
-    const isWagerGame = isMultiplayer && opponentConnected;
+    // For wager/multiplayer: keep timer running even if opponent disconnects (game is still live)
+    const isWagerGame = isMultiplayer && gameRoomId;
     const shouldRunTimer = (isFreePlay && opponentConnected) || (mode === 'practice' && !isFreePlay && aiGameStarted) || isWagerGame;
     if (!shouldRunTimer) return;
     
     const chess = chessRef.current;
-    if (!chess || chess.isGameOver()) return;
+    if (!chess || chess.isGameOver() || gameWinner) return;
     
     const interval = setInterval(() => {
       const now = Date.now();
@@ -422,14 +422,15 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     }, 100); // Update every 100ms for smooth countdown
     
     return () => clearInterval(interval);
-  }, [opponentConnected, isFreePlay, fen, mode, aiGameStarted, isMultiplayer]); // fen changes on each move
+  }, [opponentConnected, isFreePlay, fen, mode, aiGameStarted, isMultiplayer, gameRoomId, gameWinner]); // fen changes on each move
 
   // Check for timeout - end game when timer hits 0 (AI, free play, and wager matches)
   useEffect(() => {
     // Determine if game is active and should check timeout
     const isAiGame = mode === 'practice' && !isFreePlay && aiGameStarted;
     const isFreePlayGame = isFreePlay && opponentConnected;
-    const isWagerGame = isMultiplayer && opponentConnected;
+    // For wager games: check timeout even if opponent disconnected (timer keeps running)
+    const isWagerGame = isMultiplayer && gameRoomId;
     
     if (!isAiGame && !isFreePlayGame && !isWagerGame) return;
     
@@ -441,7 +442,14 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       // White ran out of time, black wins
       console.log('White ran out of time! Black wins.');
       setGameWinner('b');
+      setGameEndReason('timeout');
       setShowResultModal(true);
+      // Clear disconnect banner — game ended by timeout
+      if (opponentDisconnectTimerRef.current) {
+        clearInterval(opponentDisconnectTimerRef.current);
+        opponentDisconnectTimerRef.current = null;
+      }
+      setOpponentDisconnectCountdown(null);
       
       // Notify server for multiplayer games
       if ((isFreePlayGame || isWagerGame) && socket) {
@@ -451,14 +459,21 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       // Black ran out of time, white wins
       console.log('Black ran out of time! White wins.');
       setGameWinner('w');
+      setGameEndReason('timeout');
       setShowResultModal(true);
+      // Clear disconnect banner — game ended by timeout
+      if (opponentDisconnectTimerRef.current) {
+        clearInterval(opponentDisconnectTimerRef.current);
+        opponentDisconnectTimerRef.current = null;
+      }
+      setOpponentDisconnectCountdown(null);
       
       // Notify server for multiplayer games
       if ((isFreePlayGame || isWagerGame) && socket) {
         socket.emit('game:timeout', { loser: 'b' });
       }
     }
-  }, [whiteTimeMs, blackTimeMs, mode, isFreePlay, aiGameStarted, gameWinner, opponentConnected, isMultiplayer, socket]);
+  }, [whiteTimeMs, blackTimeMs, mode, isFreePlay, aiGameStarted, gameWinner, opponentConnected, isMultiplayer, socket, gameRoomId]);
 
   // Helper: start opponent disconnect countdown
   const startDisconnectCountdown = useCallback((deadlineMs: number) => {
@@ -629,6 +644,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
         const result = chess.move({ from: move.from, to: move.to, promotion: move.promotion });
         setFen(chess.fen());
         setLastMove({ from: move.from, to: move.to });
+        // Sync time with server on each move
+        if (timeUpdate) {
+          setWhiteTimeMs(timeUpdate.whiteTimeMs);
+          setBlackTimeMs(timeUpdate.blackTimeMs);
+          lastTickRef.current = Date.now();
+        }
         // Play sound
         if (chess.isCheck()) {
           playSound('check');
@@ -643,6 +664,13 @@ export const ChessGame: React.FC<ChessGameProps> = ({
         console.error('Invalid move received:', e);
       }
     });
+
+    // Sync time with server periodically
+    newSocket.on('game:timeUpdate', ({ whiteTimeMs: wt, blackTimeMs: bt }) => {
+      setWhiteTimeMs(wt);
+      setBlackTimeMs(bt);
+      lastTickRef.current = Date.now();
+    });
     
     // Game end notification
     newSocket.on('game:end', ({ winner, reason, yourColor }) => {
@@ -651,6 +679,13 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setGameWinner(winner);
       setGameEndReason(reason);
       setShowResultModal(true);
+      // Clear disconnect banner — game is over, disconnect is irrelevant
+      setOpponentConnected(true);
+      if (opponentDisconnectTimerRef.current) {
+        clearInterval(opponentDisconnectTimerRef.current);
+        opponentDisconnectTimerRef.current = null;
+      }
+      setOpponentDisconnectCountdown(null);
     });
 
     // Receive emoji reaction from opponent
@@ -820,6 +855,13 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       setGameWinner(winner);
       setGameEndReason(reason);
       setShowResultModal(true);
+      // Clear disconnect banner — game is over
+      setOpponentConnected(true);
+      if (opponentDisconnectTimerRef.current) {
+        clearInterval(opponentDisconnectTimerRef.current);
+        opponentDisconnectTimerRef.current = null;
+      }
+      setOpponentDisconnectCountdown(null);
     });
 
     newSocket.on('game:opponentDisconnected', ({ reconnectDeadlineMs, lockedIn }: { reconnectDeadlineMs: number; lockedIn: boolean }) => {

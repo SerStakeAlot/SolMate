@@ -897,6 +897,22 @@ io.on('connection', (socket) => {
     gameRoomManager.handleResignation(resolvedRoomId, player.id, io);
   });
 
+  // Handle timeout reported by client
+  socket.on('game:timeout', ({ loser }: { loser: 'w' | 'b' }) => {
+    const player = playerStore.getPlayerBySocket(socket.id);
+    if (!player) return;
+
+    const roomId = gameRoomManager.getPlayerRoom(player.id);
+    if (!roomId) return;
+
+    const room = gameRoomManager.getRoom(roomId);
+    if (!room || room.status !== 'active') return;
+
+    const winner = loser === 'w' ? 'b' : 'w';
+    console.log(`Client reported timeout in room ${roomId}. Loser: ${loser}, Winner: ${winner}`);
+    gameRoomManager.endGame(roomId, winner, 'timeout', io);
+  });
+
   // Handle game end (checkmate, draw)
   socket.on('game:end', ({ roomId, winner, reason }) => {
     const player = playerStore.getPlayerBySocket(socket.id);
