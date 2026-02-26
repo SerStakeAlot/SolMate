@@ -216,6 +216,15 @@ export class EscrowClient {
     lastValidBlockHeight: number,
     label: string
   ): Promise<string> {
+    return this.buildMultiSignAndSend([instruction], blockhash, lastValidBlockHeight, label);
+  }
+
+  private async buildMultiSignAndSend(
+    instructions: TransactionInstruction[],
+    blockhash: string,
+    lastValidBlockHeight: number,
+    label: string
+  ): Promise<string> {
     const walletPubkey = this.wallet.publicKey!;
 
     if (this.isMobileWalletAdapter()) {
@@ -225,7 +234,7 @@ export class EscrowClient {
       const messageV0 = new TransactionMessage({
         payerKey: walletPubkey,
         recentBlockhash: blockhash,
-        instructions: [instruction],
+        instructions,
       }).compileToV0Message();
 
       const vTx = new VersionedTransaction(messageV0);
@@ -246,7 +255,8 @@ export class EscrowClient {
     }
 
     // Desktop path: legacy Transaction
-    const tx = new Transaction().add(instruction);
+    const tx = new Transaction();
+    for (const ix of instructions) tx.add(ix);
     tx.feePayer = walletPubkey;
     tx.recentBlockhash = blockhash;
     tx.lastValidBlockHeight = lastValidBlockHeight;
@@ -603,6 +613,63 @@ export class EscrowClient {
       throw new Error(`Payout transaction failed: ${JSON.stringify(confirmation.value.err)}`);
     }
 
+    return signature;
+  }
+
+  // ═══════════════════════════════════════════════════
+  // submit + confirm in a SINGLE transaction
+  // Avoids MWA session drops between two back-to-back TXs
+  // ═══════════════════════════════════════════════════
+  async submitResultAndPayout(
+    matchPubkey: PublicKey,
+    winner: PublicKey,
+    playerA: PublicKey
+  ): Promise<string> {
+    if (!this.wallet.publicKey) throw new Error('Wallet not connected');
+    if (!this.wallet.signTransaction && !this.wallet.sendTransaction)
+      throw new Error('Wallet does not support transaction signing');
+
+    const walletPubkey = this.wallet.publicKey;
+
+    // Instruction 1: submit_result
+    const submitData = Buffer.alloc(40);
+    Buffer.from([0xf0, 0x2a, 0x59, 0xb4, 0x0a, 0xef, 0x09, 0xd6]).copy(submitData, 0);
+    winner.toBuffer().copy(submitData, 8);
+    const submitIx = new TransactionInstruction({
+      keys: [
+        { pubkey: matchPubkey, isSigner: false, isWritable: true },
+        { pubkey: walletPubkey, isSigner: true, isWritable: false },
+      ],
+      programId: PROGRAM_ID,
+      data: submitData,
+    });
+
+    // Instruction 2: confirm_payout
+    const [escrowPDA] = deriveEscrowPDA(matchPubkey);
+    const [feeVaultPDA] = deriveFeeVaultPDA();
+    const payoutData = Buffer.alloc(8);
+    Buffer.from([0x94, 0x61, 0x91, 0x02, 0x55, 0x8b, 0x04, 0x8c]).copy(payoutData, 0);
+    const payoutIx = new TransactionInstruction({
+      keys: [
+        { pubkey: matchPubkey, isSigner: false, isWritable: true },
+        { pubkey: escrowPDA, isSigner: false, isWritable: true },
+        { pubkey: feeVaultPDA, isSigner: false, isWritable: true },
+        { pubkey: winner, isSigner: false, isWritable: true },
+        { pubkey: playerA, isSigner: false, isWritable: true },
+        { pubkey: walletPubkey, isSigner: true, isWritable: true },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      ],
+      programId: PROGRAM_ID,
+      data: payoutData,
+    });
+
+    const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('finalized');
+    const signature = await this.buildMultiSignAndSend([submitIx, payoutIx], blockhash, lastValidBlockHeight, 'submitResultAndPayout');
+    const confirmation = await this.connection.confirmTransaction(
+      { signature, blockhash, lastValidBlockHeight },
+      'confirmed'
+    );
+    if (confirmation.value.err) throw new Error(`Submit+Payout failed: ${JSON.stringify(confirmation.value.err)}`);
     return signature;
   }
 

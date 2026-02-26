@@ -1865,18 +1865,14 @@ export const ChessGame: React.FC<ChessGameProps> = ({
           throw new Error(`Your wallet ${myPubkeyStr.slice(0,8)}... is not a player in this match.`);
         }
         const winnerPubkey = isPlayerA ? matchData.playerA : matchData.playerB!;
-        console.log('Token match - submitting result... Winner:', winnerPubkey.toBase58());
-        const resultSignature = await tokenClient.submitTokenResult(currentMatchPubkey, winnerPubkey);
-        console.log('Token result submitted:', resultSignature);
-        setTxSignature(resultSignature);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        try {
-          console.log('Confirming token payout...');
-          await handleConfirmPayout(winnerPubkey, matchData.playerA);
-        } catch (payoutError: any) {
-          console.error('Token payout failed but winner is recorded:', payoutError);
-          alert(`Winner recorded on-chain! Payout failed - claim your winnings from the Refund page.`);
-        }
+        const mint = getMintForCurrency(currency)!;
+        console.log('Token match - submitting result + payout in single TX... Winner:', winnerPubkey.toBase58());
+        const signature = await tokenClient.submitResultAndPayout(currentMatchPubkey, mint, winnerPubkey, matchData.playerA);
+        console.log('Token result + payout confirmed:', signature);
+        setTxSignature(signature);
+        setPayoutComplete(true);
+        const currencyLabel = `$${currency}`;
+        alert(`\u{1F389} Payout complete! Winner received the ${currencyLabel} pot. TX: ${signature.slice(0, 8)}...`);
       } else {
         // SOL match flow (original)
         const client = new EscrowClient(connection, wallet);
@@ -1899,18 +1895,12 @@ export const ChessGame: React.FC<ChessGameProps> = ({
           throw new Error(`Your wallet ${myPubkeyStr.slice(0,8)}... is not a player in this match. Cannot submit result.`);
         }
         const winnerPubkey = isPlayerA ? matchData.playerA : matchData.playerB!;
-        console.log('Submitting result... Winner:', winnerPubkey.toBase58());
-        const resultSignature = await client.submitResult(currentMatchPubkey, winnerPubkey);
-        console.log('Result submitted:', resultSignature);
-        setTxSignature(resultSignature);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        try {
-          console.log('Confirming payout...');
-          await handleConfirmPayout(winnerPubkey, matchData.playerA);
-        } catch (payoutError: any) {
-          console.error('Payout failed but winner is recorded:', payoutError);
-          alert(`Winner recorded on-chain! Payout failed - claim your winnings from the Refund page.`);
-        }
+        console.log('SOL match - submitting result + payout in single TX... Winner:', winnerPubkey.toBase58());
+        const signature = await client.submitResultAndPayout(currentMatchPubkey, winnerPubkey, matchData.playerA);
+        console.log('SOL result + payout confirmed:', signature);
+        setTxSignature(signature);
+        setPayoutComplete(true);
+        alert(`\u{1F389} Payout complete! Winner received the SOL pot. TX: ${signature.slice(0, 8)}...`);
       }
     } catch (error: any) {
       console.error('Error submitting result:', error);
