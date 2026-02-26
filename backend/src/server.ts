@@ -152,6 +152,7 @@ app.get('/lobby', (req, res) => {
     matchPubkey: m.matchPubkey,
     hostWallet: m.hostWallet,
     stakeTier: m.stakeTier,
+    currency: m.currency || 'SOL',
     createdAt: m.createdAt,
     joinDeadline: m.joinDeadline,
   }));
@@ -160,7 +161,7 @@ app.get('/lobby', (req, res) => {
 
 // Register a new match (POST /api/matches) - with strict rate limit
 app.post('/api/matches', matchCreationLimiter, (req, res) => {
-  const { matchCode, matchPubkey, hostWallet, stakeTier, joinDeadline } = req.body;
+  const { matchCode, matchPubkey, hostWallet, stakeTier, currency, joinDeadline } = req.body;
   
   if (!matchCode || !matchPubkey || !hostWallet) {
     return res.status(400).json({ error: 'Missing required fields' });
@@ -170,7 +171,7 @@ app.post('/api/matches', matchCreationLimiter, (req, res) => {
   
   // Use hostMatch with empty socketId for REST-based registration
   // Pass the provided matchCode as the preferred code
-  const match = hostedMatchManager.hostMatch(hostWallet, '', stakeTier, matchPubkey, 30, io, matchCode);
+  const match = hostedMatchManager.hostMatch(hostWallet, '', stakeTier, matchPubkey, 30, io, matchCode, currency);
   
   res.json({ success: true, matchCode: match.matchCode });
 });
@@ -922,7 +923,7 @@ io.on('connection', (socket) => {
   // ============ HOSTED MATCH EVENTS ============
 
   // Host a new match
-  socket.on('match:host', ({ stakeTier, matchPubkey, joinDeadlineMinutes = 5 }) => {
+  socket.on('match:host', ({ stakeTier, matchPubkey, joinDeadlineMinutes = 5, currency }) => {
     const player = playerStore.getPlayerBySocket(socket.id);
     if (!player) {
       socket.emit('error', { message: 'Player not registered' });
@@ -941,7 +942,8 @@ io.on('connection', (socket) => {
       matchPubkey,
       joinDeadlineMinutes,
       io,
-      preferredCode
+      preferredCode,
+      currency
     );
 
     socket.emit('match:hosted', {
@@ -1040,6 +1042,7 @@ io.on('connection', (socket) => {
         matchPubkey: match.matchPubkey,
         hostWallet: match.hostWallet,
         stakeTier: match.stakeTier,
+        currency: match.currency || 'SOL',
         joinDeadline: match.joinDeadline,
       });
     } else {
@@ -1055,6 +1058,7 @@ io.on('connection', (socket) => {
       matchPubkey: m.matchPubkey,
       hostWallet: m.hostWallet,
       stakeTier: m.stakeTier,
+      currency: m.currency || 'SOL',
       createdAt: m.createdAt,
       joinDeadline: m.joinDeadline,
     }));

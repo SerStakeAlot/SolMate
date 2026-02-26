@@ -12,6 +12,15 @@ import {
   STAKE_TIERS,
   getStakeTierInfo,
 } from "@/utils/escrow";
+import {
+  TokenEscrowClient,
+  WagerCurrency,
+  getTokenStakeTiers,
+  getTokenStakeTierInfo,
+  getMintForCurrency,
+  MATE_MINT,
+  SKR_MINT,
+} from "@/utils/tokenEscrow";
 
 type PlayMode = "join" | "host" | "computer" | "spectate";
 
@@ -157,6 +166,8 @@ function GameContent() {
   const [hostConnected, setHostConnected] = useState(false);
   const [dotCount, setDotCount] = useState(0);
   const [hostSelectedColor, setHostSelectedColor] = useState<'w' | 'b'>('w');
+  const [selectedCurrency, setSelectedCurrency] = useState<WagerCurrency>('SOL');
+  const [isTokenMatch, setIsTokenMatch] = useState(false);
 
   // Refs to access latest state in socket callbacks
   const hostMatchRef = useRef<{ pubkey: PublicKey | null; code: string; tier: number; step: HostStep }>({
@@ -179,13 +190,24 @@ function GameContent() {
     
     const checkOnChain = async () => {
       try {
-        const client = new EscrowClient(connection, wallet);
-        const matchData = await client.fetchMatch(hostMatchPubkey);
-        if (matchData && matchData.playerB) {
-          console.log('On-chain poll: opponent joined!', matchData.playerB.toBase58());
-          setOpponentJoined(true);
-          setHostOpponentWallet(matchData.playerB.toBase58());
-          setHostStep("ready");
+        if (isTokenMatch) {
+          const tokenClient = new TokenEscrowClient(connection, wallet);
+          const matchData = await tokenClient.fetchTokenMatch(hostMatchPubkey);
+          if (matchData && matchData.playerB) {
+            console.log('On-chain poll: opponent joined token match!', matchData.playerB.toBase58());
+            setOpponentJoined(true);
+            setHostOpponentWallet(matchData.playerB.toBase58());
+            setHostStep("ready");
+          }
+        } else {
+          const client = new EscrowClient(connection, wallet);
+          const matchData = await client.fetchMatch(hostMatchPubkey);
+          if (matchData && matchData.playerB) {
+            console.log('On-chain poll: opponent joined!', matchData.playerB.toBase58());
+            setOpponentJoined(true);
+            setHostOpponentWallet(matchData.playerB.toBase58());
+            setHostStep("ready");
+          }
         }
       } catch (e) {
         // Ignore poll errors
@@ -243,14 +265,31 @@ function GameContent() {
     setHostError("");
     setHostStep("creating");
     try {
-      const client = new EscrowClient(connection, wallet);
-      const balance = await connection.getBalance(publicKey);
-      const stakeInfo = getStakeTierInfo(selectedTier);
-      const requiredLamports = stakeInfo.lamports + 10000000;
-      if (balance < requiredLamports) {
-        throw new Error(`Insufficient balance. You have ${(balance / 1e9).toFixed(4)} SOL but need at least ${(requiredLamports / 1e9).toFixed(4)} SOL (stake + fees).`);
+      let signature: string;
+      let newMatchPubkey: import('@solana/web3.js').PublicKey;
+
+      if (selectedCurrency === 'SOL') {
+        // SOL wager path
+        const client = new EscrowClient(connection, wallet);
+        const balance = await connection.getBalance(publicKey);
+        const stakeInfo = getStakeTierInfo(selectedTier);
+        const requiredLamports = stakeInfo.lamports + 10000000;
+        if (balance < requiredLamports) {
+          throw new Error(`Insufficient balance. You have ${(balance / 1e9).toFixed(4)} SOL but need at least ${(requiredLamports / 1e9).toFixed(4)} SOL (stake + fees).`);
+        }
+        const result = await client.createMatch(selectedTier, 30);
+        signature = result.signature;
+        newMatchPubkey = result.matchPubkey;
+        setIsTokenMatch(false);
+      } else {
+        // Token wager path ($MATE / $SKR)
+        const tokenClient = new TokenEscrowClient(connection, wallet);
+        const mint = getMintForCurrency(selectedCurrency)!;
+        const result = await tokenClient.createTokenMatch(mint, selectedTier, 30);
+        signature = result.signature;
+        newMatchPubkey = result.matchPubkey;
+        setIsTokenMatch(true);
       }
-      const { signature, matchPubkey: newMatchPubkey } = await client.createMatch(selectedTier, 30);
       const lobbyCode = newMatchPubkey.toBase58().slice(0, 4).toUpperCase();
       setHostTxSignature(signature);
       setHostMatchPubkey(newMatchPubkey);
@@ -265,6 +304,7 @@ function GameContent() {
             matchPubkey: newMatchPubkey.toBase58(),
             hostWallet: publicKey.toBase58(),
             stakeTier: selectedTier,
+            currency: selectedCurrency,
             joinDeadline: Date.now() + 30 * 60 * 1000,
           }),
         });
@@ -275,6 +315,7 @@ function GameContent() {
           matchPubkey: newMatchPubkey.toBase58(),
           hostWallet: publicKey.toBase58(),
           stakeTier: selectedTier,
+          currency: selectedCurrency,
         });
       }
     } catch (err: any) {
@@ -282,7 +323,7 @@ function GameContent() {
       if (msg.includes('User rejected') || msg.includes('rejected')) {
         setHostError("Transaction was cancelled");
       } else if (msg.includes('Insufficient') || msg.includes('debit')) {
-        setHostError("Insufficient SOL balance.");
+        setHostError(selectedCurrency === 'SOL' ? "Insufficient SOL balance." : `Insufficient ${selectedCurrency} token balance.`);
       } else if (msg.includes('blockhash') || msg.includes('expired')) {
         setHostError("Transaction expired. Please try again.");
       } else {
@@ -298,8 +339,14 @@ function GameContent() {
     if (!connected || !publicKey || !hostMatchPubkey) return;
     setIsCancellingMatch(true);
     try {
-      const client = new EscrowClient(connection, wallet);
-      await client.cancelMatch(hostMatchPubkey);
+      if (isTokenMatch && selectedCurrency !== 'SOL') {
+        const tokenClient = new TokenEscrowClient(connection, wallet);
+        const mint = getMintForCurrency(selectedCurrency)!;
+        await tokenClient.cancelTokenMatch(hostMatchPubkey, mint);
+      } else {
+        const client = new EscrowClient(connection, wallet);
+        await client.cancelMatch(hostMatchPubkey);
+      }
       setHostMatchPubkey(null);
       setHostMatchCode("");
       setHostTxSignature("");
@@ -319,7 +366,8 @@ function GameContent() {
   const getHostShareableLink = () => {
     if (!hostMatchPubkey) return "";
     const base = typeof window !== 'undefined' ? window.location.origin : '';
-    return `${base}/game?mode=join&match=${hostMatchPubkey.toBase58()}&code=${hostMatchCode}&tier=${selectedTier}`;
+    const currencyParam = selectedCurrency !== 'SOL' ? `&currency=${selectedCurrency}` : '';
+    return `${base}/game?mode=join&match=${hostMatchPubkey.toBase58()}&code=${hostMatchCode}&tier=${selectedTier}${currencyParam}`;
   };
 
   const handleStartGame = () => {
@@ -380,7 +428,10 @@ function GameContent() {
     transition: `all 0.7s cubic-bezier(0.16, 1, 0.3, 1) ${delay}s`,
   });
 
-  const tierInfo = hostMatchPubkey ? getStakeTierInfo(selectedTier) : getStakeTierInfo(selectedTier);
+  // Compute display info based on selected currency
+  const solTierInfo = getStakeTierInfo(selectedTier);
+  const tokenTierInfo = selectedCurrency !== 'SOL' ? getTokenStakeTierInfo(selectedCurrency, selectedTier) : null;
+  const tierInfo = selectedCurrency === 'SOL' ? solTierInfo : (tokenTierInfo ? { ...solTierInfo, label: tokenTierInfo.label, stake: tokenTierInfo.displayAmount } : solTierInfo);
   const tv = getTierVisual(selectedTier);
 
   // ─── HOST SETUP FLOW ───
@@ -425,6 +476,37 @@ function GameContent() {
           {/* ─── SELECT TIER ─── */}
           {hostStep === "select-tier" && (
             <div style={{ ...fadeUp(0.2) }}>
+              {/* ─── CURRENCY SELECTOR ─── */}
+              <div style={{
+                display: "flex", gap: 8, marginBottom: 24, padding: 4,
+                background: "rgba(255,255,255,0.02)", borderRadius: 14,
+                border: "1px solid rgba(255,255,255,0.06)",
+              }}>
+                {(['SOL', 'MATE', 'SKR'] as WagerCurrency[]).map((currency) => {
+                  const isActive = selectedCurrency === currency;
+                  const colors: Record<WagerCurrency, string> = { SOL: '#9945ff', MATE: '#00ffa3', SKR: '#00d4ff' };
+                  return (
+                    <button
+                      key={currency}
+                      onClick={() => { setSelectedCurrency(currency); setSelectedTier(currency === 'SOL' ? 4 : 0); }}
+                      style={{
+                        flex: 1, padding: "12px 16px", borderRadius: 10,
+                        background: isActive ? `rgba(${currency === 'SOL' ? '153,69,255' : currency === 'MATE' ? '0,255,163' : '0,212,255'},0.12)` : "transparent",
+                        border: isActive ? `1px solid ${colors[currency]}40` : "1px solid transparent",
+                        color: isActive ? colors[currency] : "#6b6b80",
+                        fontSize: 14, fontWeight: 700, cursor: "pointer",
+                        fontFamily: "'Space Mono', monospace",
+                        transition: "all 0.25s",
+                      }}
+                    >
+                      {currency === 'SOL' ? '◎ SOL' : currency === 'MATE' ? '♟ $MATE' : '⚔ $SKR'}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* ─── SOL TIER CARDS ─── */}
+              {selectedCurrency === 'SOL' && (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 32 }}>
                 {STAKE_TIERS.map((tier) => {
                   const v = getTierVisual(tier.tier);
@@ -467,6 +549,57 @@ function GameContent() {
                   );
                 })}
               </div>
+              )}
+
+              {/* ─── TOKEN TIER CARDS ($MATE / $SKR) ─── */}
+              {selectedCurrency !== 'SOL' && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 32 }}>
+                {getTokenStakeTiers(selectedCurrency).map((tier) => {
+                  const accentColor = selectedCurrency === 'MATE' ? '#00ffa3' : '#00d4ff';
+                  const bgColor = selectedCurrency === 'MATE' ? 'rgba(0,255,163,0.08)' : 'rgba(0,212,255,0.08)';
+                  const borderColor = selectedCurrency === 'MATE' ? 'rgba(0,255,163,0.25)' : 'rgba(0,212,255,0.25)';
+                  const glowColor = selectedCurrency === 'MATE' ? 'rgba(0,255,163,0.15)' : 'rgba(0,212,255,0.15)';
+                  const isSelected = selectedTier === tier.tier;
+                  const isHovered = hoveredTier === tier.tier;
+                  const potWin = (tier.displayAmount * 2 * 0.9).toLocaleString();
+                  const symbol = selectedCurrency === 'MATE' ? '♟' : '⚔';
+                  return (
+                    <div
+                      key={tier.tier}
+                      onClick={() => setSelectedTier(tier.tier)}
+                      onMouseEnter={() => setHoveredTier(tier.tier)}
+                      onMouseLeave={() => setHoveredTier(null)}
+                      style={{
+                        position: "relative", padding: "24px 20px", borderRadius: 18,
+                        background: isSelected ? bgColor : "rgba(255,255,255,0.015)",
+                        border: `1.5px solid ${isSelected ? borderColor : isHovered ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.04)"}`,
+                        cursor: "pointer", transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                        transform: isHovered ? "translateY(-3px)" : "translateY(0)",
+                        boxShadow: isSelected ? `0 8px 40px ${glowColor}, 0 0 0 1px ${borderColor}` : isHovered ? "0 12px 30px rgba(0,0,0,0.3)" : "none",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: isSelected ? accentColor : "transparent", transition: "all 0.3s" }} />
+                      {isSelected && (
+                        <div style={{
+                          position: "absolute", top: 12, right: 12, width: 22, height: 22, borderRadius: "50%",
+                          background: accentColor, display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 12, color: "#07070e", fontWeight: 800, boxShadow: `0 2px 12px ${glowColor}`,
+                        }}>✓</div>
+                      )}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                        <span style={{ fontSize: 20, color: accentColor }}>{symbol}</span>
+                        <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 18, fontWeight: 700, color: accentColor }}>{tier.label}</span>
+                      </div>
+                      <div style={{ fontSize: 13, color: "#6b6b80" }}>
+                        Winner pot: <span style={{ color: "#e8e8f0", fontWeight: 600 }}>{potWin} ${selectedCurrency}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: "#444", marginTop: 4 }}>10% platform fee</div>
+                    </div>
+                  );
+                })}
+              </div>
+              )}
 
               {!connected && (
                 <div style={{
@@ -502,7 +635,10 @@ function GameContent() {
                 }}>
                   <span style={{ fontSize: 13, color: "#6b6b80" }}>Winner receives</span>
                   <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 16, fontWeight: 600, color: "#00ffa3" }}>
-                    {(tierInfo.stake * 2 * 0.9).toFixed(2)} SOL
+                    {selectedCurrency === 'SOL'
+                      ? `${(solTierInfo.stake * 2 * 0.9).toFixed(2)} SOL`
+                      : `${(tierInfo.stake * 2 * 0.9).toLocaleString()} $${selectedCurrency}`
+                    }
                   </span>
                 </div>
                 <button
@@ -523,7 +659,7 @@ function GameContent() {
                       <span style={{ width: 16, height: 16, border: "2px solid #07070e", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", display: "inline-block" }} />
                       Creating Match...
                     </span>
-                  ) : connected ? `Create Match — ${tierInfo.label}` : "Connect Wallet to Create"}
+                  ) : connected ? `Create Match — ${tierInfo.label}` : `Connect Wallet to Create`}
                 </button>
               </div>
 
@@ -603,7 +739,9 @@ function GameContent() {
                   </div>
                   <div style={{ padding: "14px 16px", borderRadius: 12, background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
                     <div style={{ fontSize: 11, color: "#444", marginBottom: 4, fontFamily: "'Space Mono', monospace" }}>Winner Pot</div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: "#00ffa3", fontFamily: "'Space Mono', monospace" }}>{(tierInfo.stake * 2 * 0.9).toFixed(2)} SOL</div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: "#00ffa3", fontFamily: "'Space Mono', monospace" }}>
+                      {selectedCurrency === 'SOL' ? `${(solTierInfo.stake * 2 * 0.9).toFixed(2)} SOL` : `${(tierInfo.stake * 2 * 0.9).toLocaleString()} $${selectedCurrency}`}
+                    </div>
                   </div>
                 </div>
 
@@ -658,7 +796,7 @@ function GameContent() {
                       <span style={{ width: 14, height: 14, border: "2px solid #ff5050", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", display: "inline-block" }} />
                       Cancelling...
                     </span>
-                  ) : "Cancel Match & Refund SOL"}
+                  ) : `Cancel Match & Refund ${selectedCurrency === 'SOL' ? 'SOL' : '$' + selectedCurrency}`}
                 </button>
               </div>
 
@@ -709,7 +847,9 @@ function GameContent() {
                   </div>
                   <div style={{ padding: "12px 20px", borderRadius: 12, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
                     <div style={{ fontSize: 11, color: "#444", marginBottom: 4, fontFamily: "'Space Mono', monospace" }}>Pot</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: "#00ffa3", fontFamily: "'Space Mono', monospace" }}>{(tierInfo.stake * 2 * 0.9).toFixed(2)}</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: "#00ffa3", fontFamily: "'Space Mono', monospace" }}>
+                      {selectedCurrency === 'SOL' ? (solTierInfo.stake * 2 * 0.9).toFixed(2) : (tierInfo.stake * 2 * 0.9).toLocaleString()}
+                    </div>
                   </div>
                 </div>
 

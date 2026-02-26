@@ -74,8 +74,11 @@ class BN {
   }
 }
 
-// Program ID
-export const PROGRAM_ID = new PublicKey('H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV');
+// Program ID (new program with SOL + token wager support)
+export const PROGRAM_ID = new PublicKey('79mzfYBWp6thaU5pYLJLpNBXCrSoZVVyttTHuWx732cr');
+
+// Legacy program ID (frozen, no upgrade authority)
+export const LEGACY_PROGRAM_ID = new PublicKey('H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV');
 
 // Stake tier configuration
 export const STAKE_TIERS = [

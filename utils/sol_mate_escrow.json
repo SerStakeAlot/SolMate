@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.2.0",
   "name": "sol_mate_escrow",
   "instructions": [
     {
@@ -12,6 +12,7 @@
       ],
       "args": [
         { "name": "stakeTier", "type": "u8" },
+        { "name": "seed", "type": "u64" },
         { "name": "joinDeadline", "type": "i64" }
       ]
     },
@@ -40,10 +41,10 @@
       "accounts": [
         { "name": "match", "isMut": true, "isSigner": false },
         { "name": "escrow", "isMut": true, "isSigner": false },
-        { "name": "winner", "isMut": true, "isSigner": false },
-        { "name": "playerA", "isMut": false, "isSigner": false },
         { "name": "feeVault", "isMut": true, "isSigner": false },
-        { "name": "authority", "isMut": false, "isSigner": true },
+        { "name": "winner", "isMut": true, "isSigner": false },
+        { "name": "playerA", "isMut": true, "isSigner": false },
+        { "name": "authority", "isMut": true, "isSigner": true },
         { "name": "systemProgram", "isMut": false, "isSigner": false }
       ],
       "args": []
@@ -59,6 +60,30 @@
       "args": []
     },
     {
+      "name": "abandonMatch",
+      "accounts": [
+        { "name": "match", "isMut": true, "isSigner": false },
+        { "name": "escrow", "isMut": true, "isSigner": false },
+        { "name": "playerA", "isMut": true, "isSigner": false },
+        { "name": "playerB", "isMut": true, "isSigner": false },
+        { "name": "caller", "isMut": false, "isSigner": true },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "forceRefund",
+      "accounts": [
+        { "name": "match", "isMut": true, "isSigner": false },
+        { "name": "escrow", "isMut": true, "isSigner": false },
+        { "name": "playerA", "isMut": true, "isSigner": false },
+        { "name": "playerB", "isMut": true, "isSigner": false },
+        { "name": "caller", "isMut": false, "isSigner": true },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
       "name": "withdrawFees",
       "accounts": [
         { "name": "feeVault", "isMut": true, "isSigner": false },
@@ -68,6 +93,240 @@
       "args": [
         { "name": "amount", "type": "u64" }
       ]
+    },
+    {
+      "name": "adminRescue",
+      "accounts": [
+        { "name": "match", "isMut": true, "isSigner": false },
+        { "name": "escrow", "isMut": true, "isSigner": false },
+        { "name": "recipient", "isMut": true, "isSigner": false },
+        { "name": "admin", "isMut": true, "isSigner": true },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "createTokenMatch",
+      "accounts": [
+        { "name": "matchAccount", "isMut": true, "isSigner": false },
+        { "name": "mint", "isMut": false, "isSigner": false },
+        { "name": "escrowAuthority", "isMut": false, "isSigner": false },
+        { "name": "escrowTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "playerATokenAccount", "isMut": true, "isSigner": false },
+        { "name": "playerA", "isMut": true, "isSigner": true },
+        { "name": "tokenProgram", "isMut": false, "isSigner": false },
+        { "name": "associatedTokenProgram", "isMut": false, "isSigner": false },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": [
+        { "name": "stakeTier", "type": "u8" },
+        { "name": "seed", "type": "u64" },
+        { "name": "joinDeadline", "type": "i64" }
+      ]
+    },
+    {
+      "name": "joinTokenMatch",
+      "accounts": [
+        { "name": "matchAccount", "isMut": true, "isSigner": false },
+        { "name": "mint", "isMut": false, "isSigner": false },
+        { "name": "escrowAuthority", "isMut": false, "isSigner": false },
+        { "name": "escrowTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "playerBTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "playerB", "isMut": true, "isSigner": true },
+        { "name": "tokenProgram", "isMut": false, "isSigner": false },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "submitTokenResult",
+      "accounts": [
+        { "name": "matchAccount", "isMut": true, "isSigner": false },
+        { "name": "submitter", "isMut": false, "isSigner": true }
+      ],
+      "args": [
+        { "name": "winner", "type": "publicKey" }
+      ]
+    },
+    {
+      "name": "confirmTokenPayout",
+      "accounts": [
+        { "name": "matchAccount", "isMut": true, "isSigner": false },
+        { "name": "mint", "isMut": false, "isSigner": false },
+        { "name": "escrowAuthority", "isMut": false, "isSigner": false },
+        { "name": "escrowTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "feeVaultAuthority", "isMut": false, "isSigner": false },
+        { "name": "feeVaultTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "winnerTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "winner", "isMut": true, "isSigner": false },
+        { "name": "playerA", "isMut": true, "isSigner": false },
+        { "name": "payer", "isMut": true, "isSigner": true },
+        { "name": "tokenProgram", "isMut": false, "isSigner": false },
+        { "name": "associatedTokenProgram", "isMut": false, "isSigner": false },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "cancelTokenMatch",
+      "accounts": [
+        { "name": "matchAccount", "isMut": true, "isSigner": false },
+        { "name": "mint", "isMut": false, "isSigner": false },
+        { "name": "escrowAuthority", "isMut": false, "isSigner": false },
+        { "name": "escrowTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "playerATokenAccount", "isMut": true, "isSigner": false },
+        { "name": "playerA", "isMut": true, "isSigner": true },
+        { "name": "tokenProgram", "isMut": false, "isSigner": false },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "abandonTokenMatch",
+      "accounts": [
+        { "name": "matchAccount", "isMut": true, "isSigner": false },
+        { "name": "mint", "isMut": false, "isSigner": false },
+        { "name": "escrowAuthority", "isMut": false, "isSigner": false },
+        { "name": "escrowTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "playerATokenAccount", "isMut": true, "isSigner": false },
+        { "name": "playerA", "isMut": true, "isSigner": false },
+        { "name": "playerBTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "playerB", "isMut": true, "isSigner": false },
+        { "name": "caller", "isMut": false, "isSigner": true },
+        { "name": "tokenProgram", "isMut": false, "isSigner": false },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "forceTokenRefund",
+      "accounts": [
+        { "name": "matchAccount", "isMut": true, "isSigner": false },
+        { "name": "mint", "isMut": false, "isSigner": false },
+        { "name": "escrowAuthority", "isMut": false, "isSigner": false },
+        { "name": "escrowTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "playerATokenAccount", "isMut": true, "isSigner": false },
+        { "name": "playerA", "isMut": true, "isSigner": false },
+        { "name": "playerBTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "playerB", "isMut": true, "isSigner": false },
+        { "name": "caller", "isMut": false, "isSigner": true },
+        { "name": "tokenProgram", "isMut": false, "isSigner": false },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "withdrawTokenFees",
+      "accounts": [
+        { "name": "mint", "isMut": false, "isSigner": false },
+        { "name": "feeVaultAuthority", "isMut": false, "isSigner": false },
+        { "name": "feeVaultTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "adminTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "admin", "isMut": true, "isSigner": true },
+        { "name": "tokenProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": [
+        { "name": "amount", "type": "u64" }
+      ]
+    },
+    {
+      "name": "adminRescueToken",
+      "accounts": [
+        { "name": "matchAccount", "isMut": true, "isSigner": false },
+        { "name": "mint", "isMut": false, "isSigner": false },
+        { "name": "escrowAuthority", "isMut": false, "isSigner": false },
+        { "name": "escrowTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "recipientTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "recipient", "isMut": true, "isSigner": false },
+        { "name": "admin", "isMut": true, "isSigner": true },
+        { "name": "tokenProgram", "isMut": false, "isSigner": false },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
     }
+  ],
+  "accounts": [
+    {
+      "name": "Match",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "playerA", "type": "publicKey" },
+          { "name": "playerB", "type": { "option": "publicKey" } },
+          { "name": "stakeTier", "type": "u8" },
+          { "name": "joinDeadline", "type": "i64" },
+          { "name": "status", "type": { "defined": "MatchStatus" } },
+          { "name": "winner", "type": { "option": "publicKey" } },
+          { "name": "bump", "type": "u8" },
+          { "name": "escrowBump", "type": "u8" },
+          { "name": "activatedAt", "type": "i64" }
+        ]
+      }
+    },
+    {
+      "name": "TokenMatch",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "playerA", "type": "publicKey" },
+          { "name": "playerB", "type": { "option": "publicKey" } },
+          { "name": "mint", "type": "publicKey" },
+          { "name": "stakeTier", "type": "u8" },
+          { "name": "stakeAmount", "type": "u64" },
+          { "name": "joinDeadline", "type": "i64" },
+          { "name": "status", "type": { "defined": "MatchStatus" } },
+          { "name": "winner", "type": { "option": "publicKey" } },
+          { "name": "bump", "type": "u8" },
+          { "name": "escrowBump", "type": "u8" },
+          { "name": "activatedAt", "type": "i64" }
+        ]
+      }
+    },
+    {
+      "name": "FeeVault",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "totalCollected", "type": "u64" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    }
+  ],
+  "types": [
+    {
+      "name": "MatchStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          { "name": "Open" },
+          { "name": "Active" },
+          { "name": "Finished" },
+          { "name": "Cancelled" }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    { "code": 6000, "name": "InvalidStakeTier", "msg": "Invalid stake tier" },
+    { "code": 6001, "name": "MatchNotOpen", "msg": "Match is not in open state" },
+    { "code": 6002, "name": "MatchNotActive", "msg": "Match is not in active state" },
+    { "code": 6003, "name": "MatchNotFinished", "msg": "Match is not in finished state" },
+    { "code": 6004, "name": "InvalidWinner", "msg": "Winner must be one of the players" },
+    { "code": 6005, "name": "Unauthorized", "msg": "Unauthorized" },
+    { "code": 6006, "name": "JoinDeadlinePassed", "msg": "Join deadline has passed" },
+    { "code": 6007, "name": "CannotJoinOwnMatch", "msg": "Cannot join your own match" },
+    { "code": 6008, "name": "OnlyCreatorCanCancel", "msg": "Only the creator can cancel" },
+    { "code": 6009, "name": "CannotCancelAfterJoin", "msg": "Cannot cancel after player B joined" },
+    { "code": 6010, "name": "ArithmeticOverflow", "msg": "Arithmetic overflow" },
+    { "code": 6011, "name": "InsufficientFunds", "msg": "Insufficient funds" },
+    { "code": 6012, "name": "OnlyPlayersCanSubmit", "msg": "Only players can submit result" },
+    { "code": 6013, "name": "MatchAlreadyHasWinner", "msg": "Match already has a winner" },
+    { "code": 6014, "name": "NotAPlayer", "msg": "Caller is not a player in this match" },
+    { "code": 6015, "name": "MatchLockedIn", "msg": "Match is locked in - cannot abandon" },
+    { "code": 6016, "name": "InvalidPlayerB", "msg": "Invalid player B" },
+    { "code": 6017, "name": "InvalidMint", "msg": "Invalid token mint" },
+    { "code": 6018, "name": "MintMismatch", "msg": "Mint does not match the token match" },
+    { "code": 6019, "name": "EscrowEmpty", "msg": "Escrow is empty" }
   ]
 }

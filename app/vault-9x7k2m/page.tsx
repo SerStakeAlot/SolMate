@@ -12,9 +12,11 @@ import {
   LAMPORTS_PER_SOL 
 } from '@solana/web3.js';
 
-const PROGRAM_ID = new PublicKey('H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV');
+const PROGRAM_ID = new PublicKey('79mzfYBWp6thaU5pYLJLpNBXCrSoZVVyttTHuWx732cr');
+const LEGACY_PROGRAM_ID = new PublicKey('H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV');
 const ADMIN_PUBKEY = new PublicKey('7BKqimAdco1XsknW88N38qf4PgXGieWN8USPgKxcf87B');
-const FEE_VAULT_PDA = new PublicKey('H3y5ST69e5QDVXZsWiNAiDgJfq7eW6GntkvyVxCmq5VX');
+const FEE_VAULT_PDA = new PublicKey('F1KmjaEjWF83yrRyWsPJABDxPNtZ5dJurXSze6d8qdJ9');
+const LEGACY_FEE_VAULT_PDA = new PublicKey('H3y5ST69e5QDVXZsWiNAiDgJfq7eW6GntkvyVxCmq5VX');
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_ENDPOINT || 'https://mainnet.helius-rpc.com/?api-key=REDACTED_HELIUS_API_KEY';
 
 // Particle field matching homepage
@@ -109,6 +111,13 @@ export default function AdminVaultPage() {
   const [withdrawAmount, setWithdrawAmount] = useState<string>('');
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [txSignature, setTxSignature] = useState<string | null>(null);
+  const [rescueMatchPda, setRescueMatchPda] = useState<string>('');
+  const [rescueRecipient, setRescueRecipient] = useState<string>(ADMIN_PUBKEY.toString());
+  const [rescueLoading, setRescueLoading] = useState(false);
+  const [rescueStatus, setRescueStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+  const [rescueTxSignature, setRescueTxSignature] = useState<string | null>(null);
+  const [rescueUseLegacy, setRescueUseLegacy] = useState(false);
+  const [rescueMatchInfo, setRescueMatchInfo] = useState<{ balance: number; escrowBalance: number; status: string } | null>(null);
 
   const fetchVaultData = useCallback(async () => {
     try {
@@ -234,6 +243,104 @@ export default function AdminVaultPage() {
     }
   };
 
+  const handleLookupMatch = async () => {
+    if (!rescueMatchPda) return;
+    setRescueMatchInfo(null);
+    try {
+      const matchPubkey = new PublicKey(rescueMatchPda);
+      const programId = rescueUseLegacy ? LEGACY_PROGRAM_ID : PROGRAM_ID;
+      const connection = new Connection(RPC_URL, 'confirmed');
+
+      // Fetch match account
+      const matchInfo = await connection.getAccountInfo(matchPubkey);
+      if (!matchInfo) {
+        setRescueStatus({ type: 'error', message: 'Match account not found on-chain' });
+        return;
+      }
+
+      // Derive escrow PDA
+      const [escrowPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('escrow'), matchPubkey.toBuffer()],
+        programId
+      );
+      const escrowInfo = await connection.getAccountInfo(escrowPda);
+
+      // Parse status byte from match data (offset 8 = discriminator, then fields...)
+      // Match struct: discriminator(8) + player_a(32) + player_b(32) + stake_tier(1) + status(1)
+      const statusByte = matchInfo.data.length > 73 ? matchInfo.data[73] : -1;
+      const statusLabels: Record<number, string> = { 0: 'WaitingForOpponent', 1: 'Active', 2: 'Finished', 3: 'Cancelled', 4: 'Abandoned' };
+
+      setRescueMatchInfo({
+        balance: matchInfo.lamports / LAMPORTS_PER_SOL,
+        escrowBalance: escrowInfo ? escrowInfo.lamports / LAMPORTS_PER_SOL : 0,
+        status: statusLabels[statusByte] || `Unknown(${statusByte})`,
+      });
+      setRescueStatus({ type: 'info', message: `Match found. Escrow: ${escrowPda.toBase58()}` });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setRescueStatus({ type: 'error', message: `Lookup failed: ${msg}` });
+    }
+  };
+
+  const handleAdminRescue = async () => {
+    if (!publicKey || !isAdmin || !rescueMatchPda) return;
+
+    setRescueLoading(true);
+    setRescueStatus(null);
+    setRescueTxSignature(null);
+
+    try {
+      const connection = new Connection(RPC_URL, 'confirmed');
+      const matchPubkey = new PublicKey(rescueMatchPda);
+      const recipientPubkey = new PublicKey(rescueRecipient || ADMIN_PUBKEY.toString());
+      const programId = rescueUseLegacy ? LEGACY_PROGRAM_ID : PROGRAM_ID;
+
+      // Derive escrow PDA
+      const [escrowPda] = PublicKey.findProgramAddressSync(
+        [Buffer.from('escrow'), matchPubkey.toBuffer()],
+        programId
+      );
+
+      // Anchor discriminator for admin_rescue: sha256('global:admin_rescue')[0..8]
+      const discriminator = Buffer.from([255, 99, 87, 225, 241, 205, 235, 5]);
+
+      const instruction = new TransactionInstruction({
+        keys: [
+          { pubkey: matchPubkey, isSigner: false, isWritable: true },    // match_account
+          { pubkey: escrowPda, isSigner: false, isWritable: true },      // escrow
+          { pubkey: recipientPubkey, isSigner: false, isWritable: true },// recipient
+          { pubkey: publicKey, isSigner: true, isWritable: true },       // admin
+          { pubkey: SystemProgram.programId, isSigner: false, isWritable: false }, // system_program
+        ],
+        programId,
+        data: discriminator,
+      });
+
+      const transaction = new Transaction().add(instruction);
+      const { blockhash } = await connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = publicKey;
+
+      const signature = await sendTransaction(transaction, connection);
+      setRescueStatus({ type: 'info', message: 'Transaction sent, confirming...' });
+
+      await connection.confirmTransaction(signature, 'confirmed');
+
+      setRescueTxSignature(signature);
+      setRescueStatus({ type: 'success', message: 'Admin rescue successful! Match account closed and funds recovered.' });
+      setRescueMatchPda('');
+      setRescueMatchInfo(null);
+
+      setTimeout(fetchVaultData, 2000);
+    } catch (error: unknown) {
+      console.error('Admin rescue error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setRescueStatus({ type: 'error', message: `Rescue failed: ${errorMessage}` });
+    } finally {
+      setRescueLoading(false);
+    }
+  };
+
   return (
     <>
       <style>{`
@@ -348,6 +455,74 @@ export default function AdminVaultPage() {
           cursor: not-allowed;
           transform: none;
           box-shadow: none;
+        }
+        .btn-rescue {
+          width: 100%;
+          padding: 16px;
+          background: rgba(255,107,107,0.08);
+          border: 1px solid rgba(255,107,107,0.2);
+          border-radius: 14px;
+          color: #ff6b6b;
+          font-size: 15px;
+          font-weight: 700;
+          font-family: 'Outfit', sans-serif;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          letter-spacing: 0.02em;
+        }
+        .btn-rescue:hover {
+          background: rgba(255,107,107,0.15);
+          border-color: rgba(255,107,107,0.4);
+          transform: translateY(-1px);
+          box-shadow: 0 8px 30px rgba(255,107,107,0.15);
+        }
+        .btn-rescue:disabled {
+          background: rgba(255,255,255,0.04);
+          border-color: rgba(255,255,255,0.06);
+          color: #6b6b80;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
+        }
+        .btn-lookup {
+          padding: 14px 20px;
+          background: rgba(59,130,246,0.1);
+          border: 1px solid rgba(59,130,246,0.25);
+          border-radius: 14px;
+          color: #60a5fa;
+          font-size: 13px;
+          font-weight: 700;
+          font-family: 'Outfit', sans-serif;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          white-space: nowrap;
+        }
+        .btn-lookup:hover {
+          background: rgba(59,130,246,0.2);
+          border-color: rgba(59,130,246,0.4);
+        }
+        .btn-lookup:disabled {
+          background: rgba(255,255,255,0.04);
+          border-color: rgba(255,255,255,0.06);
+          color: #6b6b80;
+          cursor: not-allowed;
+        }
+        .toggle-btn {
+          padding: 8px 16px;
+          border-radius: 10px;
+          font-size: 12px;
+          font-weight: 600;
+          font-family: 'Space Mono', monospace;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,0.03);
+          color: #6b6b80;
+        }
+        .toggle-btn.active {
+          background: rgba(153,69,255,0.12);
+          border-color: rgba(153,69,255,0.3);
+          color: #9945ff;
         }
       `}</style>
 
@@ -673,10 +848,185 @@ export default function AdminVaultPage() {
             </div>
           )}
 
+          {/* Admin Rescue Section */}
+          {connected && isAdmin && (
+            <div className="vault-card" style={{ marginTop: '20px' }}>
+              <h2
+                style={{
+                  fontSize: '18px',
+                  fontWeight: 700,
+                  marginBottom: '8px',
+                  marginTop: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                }}
+              >
+                <span
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#ff6b6b',
+                    boxShadow: '0 0 12px rgba(255,107,107,0.5)',
+                    display: 'inline-block',
+                  }}
+                />
+                Admin Rescue
+              </h2>
+              <p style={{ fontSize: '12px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", marginTop: '0', marginBottom: '20px' }}>
+                Recover stuck escrow funds from any match. Closes the match account and sends SOL to the recipient.
+              </p>
+
+              {/* Program Toggle */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '11px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  Program
+                </label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    className={`toggle-btn ${!rescueUseLegacy ? 'active' : ''}`}
+                    onClick={() => { setRescueUseLegacy(false); setRescueMatchInfo(null); }}
+                  >
+                    Current ({PROGRAM_ID.toString().slice(0, 6)}...)
+                  </button>
+                  <button
+                    className={`toggle-btn ${rescueUseLegacy ? 'active' : ''}`}
+                    onClick={() => { setRescueUseLegacy(true); setRescueMatchInfo(null); }}
+                  >
+                    Legacy ({LEGACY_PROGRAM_ID.toString().slice(0, 6)}...)
+                  </button>
+                </div>
+              </div>
+
+              {/* Match PDA Input */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '11px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  Match Account PDA
+                </label>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <input
+                    type="text"
+                    value={rescueMatchPda}
+                    onChange={(e) => { setRescueMatchPda(e.target.value.trim()); setRescueMatchInfo(null); }}
+                    placeholder="Enter match PDA pubkey..."
+                    disabled={rescueLoading}
+                    className="vault-input"
+                    style={{ fontSize: '12px' }}
+                  />
+                  <button
+                    onClick={handleLookupMatch}
+                    disabled={!rescueMatchPda || rescueLoading}
+                    className="btn-lookup"
+                  >
+                    Lookup
+                  </button>
+                </div>
+              </div>
+
+              {/* Match Info Display */}
+              {rescueMatchInfo && (
+                <div className="vault-stat-box" style={{ marginBottom: '16px', textAlign: 'left' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                    <div>
+                      <p style={{ fontSize: '11px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Status</p>
+                      <p style={{ fontSize: '14px', fontWeight: 700, color: '#e8e8f0', margin: 0, fontFamily: "'Space Mono', monospace" }}>{rescueMatchInfo.status}</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '11px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Match Rent</p>
+                      <p style={{ fontSize: '14px', fontWeight: 700, color: '#e8e8f0', margin: 0, fontFamily: "'Space Mono', monospace" }}>{rescueMatchInfo.balance.toFixed(4)} SOL</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize: '11px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Escrow</p>
+                      <p style={{ fontSize: '14px', fontWeight: 700, color: rescueMatchInfo.escrowBalance > 0 ? '#ff6b6b' : '#00ffa3', margin: 0, fontFamily: "'Space Mono', monospace" }}>
+                        {rescueMatchInfo.escrowBalance.toFixed(4)} SOL
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Recipient Input */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '11px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  Recipient Wallet (defaults to admin)
+                </label>
+                <input
+                  type="text"
+                  value={rescueRecipient}
+                  onChange={(e) => setRescueRecipient(e.target.value.trim())}
+                  placeholder={ADMIN_PUBKEY.toString()}
+                  disabled={rescueLoading}
+                  className="vault-input"
+                  style={{ fontSize: '12px', width: '100%', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {/* Rescue Button */}
+              <button
+                onClick={handleAdminRescue}
+                disabled={rescueLoading || !rescueMatchPda}
+                className="btn-rescue"
+              >
+                {rescueLoading ? 'Processing Rescue...' : `🚨 Execute Admin Rescue`}
+              </button>
+
+              {/* Rescue Status */}
+              {rescueStatus && (
+                <div
+                  style={{
+                    marginTop: '16px',
+                    padding: '16px 20px',
+                    borderRadius: '14px',
+                    fontSize: '14px',
+                    lineHeight: 1.6,
+                    wordBreak: 'break-all',
+                    ...(rescueStatus.type === 'success'
+                      ? { background: 'rgba(0,255,163,0.06)', border: '1px solid rgba(0,255,163,0.2)', color: '#00ffa3' }
+                      : rescueStatus.type === 'error'
+                      ? { background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }
+                      : { background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.2)', color: '#60a5fa' }),
+                  }}
+                >
+                  {rescueStatus.message}
+                </div>
+              )}
+
+              {/* Rescue Tx Link */}
+              {rescueTxSignature && (
+                <div className="vault-stat-box" style={{ textAlign: 'left', marginTop: '12px' }}>
+                  <p style={{ fontSize: '11px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", marginBottom: '6px', marginTop: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    Rescue Transaction
+                  </p>
+                  <a
+                    href={`https://solscan.io/tx/${rescueTxSignature}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: '#ff6b6b',
+                      fontSize: '12px',
+                      fontFamily: "'Space Mono', monospace",
+                      wordBreak: 'break-all',
+                      textDecoration: 'none',
+                      transition: 'color 0.2s',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#ff9999')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = '#ff6b6b')}
+                  >
+                    {rescueTxSignature}
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Footer */}
           <div style={{ marginTop: '40px', textAlign: 'center' }}>
-            <p style={{ fontSize: '12px', color: '#3a3a50', fontFamily: "'Space Mono', monospace", margin: 0 }}>
-              Program: {PROGRAM_ID.toString().slice(0, 16)}...
+            <p style={{ fontSize: '12px', color: '#3a3a50', fontFamily: "'Space Mono', monospace", margin: '0 0 4px' }}>
+              Program: {PROGRAM_ID.toString()}
+            </p>
+            <p style={{ fontSize: '11px', color: '#2a2a3a', fontFamily: "'Space Mono', monospace", margin: 0 }}>
+              Legacy: {LEGACY_PROGRAM_ID.toString()}
             </p>
           </div>
         </div>

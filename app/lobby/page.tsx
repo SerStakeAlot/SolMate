@@ -16,6 +16,12 @@ import {
   MatchStatus,
 } from "@/utils/escrow";
 import {
+  TokenEscrowClient,
+  WagerCurrency,
+  getTokenStakeTierInfo,
+  getMintForCurrency,
+} from "@/utils/tokenEscrow";
+import {
   getUsernames,
   getPlayerStats,
   formatDisplayName,
@@ -33,6 +39,7 @@ interface HostedMatch {
   matchPubkey: string;
   hostWallet: string;
   stakeTier: number;
+  currency?: WagerCurrency;
   createdAt: number;
   joinDeadline: number;
 }
@@ -274,11 +281,22 @@ export default function LobbyPage() {
     try {
       console.log('Joining match on-chain...', match.matchPubkey);
       const matchPubkey = new PublicKey(match.matchPubkey);
-      const client = new EscrowClient(connection, wallet);
-      const signature = await client.joinMatch(matchPubkey);
+      const currency = match.currency || 'SOL';
 
-      console.log('Successfully joined match on-chain! Signature:', signature);
-      router.push(`/game?mode=join&match=${match.matchPubkey}&code=${match.matchCode}&tier=${match.stakeTier}`);
+      if (currency !== 'SOL') {
+        // Token wager join
+        const tokenClient = new TokenEscrowClient(connection, wallet);
+        const mint = getMintForCurrency(currency)!;
+        await tokenClient.joinTokenMatch(matchPubkey, mint);
+      } else {
+        // SOL wager join
+        const client = new EscrowClient(connection, wallet);
+        await client.joinMatch(matchPubkey);
+      }
+
+      console.log('Successfully joined match on-chain!');
+      const currencyParam = currency !== 'SOL' ? `&currency=${currency}` : '';
+      router.push(`/game?mode=join&match=${match.matchPubkey}&code=${match.matchCode}&tier=${match.stakeTier}${currencyParam}`);
     } catch (error) {
       console.error("Error joining match on-chain:", error);
       alert(`Failed to join match: ${error}`);
@@ -366,8 +384,15 @@ export default function LobbyPage() {
     const isExpired = timeLeft === "Expired";
     const isOwn = isOwnMatch(match.hostWallet);
     const isJoining = joiningMatch === match.matchCode;
-    const tierInfo = getStakeTierInfo(match.stakeTier);
-    const tc = getTierColor(match.stakeTier);
+    const currency = match.currency || 'SOL';
+    const solTierInfo = getStakeTierInfo(match.stakeTier);
+    const tokenTierInfo = currency !== 'SOL' ? getTokenStakeTierInfo(currency as WagerCurrency, match.stakeTier) : null;
+    const tierInfo = tokenTierInfo ? { ...solTierInfo, label: tokenTierInfo.label } : solTierInfo;
+    const tc = currency === 'MATE'
+      ? { bg: "rgba(0,255,163,0.08)", border: "rgba(0,255,163,0.2)", text: "#00ffa3" }
+      : currency === 'SKR'
+        ? { bg: "rgba(0,212,255,0.08)", border: "rgba(0,212,255,0.2)", text: "#00d4ff" }
+        : getTierColor(match.stakeTier);
 
     return (
       <div
@@ -863,8 +888,15 @@ export default function LobbyPage() {
 
         {/* Search Result */}
         {searchResult && (() => {
-          const srTierInfo = getStakeTierInfo(searchResult.stakeTier);
-          const srTc = getTierColor(searchResult.stakeTier);
+          const srCurrency = searchResult.currency || 'SOL';
+          const srSolTierInfo = getStakeTierInfo(searchResult.stakeTier);
+          const srTokenTierInfo = srCurrency !== 'SOL' ? getTokenStakeTierInfo(srCurrency as WagerCurrency, searchResult.stakeTier) : null;
+          const srTierInfo = srTokenTierInfo ? { ...srSolTierInfo, label: srTokenTierInfo.label } : srSolTierInfo;
+          const srTc = srCurrency === 'MATE'
+            ? { bg: "rgba(0,255,163,0.08)", border: "rgba(0,255,163,0.2)", text: "#00ffa3" }
+            : srCurrency === 'SKR'
+              ? { bg: "rgba(0,212,255,0.08)", border: "rgba(0,212,255,0.2)", text: "#00d4ff" }
+              : getTierColor(searchResult.stakeTier);
           const srIsOwn = isOwnMatch(searchResult.hostWallet);
           const srIsJoining = joiningMatch === searchResult.matchCode;
           return (

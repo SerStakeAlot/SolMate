@@ -5,10 +5,10 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-sol_mate_escrow = "H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV"
+sol_mate_escrow = "79mzfYBWp6thaU5pYLJLpNBXCrSoZVVyttTHuWx732cr"
 
 [programs.localnet]
-sol_mate_escrow = "H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV"
+sol_mate_escrow = "79mzfYBWp6thaU5pYLJLpNBXCrSoZVVyttTHuWx732cr"
 
 [registry]
 url = "https://api.apr.dev"

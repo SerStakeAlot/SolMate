@@ -58,4 +58,13 @@ pub enum EscrowError {
 
     #[msg("Match is locked in. Abandon only allowed within 2 min of start or after 2 hours.")]
     MatchLockedIn,
+
+    #[msg("Invalid token mint. Only $MATE and $SKR are allowed.")]
+    InvalidMint,
+
+    #[msg("Mint does not match the match's token mint")]
+    MintMismatch,
+
+    #[msg("Escrow token account is empty")]
+    EscrowEmpty,
 }

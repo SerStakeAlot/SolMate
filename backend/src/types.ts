@@ -73,6 +73,7 @@ export interface HostedMatch {
   hostWallet: string;
   hostSocketId: string;
   stakeTier: number;
+  currency?: string; // 'SOL' | 'MATE' | 'SKR' (default SOL)
   createdAt: number;
   joinDeadline: number;
   status: 'waiting' | 'lobby' | 'active' | 'finished' | 'cancelled';

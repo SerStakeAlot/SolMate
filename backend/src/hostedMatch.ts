@@ -26,7 +26,8 @@ class HostedMatchManager {
     matchPubkey: string,
     joinDeadlineMinutes: number,
     io: SocketServer,
-    preferredCode?: string // Optional: use this code if provided (derived from matchPubkey)
+    preferredCode?: string, // Optional: use this code if provided (derived from matchPubkey)
+    currency?: string // 'SOL' | 'MATE' | 'SKR'
   ): HostedMatch {
     // Check if host already has an active match
     const existingCode = this.walletToMatch.get(hostWallet);
@@ -57,6 +58,7 @@ class HostedMatchManager {
       hostWallet,
       hostSocketId,
       stakeTier,
+      currency: currency || 'SOL',
       createdAt: Date.now(),
       joinDeadline: Date.now() + joinDeadlineMinutes * 60 * 1000,
       status: 'waiting',
@@ -75,6 +77,7 @@ class HostedMatchManager {
       matchPubkey,
       hostWallet,
       stakeTier,
+      currency: match.currency,
       joinDeadline: match.joinDeadline,
     });
 
