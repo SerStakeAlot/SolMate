@@ -151,20 +151,19 @@ export default function AdminVaultPage() {
         setVaultBalance(0);
         setAvailableBalance(0);
         setTotalCollected(0);
-        return;
-      }
+      } else {
+        const balance = accountInfo.lamports / LAMPORTS_PER_SOL;
+        const rentExempt = await connection.getMinimumBalanceForRentExemption(accountInfo.data.length);
+        const available = (accountInfo.lamports - rentExempt) / LAMPORTS_PER_SOL;
 
-      const balance = accountInfo.lamports / LAMPORTS_PER_SOL;
-      const rentExempt = await connection.getMinimumBalanceForRentExemption(accountInfo.data.length);
-      const available = (accountInfo.lamports - rentExempt) / LAMPORTS_PER_SOL;
+        setVaultBalance(balance);
+        setAvailableBalance(Math.max(0, available));
 
-      setVaultBalance(balance);
-      setAvailableBalance(Math.max(0, available));
-
-      // Parse total_collected from account data (8-byte discriminator + u64)
-      if (accountInfo.data.length >= 16) {
-        const totalCollectedLamports = accountInfo.data.readBigUInt64LE(8);
-        setTotalCollected(Number(totalCollectedLamports) / LAMPORTS_PER_SOL);
+        // Parse total_collected from account data (8-byte discriminator + u64)
+        if (accountInfo.data.length >= 16) {
+          const totalCollectedLamports = accountInfo.data.readBigUInt64LE(8);
+          setTotalCollected(Number(totalCollectedLamports) / LAMPORTS_PER_SOL);
+        }
       }
 
       // Fetch token fee vault balances
