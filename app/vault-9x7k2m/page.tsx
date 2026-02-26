@@ -13,6 +13,7 @@ import {
 } from '@solana/web3.js';
 import {
   TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getAssociatedTokenAddressSync,
 } from '@solana/spl-token';
@@ -31,10 +32,16 @@ const [TOKEN_FEE_VAULT_PDA] = PublicKey.findProgramAddressSync(
 );
 
 // Supported token mints
+const MATE_MINT_ADDR = '5CJN2E6dDU9XxDJnz3ZEELxPP8HsGTKPbsNVB2djpump';
 const TOKEN_MINTS: { label: string; mint: PublicKey; decimals: number; color: string }[] = [
-  { label: '$MATE', mint: new PublicKey('5CJN2E6dDU9XxDJnz3ZEELxPP8HsGTKPbsNVB2djpump'), decimals: 6, color: '#00ffa3' },
+  { label: '$MATE', mint: new PublicKey(MATE_MINT_ADDR), decimals: 6, color: '#00ffa3' },
   { label: '$SKR',  mint: new PublicKey('SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3'),  decimals: 6, color: '#00d4ff' },
 ];
+
+/** MATE uses Token-2022, everything else uses standard Token program */
+function getTokenProgram(mint: PublicKey): PublicKey {
+  return mint.toBase58() === MATE_MINT_ADDR ? TOKEN_2022_PROGRAM_ID : TOKEN_PROGRAM_ID;
+}
 
 // Particle field matching homepage
 function ParticleField() {
@@ -170,7 +177,7 @@ export default function AdminVaultPage() {
       const tokenBalances: { label: string; mint: string; balance: number; color: string }[] = [];
       for (const token of TOKEN_MINTS) {
         try {
-          const ata = getAssociatedTokenAddressSync(token.mint, TOKEN_FEE_VAULT_PDA, true);
+          const ata = getAssociatedTokenAddressSync(token.mint, TOKEN_FEE_VAULT_PDA, true, getTokenProgram(token.mint));
           const ataInfo = await connection.getTokenAccountBalance(ata);
           tokenBalances.push({
             label: token.label,
@@ -301,8 +308,9 @@ export default function AdminVaultPage() {
       const mint = new PublicKey(mintAddress);
 
       // Derive accounts
-      const feeVaultAta = getAssociatedTokenAddressSync(mint, TOKEN_FEE_VAULT_PDA, true);
-      const adminAta = getAssociatedTokenAddressSync(mint, publicKey);
+      const tokenProg = getTokenProgram(mint);
+      const feeVaultAta = getAssociatedTokenAddressSync(mint, TOKEN_FEE_VAULT_PDA, true, tokenProg);
+      const adminAta = getAssociatedTokenAddressSync(mint, publicKey, false, tokenProg);
 
       // Check if admin ATA exists; if not, we need to create it
       const adminAtaInfo = await connection.getAccountInfo(adminAta);
@@ -318,7 +326,7 @@ export default function AdminVaultPage() {
             { pubkey: publicKey, isSigner: false, isWritable: false },
             { pubkey: mint, isSigner: false, isWritable: false },
             { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
-            { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+            { pubkey: tokenProg, isSigner: false, isWritable: false },
           ],
           programId: ASSOCIATED_TOKEN_PROGRAM_ID,
           data: Buffer.alloc(0),
@@ -341,7 +349,7 @@ export default function AdminVaultPage() {
           { pubkey: feeVaultAta, isSigner: false, isWritable: true },                  // fee_vault_token_account
           { pubkey: adminAta, isSigner: false, isWritable: true },                     // admin_token_account
           { pubkey: publicKey, isSigner: true, isWritable: true },                     // admin
-          { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },            // token_program
+          { pubkey: tokenProg, isSigner: false, isWritable: false },            // token_program
         ],
         programId: PROGRAM_ID,
         data,

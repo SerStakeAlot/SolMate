@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Mint, Transfer as TokenTransfer};
+use anchor_spl::token_interface::{self, TokenInterface, TokenAccount, Mint, TransferChecked};
 use anchor_spl::associated_token::AssociatedToken;
 use crate::state::*;
 use crate::errors::*;
@@ -16,8 +16,8 @@ pub struct CreateTokenMatch<'info> {
     )]
     pub match_account: Account<'info, TokenMatch>,
 
-    /// The SPL token mint ($MATE or $SKR)
-    pub mint: Account<'info, Mint>,
+    /// The SPL token mint ($MATE or $SKR) — supports both Token and Token-2022
+    pub mint: InterfaceAccount<'info, Mint>,
 
     /// CHECK: PDA authority for the escrow token account
     #[account(
@@ -32,21 +32,23 @@ pub struct CreateTokenMatch<'info> {
         payer = player_a,
         associated_token::mint = mint,
         associated_token::authority = escrow_authority,
+        associated_token::token_program = token_program,
     )]
-    pub escrow_token_account: Account<'info, TokenAccount>,
+    pub escrow_token_account: InterfaceAccount<'info, TokenAccount>,
 
     /// Player A's token account
     #[account(
         mut,
         associated_token::mint = mint,
         associated_token::authority = player_a,
+        associated_token::token_program = token_program,
     )]
-    pub player_a_token_account: Account<'info, TokenAccount>,
+    pub player_a_token_account: InterfaceAccount<'info, TokenAccount>,
 
     #[account(mut)]
     pub player_a: Signer<'info>,
 
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 }
@@ -78,17 +80,20 @@ pub fn handler(
     match_account.escrow_bump = ctx.bumps.escrow_authority;
     match_account.activated_at = 0;
 
-    // Transfer tokens from player A to escrow
-    token::transfer(
+    // Transfer tokens from player A to escrow (transfer_checked for Token-2022 compat)
+    let decimals = ctx.accounts.mint.decimals;
+    token_interface::transfer_checked(
         CpiContext::new(
             ctx.accounts.token_program.to_account_info(),
-            TokenTransfer {
+            TransferChecked {
                 from: ctx.accounts.player_a_token_account.to_account_info(),
+                mint: ctx.accounts.mint.to_account_info(),
                 to: ctx.accounts.escrow_token_account.to_account_info(),
                 authority: ctx.accounts.player_a.to_account_info(),
             },
         ),
         stake_amount,
+        decimals,
     )?;
 
     msg!("Token match created. Mint: {}, Tier: {}, Stake: {} raw units", mint_key, stake_tier, stake_amount);

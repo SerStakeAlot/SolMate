@@ -9,6 +9,7 @@ import {
 } from '@solana/web3.js';
 import {
   TOKEN_PROGRAM_ID,
+  TOKEN_2022_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   getAssociatedTokenAddressSync,
 } from '@solana/spl-token';
@@ -65,6 +66,16 @@ export function getMintForCurrency(currency: WagerCurrency): PublicKey | null {
   if (currency === 'MATE') return MATE_MINT;
   if (currency === 'SKR')  return SKR_MINT;
   return null;
+}
+
+/**
+ * Returns the correct SPL Token program ID for a given mint.
+ * MATE uses Token-2022, SKR uses standard Token program.
+ */
+export function getTokenProgramForMint(mint: PublicKey): PublicKey {
+  if (mint.equals(MATE_MINT)) return TOKEN_2022_PROGRAM_ID;
+  // Default to standard Token program (SKR and any others)
+  return TOKEN_PROGRAM_ID;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -264,12 +275,14 @@ export class TokenEscrowClient {
     const seed = new BN(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER));
     const [matchPDA] = deriveTokenMatchPDA(walletPubkey, seed);
     const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPDA);
-    const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true);
-    const playerATA = getAssociatedTokenAddressSync(mint, walletPubkey);
+    const tokenProgramId = getTokenProgramForMint(mint);
+    const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true, tokenProgramId);
+    const playerATA = getAssociatedTokenAddressSync(mint, walletPubkey, false, tokenProgramId);
     const joinDeadline = new BN(Math.floor(Date.now() / 1000) + joinDeadlineMinutes * 60);
 
     console.log('=== CREATE TOKEN MATCH ===');
     console.log('Mint:', mint.toBase58());
+    console.log('Token Program:', tokenProgramId.toBase58());
     console.log('Match PDA:', matchPDA.toBase58());
     console.log('Escrow Authority:', escrowAuthority.toBase58());
     console.log('Escrow ATA:', escrowATA.toBase58());
@@ -288,7 +301,7 @@ export class TokenEscrowClient {
       { pubkey: escrowATA,                      isSigner: false, isWritable: true  },
       { pubkey: playerATA,                      isSigner: false, isWritable: true  },
       { pubkey: walletPubkey,                   isSigner: true,  isWritable: true  },
-      { pubkey: TOKEN_PROGRAM_ID,               isSigner: false, isWritable: false },
+      { pubkey: tokenProgramId,                 isSigner: false, isWritable: false },
       { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID,    isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId,        isSigner: false, isWritable: false },
     ];
@@ -324,9 +337,10 @@ export class TokenEscrowClient {
   async joinTokenMatch(matchPubkey: PublicKey, mint: PublicKey): Promise<string> {
     const walletPubkey = this.requireWallet();
 
+    const tokenProgramId = getTokenProgramForMint(mint);
     const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPubkey);
-    const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true);
-    const playerBATA = getAssociatedTokenAddressSync(mint, walletPubkey);
+    const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true, tokenProgramId);
+    const playerBATA = getAssociatedTokenAddressSync(mint, walletPubkey, false, tokenProgramId);
 
     const data = Buffer.alloc(8);
     DISC.joinTokenMatch.copy(data, 0);
@@ -338,7 +352,7 @@ export class TokenEscrowClient {
       { pubkey: escrowATA,                      isSigner: false, isWritable: true  },
       { pubkey: playerBATA,                     isSigner: false, isWritable: true  },
       { pubkey: walletPubkey,                   isSigner: true,  isWritable: true  },
-      { pubkey: TOKEN_PROGRAM_ID,               isSigner: false, isWritable: false },
+      { pubkey: tokenProgramId,                 isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId,        isSigner: false, isWritable: false },
     ];
 
@@ -384,11 +398,12 @@ export class TokenEscrowClient {
   ): Promise<string> {
     const walletPubkey = this.requireWallet();
 
+    const tokenProgramId = getTokenProgramForMint(mint);
     const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPubkey);
-    const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true);
+    const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true, tokenProgramId);
     const [feeVaultAuthority] = deriveTokenFeeVaultAuthorityPDA();
-    const feeVaultATA = getAssociatedTokenAddressSync(mint, feeVaultAuthority, true);
-    const winnerATA = getAssociatedTokenAddressSync(mint, winner);
+    const feeVaultATA = getAssociatedTokenAddressSync(mint, feeVaultAuthority, true, tokenProgramId);
+    const winnerATA = getAssociatedTokenAddressSync(mint, winner, false, tokenProgramId);
 
     const data = Buffer.alloc(8);
     DISC.confirmTokenPayout.copy(data, 0);
@@ -404,7 +419,7 @@ export class TokenEscrowClient {
       { pubkey: winner,                         isSigner: false, isWritable: true  },
       { pubkey: playerA,                        isSigner: false, isWritable: true  },
       { pubkey: walletPubkey,                   isSigner: true,  isWritable: true  },
-      { pubkey: TOKEN_PROGRAM_ID,               isSigner: false, isWritable: false },
+      { pubkey: tokenProgramId,                 isSigner: false, isWritable: false },
       { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID,    isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId,        isSigner: false, isWritable: false },
     ];
@@ -423,9 +438,10 @@ export class TokenEscrowClient {
   async cancelTokenMatch(matchPubkey: PublicKey, mint: PublicKey): Promise<string> {
     const walletPubkey = this.requireWallet();
 
+    const tokenProgramId = getTokenProgramForMint(mint);
     const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPubkey);
-    const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true);
-    const playerAATA = getAssociatedTokenAddressSync(mint, walletPubkey);
+    const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true, tokenProgramId);
+    const playerAATA = getAssociatedTokenAddressSync(mint, walletPubkey, false, tokenProgramId);
 
     const data = Buffer.alloc(8);
     DISC.cancelTokenMatch.copy(data, 0);
@@ -437,7 +453,7 @@ export class TokenEscrowClient {
       { pubkey: escrowATA,                      isSigner: false, isWritable: true },
       { pubkey: playerAATA,                     isSigner: false, isWritable: true },
       { pubkey: walletPubkey,                   isSigner: true,  isWritable: true },
-      { pubkey: TOKEN_PROGRAM_ID,               isSigner: false, isWritable: false },
+      { pubkey: tokenProgramId,                 isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId,        isSigner: false, isWritable: false },
     ];
 
@@ -459,10 +475,11 @@ export class TokenEscrowClient {
   ): Promise<string> {
     const walletPubkey = this.requireWallet();
 
+    const tokenProgramId = getTokenProgramForMint(mint);
     const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPubkey);
-    const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true);
-    const playerAATA = getAssociatedTokenAddressSync(mint, playerA);
-    const playerBATA = getAssociatedTokenAddressSync(mint, playerB);
+    const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true, tokenProgramId);
+    const playerAATA = getAssociatedTokenAddressSync(mint, playerA, false, tokenProgramId);
+    const playerBATA = getAssociatedTokenAddressSync(mint, playerB, false, tokenProgramId);
 
     const data = Buffer.alloc(8);
     DISC.abandonTokenMatch.copy(data, 0);
@@ -477,7 +494,7 @@ export class TokenEscrowClient {
       { pubkey: playerBATA,                     isSigner: false, isWritable: true  },
       { pubkey: playerB,                        isSigner: false, isWritable: true  },
       { pubkey: walletPubkey,                   isSigner: true,  isWritable: false },
-      { pubkey: TOKEN_PROGRAM_ID,               isSigner: false, isWritable: false },
+      { pubkey: tokenProgramId,                 isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId,        isSigner: false, isWritable: false },
     ];
 
@@ -499,10 +516,11 @@ export class TokenEscrowClient {
   ): Promise<string> {
     const walletPubkey = this.requireWallet();
 
+    const tokenProgramId = getTokenProgramForMint(mint);
     const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPubkey);
-    const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true);
-    const playerAATA = getAssociatedTokenAddressSync(mint, playerA);
-    const playerBATA = getAssociatedTokenAddressSync(mint, playerB);
+    const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true, tokenProgramId);
+    const playerAATA = getAssociatedTokenAddressSync(mint, playerA, false, tokenProgramId);
+    const playerBATA = getAssociatedTokenAddressSync(mint, playerB, false, tokenProgramId);
 
     const data = Buffer.alloc(8);
     DISC.forceTokenRefund.copy(data, 0);
@@ -517,7 +535,7 @@ export class TokenEscrowClient {
       { pubkey: playerBATA,                     isSigner: false, isWritable: true  },
       { pubkey: playerB,                        isSigner: false, isWritable: true  },
       { pubkey: walletPubkey,                   isSigner: true,  isWritable: false },
-      { pubkey: TOKEN_PROGRAM_ID,               isSigner: false, isWritable: false },
+      { pubkey: tokenProgramId,                 isSigner: false, isWritable: false },
       { pubkey: SystemProgram.programId,        isSigner: false, isWritable: false },
     ];
 

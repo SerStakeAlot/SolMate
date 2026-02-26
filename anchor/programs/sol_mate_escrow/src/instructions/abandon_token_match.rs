@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Mint, Transfer as TokenTransfer, CloseAccount};
+use anchor_spl::token_interface::{self, TokenInterface, TokenAccount, Mint, TransferChecked, CloseAccount};
 use crate::state::*;
 use crate::errors::*;
 
@@ -21,7 +21,7 @@ pub struct AbandonTokenMatch<'info> {
     #[account(
         constraint = mint.key() == match_account.mint @ EscrowError::MintMismatch,
     )]
-    pub mint: Account<'info, Mint>,
+    pub mint: InterfaceAccount<'info, Mint>,
 
     /// CHECK: PDA authority for the escrow token account
     #[account(
@@ -35,16 +35,18 @@ pub struct AbandonTokenMatch<'info> {
         mut,
         associated_token::mint = mint,
         associated_token::authority = escrow_authority,
+        associated_token::token_program = token_program,
     )]
-    pub escrow_token_account: Account<'info, TokenAccount>,
+    pub escrow_token_account: InterfaceAccount<'info, TokenAccount>,
 
     /// Player A's token account
     #[account(
         mut,
         associated_token::mint = mint,
         associated_token::authority = player_a,
+        associated_token::token_program = token_program,
     )]
-    pub player_a_token_account: Account<'info, TokenAccount>,
+    pub player_a_token_account: InterfaceAccount<'info, TokenAccount>,
 
     /// CHECK: Player A receives their stake back and rent from closed accounts
     #[account(
@@ -58,8 +60,9 @@ pub struct AbandonTokenMatch<'info> {
         mut,
         associated_token::mint = mint,
         associated_token::authority = player_b,
+        associated_token::token_program = token_program,
     )]
-    pub player_b_token_account: Account<'info, TokenAccount>,
+    pub player_b_token_account: InterfaceAccount<'info, TokenAccount>,
 
     /// CHECK: Player B receives their stake back
     #[account(
@@ -76,7 +79,7 @@ pub struct AbandonTokenMatch<'info> {
     )]
     pub caller: Signer<'info>,
 
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
 
@@ -104,6 +107,7 @@ pub fn handler(ctx: Context<AbandonTokenMatch>) -> Result<()> {
     );
 
     let stake_amount = match_account.stake_amount;
+    let decimals = ctx.accounts.mint.decimals;
 
     // Build escrow authority PDA signer seeds
     let match_key = match_account.key();
@@ -115,35 +119,39 @@ pub fn handler(ctx: Context<AbandonTokenMatch>) -> Result<()> {
     let escrow_signer = &[&escrow_seeds[..]];
 
     // Refund Player A
-    token::transfer(
+    token_interface::transfer_checked(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
-            TokenTransfer {
+            TransferChecked {
                 from: ctx.accounts.escrow_token_account.to_account_info(),
+                mint: ctx.accounts.mint.to_account_info(),
                 to: ctx.accounts.player_a_token_account.to_account_info(),
                 authority: ctx.accounts.escrow_authority.to_account_info(),
             },
             escrow_signer,
         ),
         stake_amount,
+        decimals,
     )?;
 
     // Refund Player B
-    token::transfer(
+    token_interface::transfer_checked(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
-            TokenTransfer {
+            TransferChecked {
                 from: ctx.accounts.escrow_token_account.to_account_info(),
+                mint: ctx.accounts.mint.to_account_info(),
                 to: ctx.accounts.player_b_token_account.to_account_info(),
                 authority: ctx.accounts.escrow_authority.to_account_info(),
             },
             escrow_signer,
         ),
         stake_amount,
+        decimals,
     )?;
 
     // Close escrow token account — return rent to player A
-    token::close_account(
+    token_interface::close_account(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             CloseAccount {

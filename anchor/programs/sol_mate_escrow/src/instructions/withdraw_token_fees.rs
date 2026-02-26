@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Mint, Transfer as TokenTransfer};
+use anchor_spl::token_interface::{self, TokenInterface, TokenAccount, Mint, TransferChecked};
 use crate::errors::*;
 use super::withdraw_fees::get_admin_pubkey;
 
@@ -8,7 +8,7 @@ use super::withdraw_fees::get_admin_pubkey;
 #[derive(Accounts)]
 pub struct WithdrawTokenFees<'info> {
     /// The SPL token mint
-    pub mint: Account<'info, Mint>,
+    pub mint: InterfaceAccount<'info, Mint>,
 
     /// CHECK: PDA authority for the fee vault token account
     #[account(
@@ -22,21 +22,23 @@ pub struct WithdrawTokenFees<'info> {
         mut,
         associated_token::mint = mint,
         associated_token::authority = fee_vault_authority,
+        associated_token::token_program = token_program,
     )]
-    pub fee_vault_token_account: Account<'info, TokenAccount>,
+    pub fee_vault_token_account: InterfaceAccount<'info, TokenAccount>,
 
     /// Admin's token account (receives withdrawn fees)
     #[account(
         mut,
         associated_token::mint = mint,
         associated_token::authority = admin,
+        associated_token::token_program = token_program,
     )]
-    pub admin_token_account: Account<'info, TokenAccount>,
+    pub admin_token_account: InterfaceAccount<'info, TokenAccount>,
 
     #[account(mut)]
     pub admin: Signer<'info>,
 
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
 }
 
 pub fn handler(ctx: Context<WithdrawTokenFees>, amount: u64) -> Result<()> {
@@ -56,6 +58,8 @@ pub fn handler(ctx: Context<WithdrawTokenFees>, amount: u64) -> Result<()> {
 
     require!(withdraw_amount > 0, EscrowError::InsufficientFunds);
 
+    let decimals = ctx.accounts.mint.decimals;
+
     msg!("Withdrawing {} tokens to admin", withdraw_amount);
     msg!("Fee vault token balance before: {}", available_balance);
 
@@ -67,17 +71,19 @@ pub fn handler(ctx: Context<WithdrawTokenFees>, amount: u64) -> Result<()> {
     let fee_vault_signer = &[&fee_vault_seeds[..]];
 
     // Transfer tokens from fee vault to admin
-    token::transfer(
+    token_interface::transfer_checked(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
-            TokenTransfer {
+            TransferChecked {
                 from: ctx.accounts.fee_vault_token_account.to_account_info(),
+                mint: ctx.accounts.mint.to_account_info(),
                 to: ctx.accounts.admin_token_account.to_account_info(),
                 authority: ctx.accounts.fee_vault_authority.to_account_info(),
             },
             fee_vault_signer,
         ),
         withdraw_amount,
+        decimals,
     )?;
 
     msg!("Token fee withdrawal complete.");

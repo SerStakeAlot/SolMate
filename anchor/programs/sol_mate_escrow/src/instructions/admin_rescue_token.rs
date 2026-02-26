@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Mint, Transfer as TokenTransfer, CloseAccount};
+use anchor_spl::token_interface::{self, TokenInterface, TokenAccount, Mint, TransferChecked, CloseAccount};
 use crate::state::*;
 use crate::errors::*;
 use super::withdraw_fees::get_admin_pubkey;
@@ -19,7 +19,7 @@ pub struct AdminRescueToken<'info> {
     #[account(
         constraint = mint.key() == match_account.mint @ EscrowError::MintMismatch,
     )]
-    pub mint: Account<'info, Mint>,
+    pub mint: InterfaceAccount<'info, Mint>,
 
     /// CHECK: PDA authority for the escrow token account
     #[account(
@@ -33,16 +33,18 @@ pub struct AdminRescueToken<'info> {
         mut,
         associated_token::mint = mint,
         associated_token::authority = escrow_authority,
+        associated_token::token_program = token_program,
     )]
-    pub escrow_token_account: Account<'info, TokenAccount>,
+    pub escrow_token_account: InterfaceAccount<'info, TokenAccount>,
 
     /// Recipient's token account (receives rescued tokens)
     #[account(
         mut,
         associated_token::mint = mint,
         associated_token::authority = recipient,
+        associated_token::token_program = token_program,
     )]
-    pub recipient_token_account: Account<'info, TokenAccount>,
+    pub recipient_token_account: InterfaceAccount<'info, TokenAccount>,
 
     /// CHECK: The wallet that will receive the rescued tokens
     #[account(mut)]
@@ -55,13 +57,14 @@ pub struct AdminRescueToken<'info> {
     )]
     pub admin: Signer<'info>,
 
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub system_program: Program<'info, System>,
 }
 
 pub fn handler(ctx: Context<AdminRescueToken>) -> Result<()> {
     let match_account = &ctx.accounts.match_account;
     let escrow_balance = ctx.accounts.escrow_token_account.amount;
+    let decimals = ctx.accounts.mint.decimals;
 
     msg!("Admin rescue (token) initiated");
     msg!("Match status: {:?}", match_account.status);
@@ -79,21 +82,23 @@ pub fn handler(ctx: Context<AdminRescueToken>) -> Result<()> {
         let escrow_signer = &[&escrow_seeds[..]];
 
         // Transfer all tokens to recipient
-        token::transfer(
+        token_interface::transfer_checked(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
-                TokenTransfer {
+                TransferChecked {
                     from: ctx.accounts.escrow_token_account.to_account_info(),
+                    mint: ctx.accounts.mint.to_account_info(),
                     to: ctx.accounts.recipient_token_account.to_account_info(),
                     authority: ctx.accounts.escrow_authority.to_account_info(),
                 },
                 escrow_signer,
             ),
             escrow_balance,
+            decimals,
         )?;
 
         // Close escrow token account — return rent to admin
-        token::close_account(
+        token_interface::close_account(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
                 CloseAccount {

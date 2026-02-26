@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Mint, Transfer as TokenTransfer, CloseAccount};
+use anchor_spl::token_interface::{self, TokenInterface, TokenAccount, Mint, TransferChecked, CloseAccount};
 use anchor_spl::associated_token::AssociatedToken;
 use crate::state::*;
 use crate::errors::*;
@@ -17,7 +17,7 @@ pub struct ConfirmTokenPayout<'info> {
     #[account(
         constraint = mint.key() == match_account.mint @ EscrowError::MintMismatch,
     )]
-    pub mint: Account<'info, Mint>,
+    pub mint: InterfaceAccount<'info, Mint>,
 
     /// CHECK: PDA authority for the escrow token account
     #[account(
@@ -31,8 +31,9 @@ pub struct ConfirmTokenPayout<'info> {
         mut,
         associated_token::mint = mint,
         associated_token::authority = escrow_authority,
+        associated_token::token_program = token_program,
     )]
-    pub escrow_token_account: Account<'info, TokenAccount>,
+    pub escrow_token_account: InterfaceAccount<'info, TokenAccount>,
 
     /// CHECK: PDA authority for the fee vault token account
     #[account(
@@ -47,16 +48,18 @@ pub struct ConfirmTokenPayout<'info> {
         payer = payer,
         associated_token::mint = mint,
         associated_token::authority = fee_vault_authority,
+        associated_token::token_program = token_program,
     )]
-    pub fee_vault_token_account: Account<'info, TokenAccount>,
+    pub fee_vault_token_account: InterfaceAccount<'info, TokenAccount>,
 
     /// Winner's token account
     #[account(
         mut,
         associated_token::mint = mint,
         associated_token::authority = winner,
+        associated_token::token_program = token_program,
     )]
-    pub winner_token_account: Account<'info, TokenAccount>,
+    pub winner_token_account: InterfaceAccount<'info, TokenAccount>,
 
     /// CHECK: Winner receives payout — validated against match_account.winner
     #[account(mut)]
@@ -69,7 +72,7 @@ pub struct ConfirmTokenPayout<'info> {
     #[account(mut)]
     pub payer: Signer<'info>,
 
-    pub token_program: Program<'info, Token>,
+    pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
 }
@@ -99,6 +102,8 @@ pub fn handler(ctx: Context<ConfirmTokenPayout>) -> Result<()> {
         .checked_sub(fee_amount)
         .ok_or(EscrowError::ArithmeticOverflow)?;
 
+    let decimals = ctx.accounts.mint.decimals;
+
     msg!("Total pot: {} tokens", total_pot);
     msg!("Fee (10%): {} tokens", fee_amount);
     msg!("Payout to winner: {} tokens", payout_amount);
@@ -113,35 +118,39 @@ pub fn handler(ctx: Context<ConfirmTokenPayout>) -> Result<()> {
     let escrow_signer = &[&escrow_seeds[..]];
 
     // Transfer fee to fee vault
-    token::transfer(
+    token_interface::transfer_checked(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
-            TokenTransfer {
+            TransferChecked {
                 from: ctx.accounts.escrow_token_account.to_account_info(),
+                mint: ctx.accounts.mint.to_account_info(),
                 to: ctx.accounts.fee_vault_token_account.to_account_info(),
                 authority: ctx.accounts.escrow_authority.to_account_info(),
             },
             escrow_signer,
         ),
         fee_amount,
+        decimals,
     )?;
 
     // Transfer payout to winner
-    token::transfer(
+    token_interface::transfer_checked(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
-            TokenTransfer {
+            TransferChecked {
                 from: ctx.accounts.escrow_token_account.to_account_info(),
+                mint: ctx.accounts.mint.to_account_info(),
                 to: ctx.accounts.winner_token_account.to_account_info(),
                 authority: ctx.accounts.escrow_authority.to_account_info(),
             },
             escrow_signer,
         ),
         payout_amount,
+        decimals,
     )?;
 
     // Close escrow token account — return rent lamports to player_a
-    token::close_account(
+    token_interface::close_account(
         CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             CloseAccount {
