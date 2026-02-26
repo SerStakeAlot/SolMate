@@ -9,6 +9,7 @@ import { io, Socket } from 'socket.io-client';
 
 import { Chess, Move } from 'chess.js';
 import { EscrowClient, STAKE_TIERS, getStakeTierInfo, lamportsToSol, MatchStatus } from '@/utils/escrow';
+import { TokenEscrowClient, TokenMatchAccount, WagerCurrency, getTokenStakeTierInfo, getMintForCurrency } from '@/utils/tokenEscrow';
 import { getUsername, formatDisplayName, getPlayerStats, PlayerStats } from '@/utils/username';
 import { shareToX } from '@/utils/shareToX';
 
@@ -152,6 +153,7 @@ type ChessGameProps = {
   onFreePlayOpponentJoined?: () => void; // Callback when opponent enters lobby (before game starts)
   spectateRoomId?: string; // Spectate a wager match by room ID
   forceReconnect?: boolean; // Force socket connection for reconnect (from ActiveGameBanner)
+  currency?: WagerCurrency; // Currency for this match (SOL, MATE, SKR)
 };
 
 const BACKEND_URL = 'https://solmate-production.up.railway.app';
@@ -193,6 +195,7 @@ export const ChessGame: React.FC<ChessGameProps> = ({
   onFreePlayOpponentJoined,
   spectateRoomId,
   forceReconnect,
+  currency = 'SOL',
 }) => {
   const wallet = useWallet();
   const { connection } = useConnection();
@@ -1763,74 +1766,76 @@ export const ChessGame: React.FC<ChessGameProps> = ({
       return;
     }
 
+    const isTokenMatch = currency !== 'SOL';
     setIsSubmittingResult(true);
     try {
-      const client = new EscrowClient(connection, wallet);
-      
-      const matchData = await client.fetchMatch(currentMatchPubkey);
-      if (!matchData) {
-        // Match account doesn't exist - either already closed or error
-        // This is expected if payout already happened
-        console.log('Match account not found - payout may have already been processed');
-        setPayoutComplete(true);
-        return;
-      }
-
-      // Check match status before submitting
-      console.log('Match status:', matchData.status);
-      console.log('Match playerA:', matchData.playerA.toBase58());
-      console.log('Match playerB:', matchData.playerB?.toBase58() || 'None');
-      
-      if (matchData.status !== MatchStatus.Active) {
-        // Match already finished - payout already happened
-        console.log(`Match already in ${matchData.status} status - payout already processed`);
-        setPayoutComplete(true);
-        return;
-      }
-
-      // IMPORTANT: The winner is the current player (we only call this if playerColor === gameWinner)
-      // Determine which on-chain account we are by comparing wallet pubkeys
-      // On-chain: playerA = match creator, playerB = joiner
-      // Game: colors are randomly assigned, so playerA could be white OR black
-      const myPubkeyStr = publicKey.toBase58();
-      const isPlayerA = matchData.playerA.toBase58() === myPubkeyStr;
-      const isPlayerB = matchData.playerB?.toBase58() === myPubkeyStr;
-      
-      if (!isPlayerA && !isPlayerB) {
-        throw new Error(`Your wallet ${myPubkeyStr.slice(0,8)}... is not a player in this match. Cannot submit result.`);
-      }
-      
-      // Winner = ME (this function only runs if playerColor === gameWinner)
-      const winnerPubkey = isPlayerA ? matchData.playerA : matchData.playerB!;
-      
-      // Safety log for debugging
-      console.log('Winner determination:', {
-        myWallet: myPubkeyStr.slice(0,8),
-        isPlayerA,
-        playerA: matchData.playerA.toBase58().slice(0,8),
-        playerB: matchData.playerB?.toBase58().slice(0,8),
-        winnerPubkey: winnerPubkey.toBase58().slice(0,8),
-        playerColor,
-        gameWinner,
-      });
-      
-      // STEP 1: Submit result first - this records the winner on-chain
-      // Even if payout fails later, the winner is locked in and loser can't abandon
-      console.log('Submitting result... Winner:', winnerPubkey.toBase58(), 'isPlayerA:', isPlayerA, 'playerColor:', playerColor, 'gameWinner:', gameWinner);
-      const resultSignature = await client.submitResult(currentMatchPubkey, winnerPubkey);
-      console.log('Result submitted:', resultSignature);
-      setTxSignature(resultSignature);
-      
-      // Wait a moment for chain state to propagate
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // STEP 2: Confirm payout - separate try/catch so submit_result success is preserved
-      try {
-        console.log('Confirming payout...');
-        await handleConfirmPayout(winnerPubkey, matchData.playerA);
-      } catch (payoutError: any) {
-        console.error('Payout failed but winner is recorded:', payoutError);
-        alert(`Winner recorded on-chain! Payout failed - claim your winnings from the Refund page.`);
+      if (isTokenMatch) {
+        // Token match flow
+        const tokenClient = new TokenEscrowClient(connection, wallet);
+        const matchData = await tokenClient.fetchTokenMatch(currentMatchPubkey);
+        if (!matchData) {
+          console.log('Token match account not found - payout may have already been processed');
+          setPayoutComplete(true);
+          return;
+        }
+        if (matchData.status !== MatchStatus.Active) {
+          console.log(`Token match already in ${matchData.status} status - payout already processed`);
+          setPayoutComplete(true);
+          return;
+        }
+        const myPubkeyStr = publicKey.toBase58();
+        const isPlayerA = matchData.playerA.toBase58() === myPubkeyStr;
+        const isPlayerB = matchData.playerB?.toBase58() === myPubkeyStr;
+        if (!isPlayerA && !isPlayerB) {
+          throw new Error(`Your wallet ${myPubkeyStr.slice(0,8)}... is not a player in this match.`);
+        }
+        const winnerPubkey = isPlayerA ? matchData.playerA : matchData.playerB!;
+        console.log('Token match - submitting result... Winner:', winnerPubkey.toBase58());
+        const resultSignature = await tokenClient.submitTokenResult(currentMatchPubkey, winnerPubkey);
+        console.log('Token result submitted:', resultSignature);
+        setTxSignature(resultSignature);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        try {
+          console.log('Confirming token payout...');
+          await handleConfirmPayout(winnerPubkey, matchData.playerA);
+        } catch (payoutError: any) {
+          console.error('Token payout failed but winner is recorded:', payoutError);
+          alert(`Winner recorded on-chain! Payout failed - claim your winnings from the Refund page.`);
+        }
+      } else {
+        // SOL match flow (original)
+        const client = new EscrowClient(connection, wallet);
+        const matchData = await client.fetchMatch(currentMatchPubkey);
+        if (!matchData) {
+          console.log('Match account not found - payout may have already been processed');
+          setPayoutComplete(true);
+          return;
+        }
+        console.log('Match status:', matchData.status);
+        if (matchData.status !== MatchStatus.Active) {
+          console.log(`Match already in ${matchData.status} status - payout already processed`);
+          setPayoutComplete(true);
+          return;
+        }
+        const myPubkeyStr = publicKey.toBase58();
+        const isPlayerA = matchData.playerA.toBase58() === myPubkeyStr;
+        const isPlayerB = matchData.playerB?.toBase58() === myPubkeyStr;
+        if (!isPlayerA && !isPlayerB) {
+          throw new Error(`Your wallet ${myPubkeyStr.slice(0,8)}... is not a player in this match. Cannot submit result.`);
+        }
+        const winnerPubkey = isPlayerA ? matchData.playerA : matchData.playerB!;
+        console.log('Submitting result... Winner:', winnerPubkey.toBase58());
+        const resultSignature = await client.submitResult(currentMatchPubkey, winnerPubkey);
+        console.log('Result submitted:', resultSignature);
+        setTxSignature(resultSignature);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        try {
+          console.log('Confirming payout...');
+          await handleConfirmPayout(winnerPubkey, matchData.playerA);
+        } catch (payoutError: any) {
+          console.error('Payout failed but winner is recorded:', payoutError);
+          alert(`Winner recorded on-chain! Payout failed - claim your winnings from the Refund page.`);
+        }
       }
     } catch (error: any) {
       console.error('Error submitting result:', error);
@@ -1855,16 +1860,25 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     }
 
     try {
-      const client = new EscrowClient(connection, wallet);
-      const signature = await client.confirmPayout(currentMatchPubkey, winner, playerA);
+      const isTokenMatch = currency !== 'SOL';
+      let signature: string;
+
+      if (isTokenMatch) {
+        const tokenClient = new TokenEscrowClient(connection, wallet);
+        const mint = getMintForCurrency(currency)!;
+        signature = await tokenClient.confirmTokenPayout(currentMatchPubkey, mint, winner, playerA);
+      } else {
+        const client = new EscrowClient(connection, wallet);
+        signature = await client.confirmPayout(currentMatchPubkey, winner, playerA);
+      }
       
       setTxSignature(signature);
       setPayoutComplete(true);
       
-      alert(`🎉 Payout complete! Winner received the pot. TX: ${signature.slice(0, 8)}...`);
+      const currencyLabel = isTokenMatch ? `$${currency}` : 'SOL';
+      alert(`🎉 Payout complete! Winner received the ${currencyLabel} pot. TX: ${signature.slice(0, 8)}...`);
     } catch (error) {
       console.error('Error confirming payout:', error);
-      // Don't mark as complete if payout failed
       alert(`Payout failed. You can claim your funds from the Refund page. Error: ${error}`);
     }
   };
@@ -1879,62 +1893,80 @@ export const ChessGame: React.FC<ChessGameProps> = ({
     }
     setIsRefunding(true);
     try {
-      const client = new EscrowClient(connection, wallet);
-      const matchData = await client.fetchMatch(currentMatchPubkey);
-      if (!matchData) {
-        console.log('Match account not found — already refunded or closed');
-        setRefundComplete(true);
-        return;
+      const isTokenMatch = currency !== 'SOL';
+
+      if (isTokenMatch) {
+        // Token match draw refund
+        const tokenClient = new TokenEscrowClient(connection, wallet);
+        const matchData = await tokenClient.fetchTokenMatch(currentMatchPubkey);
+        if (!matchData) {
+          console.log('Token match account not found — already refunded or closed');
+          setRefundComplete(true);
+          return;
+        }
+        if (matchData.status !== MatchStatus.Active) {
+          console.log(`Token match already in ${matchData.status} status`);
+          setRefundComplete(true);
+          return;
+        }
+        const mint = matchData.mint;
+        const playerA = matchData.playerA;
+        const playerB = matchData.playerB!;
+        try {
+          const signature = await tokenClient.abandonTokenMatch(currentMatchPubkey, mint, playerA, playerB);
+          console.log('Token draw refund complete:', signature);
+          setTxSignature(signature);
+          setRefundComplete(true);
+        } catch (abandonErr: any) {
+          const msg = abandonErr?.message || String(abandonErr);
+          if (msg.includes('MatchLockedIn')) {
+            const signature = await tokenClient.forceTokenRefund(currentMatchPubkey, mint, playerA, playerB);
+            console.log('Token force refund complete:', signature);
+            setTxSignature(signature);
+            setRefundComplete(true);
+          } else {
+            throw abandonErr;
+          }
+        }
+      } else {
+        // SOL match draw refund (original)
+        const client = new EscrowClient(connection, wallet);
+        const matchData = await client.fetchMatch(currentMatchPubkey);
+        if (!matchData) {
+          console.log('Match account not found — already refunded or closed');
+          setRefundComplete(true);
+          return;
+        }
+        if (matchData.status !== MatchStatus.Active) {
+          console.log(`Match already in ${matchData.status} status`);
+          setRefundComplete(true);
+          return;
+        }
+        const playerA = matchData.playerA;
+        const playerB = matchData.playerB!;
+        try {
+          const signature = await client.abandonMatch(currentMatchPubkey, playerA, playerB);
+          console.log('Draw refund complete:', signature);
+          setTxSignature(signature);
+          setRefundComplete(true);
+        } catch (abandonErr: any) {
+          const errMsg = abandonErr?.message || String(abandonErr);
+          if (errMsg.includes('MatchLockedIn')) {
+            const signature = await client.forceRefund(currentMatchPubkey, matchData.playerA, matchData.playerB!);
+            console.log('Force refund complete:', signature);
+            setTxSignature(signature);
+            setRefundComplete(true);
+          } else {
+            throw abandonErr;
+          }
+        }
       }
-      if (matchData.status !== MatchStatus.Active) {
-        console.log(`Match already in ${matchData.status} status`);
-        setRefundComplete(true);
-        return;
-      }
-      const playerA = matchData.playerA;
-      const playerB = matchData.playerB!;
-      const signature = await client.abandonMatch(currentMatchPubkey, playerA, playerB);
-      console.log('Draw refund complete:', signature);
-      setTxSignature(signature);
-      setRefundComplete(true);
     } catch (error: any) {
       console.error('Refund failed:', error);
       const msg = error?.message || String(error);
       if (msg.includes('AccountNotInitialized') || msg.includes('not found')) {
         setRefundComplete(true);
         return;
-      }
-      if (msg.includes('MatchLockedIn')) {
-        // If abandon_match fails due to time gate, try force_refund (both require Active status)
-        try {
-          const client = new EscrowClient(connection, wallet);
-          const matchData = await client.fetchMatch(currentMatchPubkey);
-          if (matchData) {
-            const signature = await client.forceRefund(currentMatchPubkey, matchData.playerA, matchData.playerB!);
-            console.log('Force refund complete:', signature);
-            setTxSignature(signature);
-            setRefundComplete(true);
-            return;
-          }
-        } catch (forceErr: any) {
-          console.error('Force refund also failed:', forceErr);
-        }
-      }
-      if (msg.includes('MatchNotActive')) {
-        // Match is no longer Active (likely Finished) - try confirmPayout if there's a winner
-        try {
-          const client = new EscrowClient(connection, wallet);
-          const matchData = await client.fetchMatch(currentMatchPubkey);
-          if (matchData && matchData.winner && matchData.status === MatchStatus.Finished) {
-            const signature = await client.confirmPayout(currentMatchPubkey, matchData.winner, matchData.playerA);
-            console.log('Confirm payout complete:', signature);
-            setTxSignature(signature);
-            setRefundComplete(true);
-            return;
-          }
-        } catch (payoutErr: any) {
-          console.error('Confirm payout also failed:', payoutErr);
-        }
       }
       alert(`Refund failed. You can use the Refund page to recover funds. Error: ${msg}`);
     } finally {

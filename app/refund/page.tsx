@@ -8,18 +8,40 @@ import { ArrowLeft, RefreshCw, Trophy } from "lucide-react";
 import Link from "next/link";
 
 import { WalletButton } from "@/components/WalletButton";
-import { EscrowClient, MatchAccount, MatchStatus, getStakeTierInfo } from "@/utils/escrow";
+import { EscrowClient, MatchAccount, MatchStatus, getStakeTierInfo, PROGRAM_ID, LEGACY_PROGRAM_ID } from "@/utils/escrow";
+import { TokenEscrowClient, TokenMatchAccount, WagerCurrency, getTokenStakeTierInfo, getMintForCurrency, MATE_MINT, SKR_MINT } from "@/utils/tokenEscrow";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-production.up.railway.app';
+
+// Account discriminators for auto-detecting match type
+const MATCH_DISC = Buffer.from([236, 63, 169, 38, 15, 56, 196, 162]);
+const TOKEN_MATCH_DISC = Buffer.from([156, 85, 237, 216, 57, 0, 3, 163]);
 
 interface MatchWithPubkey {
   pubkey: PublicKey;
   account: MatchAccount;
   isPlayerA: boolean;
-  isWinner: boolean;           // On-chain winner
-  isBackendWinner: boolean;    // Backend says this user won (even if not recorded on-chain yet)
-  isBackendLoser: boolean;     // Backend says someone ELSE won (this user lost)
+  isWinner: boolean;
+  isBackendWinner: boolean;
+  isBackendLoser: boolean;
+  isTokenMatch: false;
+  currency: 'SOL';
+  programId: PublicKey;
 }
+
+interface TokenMatchWithPubkey {
+  pubkey: PublicKey;
+  account: TokenMatchAccount;
+  isPlayerA: boolean;
+  isWinner: boolean;
+  isBackendWinner: boolean;
+  isBackendLoser: boolean;
+  isTokenMatch: true;
+  currency: WagerCurrency;
+  programId: PublicKey;
+}
+
+type AnyMatchWithPubkey = MatchWithPubkey | TokenMatchWithPubkey;
 
 export default function RefundPage() {
   const wallet = useWallet();
@@ -27,7 +49,7 @@ export default function RefundPage() {
   const { connected, publicKey } = wallet;
 
   const [loading, setLoading] = useState(false);
-  const [matches, setMatches] = useState<MatchWithPubkey[]>([]);
+  const [matches, setMatches] = useState<AnyMatchWithPubkey[]>([]);
   const [abandoningMatch, setAbandoningMatch] = useState<string | null>(null);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
 
@@ -38,63 +60,111 @@ export default function RefundPage() {
     setLoading(true);
     try {
       const client = new EscrowClient(connection, wallet);
-      
-      // Get all program accounts
-      const PROGRAM_ID = new PublicKey('H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV');
-      const accounts = await connection.getProgramAccounts(PROGRAM_ID);
-      
-      const userMatches: MatchWithPubkey[] = [];
-      
-      for (const { pubkey, account } of accounts) {
+      const tokenClient = new TokenEscrowClient(connection, wallet);
+      const userMatches: AnyMatchWithPubkey[] = [];
+
+      // Helper to check backend winner
+      const checkBackendWinner = async (matchPubkey: PublicKey, userPubkey: PublicKey) => {
+        let isBackendWinner = false;
+        let isBackendLoser = false;
         try {
-          const matchAccount = await client.fetchMatch(pubkey);
-          if (!matchAccount) continue;
+          const res = await fetch(`${BACKEND_URL}/api/match-winner/${matchPubkey.toBase58()}`);
+          const data = await res.json();
+          if (data.found && data.winnerWallet) {
+            if (data.winnerWallet === userPubkey.toBase58()) {
+              isBackendWinner = true;
+            } else {
+              isBackendLoser = true;
+            }
+          }
+        } catch (e) { /* Backend unavailable */ }
+        return { isBackendWinner, isBackendLoser };
+      };
+
+      // Scan both programs: current + legacy
+      const programIds = [PROGRAM_ID, LEGACY_PROGRAM_ID];
+      
+      for (const programId of programIds) {
+        try {
+          const accounts = await connection.getProgramAccounts(programId);
           
-          const isPlayerA = matchAccount.playerA.equals(publicKey);
-          const isPlayerB = matchAccount.playerB?.equals(publicKey) || false;
-          
-          // Check escrow balance to see if funds are stuck
-          const [escrowPda] = PublicKey.findProgramAddressSync(
-            [Buffer.from('escrow'), pubkey.toBytes()],
-            PROGRAM_ID
-          );
-          const escrowBalance = await connection.getBalance(escrowPda);
-          
-          // Show matches where user is involved AND escrow has funds
-          // This includes Open (no one joined yet), Active (stuck) or Finished (payout failed)
-          if ((isPlayerA || isPlayerB) && escrowBalance > 0) {
-            // Check if current user is the winner on-chain
-            const isWinner = matchAccount.winner?.equals(publicKey) || false;
-            
-            // Also check backend for winner (in case submit_result failed)
-            let isBackendWinner = false;
-            let isBackendLoser = false;
+          for (const { pubkey, account } of accounts) {
             try {
-              const res = await fetch(`${BACKEND_URL}/api/match-winner/${pubkey.toBase58()}`);
-              const data = await res.json();
-              if (data.found && data.winnerWallet) {
-                if (data.winnerWallet === publicKey.toBase58()) {
-                  isBackendWinner = true;
+              if (account.data.length < 8) continue;
+              const disc = Buffer.from(account.data.slice(0, 8));
+
+              // Check if it's a SOL match
+              if (disc.equals(MATCH_DISC)) {
+                const matchAccount = await client.fetchMatch(pubkey);
+                if (!matchAccount) continue;
+
+                const isPlayerA = matchAccount.playerA.equals(publicKey);
+                const isPlayerB = matchAccount.playerB?.equals(publicKey) || false;
+                if (!isPlayerA && !isPlayerB) continue;
+
+                // Check escrow balance
+                const [escrowPda] = PublicKey.findProgramAddressSync(
+                  [Buffer.from('escrow'), pubkey.toBytes()],
+                  programId
+                );
+                const escrowBalance = await connection.getBalance(escrowPda);
+                if (escrowBalance === 0) continue;
+
+                const isWinner = matchAccount.winner?.equals(publicKey) || false;
+                const { isBackendWinner, isBackendLoser } = await checkBackendWinner(pubkey, publicKey);
+
+                userMatches.push({
+                  pubkey,
+                  account: matchAccount,
+                  isPlayerA,
+                  isWinner,
+                  isBackendWinner,
+                  isBackendLoser,
+                  isTokenMatch: false,
+                  currency: 'SOL',
+                  programId,
+                });
+              }
+              // Check if it's a token match
+              else if (disc.equals(TOKEN_MATCH_DISC)) {
+                const tokenMatch = await tokenClient.fetchTokenMatch(pubkey);
+                if (!tokenMatch) continue;
+
+                const isPlayerA = tokenMatch.playerA.equals(publicKey);
+                const isPlayerB = tokenMatch.playerB?.equals(publicKey) || false;
+                if (!isPlayerA && !isPlayerB) continue;
+
+                // Determine currency from mint
+                let currency: WagerCurrency;
+                if (tokenMatch.mint.equals(MATE_MINT)) {
+                  currency = 'MATE';
+                } else if (tokenMatch.mint.equals(SKR_MINT)) {
+                  currency = 'SKR';
                 } else {
-                  // Someone else won - this user is the loser
-                  isBackendLoser = true;
+                  continue; // Unknown mint, skip
                 }
+
+                const isWinner = tokenMatch.winner?.equals(publicKey) || false;
+                const { isBackendWinner, isBackendLoser } = await checkBackendWinner(pubkey, publicKey);
+
+                userMatches.push({
+                  pubkey,
+                  account: tokenMatch,
+                  isPlayerA,
+                  isWinner,
+                  isBackendWinner,
+                  isBackendLoser,
+                  isTokenMatch: true,
+                  currency,
+                  programId,
+                });
               }
             } catch (e) {
-              // Backend unavailable, just use on-chain data
+              // Skip invalid accounts
             }
-            
-            userMatches.push({
-              pubkey,
-              account: matchAccount,
-              isPlayerA,
-              isWinner,
-              isBackendWinner,
-              isBackendLoser,
-            });
           }
         } catch (e) {
-          // Skip invalid accounts
+          console.error(`Error scanning program ${programId.toBase58().slice(0,8)}:`, e);
         }
       }
       
@@ -110,20 +180,17 @@ export default function RefundPage() {
     loadMatches();
   }, [connected, publicKey]);
 
-  const handleAbandonMatch = async (match: MatchWithPubkey) => {
+  const handleAbandonMatch = async (match: AnyMatchWithPubkey) => {
     if (!connected || !publicKey) {
       alert("Please connect your wallet");
       return;
     }
 
-    // Block losers from claiming refund - the winner gets the pot
-    // Backend is source of truth (on-chain winner can be wrong due to missubmission)
+    // Block losers from claiming refund
     if (match.isBackendLoser && !match.isWinner) {
       alert("You lost this match. The winner will claim the winnings.");
       return;
     }
-    // Edge case: on-chain winner but backend says loser (missubmission bug)
-    // Allow them to trigger confirmPayout since only the on-chain winner can claim
     if (match.isBackendLoser && match.isWinner) {
       const proceed = confirm(
         "⚠️ Note: The backend recorded you as the loser, but the on-chain winner is your wallet. " +
@@ -136,105 +203,139 @@ export default function RefundPage() {
     setResult(null);
 
     try {
-      const client = new EscrowClient(connection, wallet);
       let signature: string;
-      
-      // If user is the on-chain winner, claim winnings via confirmPayout
-      if (match.isWinner && match.account.winner) {
-        signature = await client.confirmPayout(
-          match.pubkey,
-          match.account.winner,
-          match.account.playerA
-        );
-        
-        setResult({
-          success: true,
-          message: `🎉 Winnings claimed! You received the pot. Signature: ${signature.slice(0, 8)}...`,
-        });
-      }
-      // If backend says user is winner but not recorded on-chain, submit result first then claim
-      else if (match.isBackendWinner && match.account.status === MatchStatus.Active) {
-        // First submit the result to record winner on-chain
-        const winnerPubkey = publicKey;
-        console.log('Backend says you won - submitting result to chain first...');
-        const resultSig = await client.submitResult(match.pubkey, winnerPubkey);
-        console.log('Result submitted:', resultSig);
-        
-        // Wait for confirmation
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Now claim payout
-        signature = await client.confirmPayout(
-          match.pubkey,
-          winnerPubkey,
-          match.account.playerA
-        );
-        
-        setResult({
-          success: true,
-          message: `🎉 Winnings claimed! Result submitted and payout received. Signature: ${signature.slice(0, 8)}...`,
-        });
-      }
-      // Use cancelMatch for Open matches (no player B joined)
-      else if (match.account.status === MatchStatus.Open) {
-        signature = await client.cancelMatch(match.pubkey);
-        
-        setResult({
-          success: true,
-          message: `Refund claimed! Your stake was returned. Signature: ${signature.slice(0, 8)}...`,
-        });
-      }
-      // For Finished matches, use confirmPayout (forceRefund requires Active status)
-      else if (match.account.status === MatchStatus.Finished) {
-        // If the match has a winner on-chain, try confirmPayout
-        if (match.account.winner) {
-          // Check if the current user is the on-chain winner
-          const userIsOnChainWinner = match.account.winner.equals(publicKey);
+
+      if (match.isTokenMatch) {
+        // ─── TOKEN MATCH CLAIM FLOW ───
+        const tokenClient = new TokenEscrowClient(connection, wallet);
+        const tokenAccount = match.account as TokenMatchAccount;
+        const mint = tokenAccount.mint;
+
+        if (match.isWinner && tokenAccount.winner) {
+          signature = await tokenClient.confirmTokenPayout(
+            match.pubkey, mint, tokenAccount.winner, tokenAccount.playerA
+          );
+          setResult({
+            success: true,
+            message: `🎉 ${match.currency} winnings claimed! Signature: ${signature.slice(0, 8)}...`,
+          });
+        } else if (match.isBackendWinner && tokenAccount.status === MatchStatus.Active) {
+          const winnerPubkey = publicKey;
+          await tokenClient.submitTokenResult(match.pubkey, winnerPubkey);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          signature = await tokenClient.confirmTokenPayout(
+            match.pubkey, mint, winnerPubkey, tokenAccount.playerA
+          );
+          setResult({
+            success: true,
+            message: `🎉 ${match.currency} winnings claimed! Signature: ${signature.slice(0, 8)}...`,
+          });
+        } else if (tokenAccount.status === MatchStatus.Open) {
+          signature = await tokenClient.cancelTokenMatch(match.pubkey, mint);
+          setResult({
+            success: true,
+            message: `Refund claimed! Your ${match.currency} stake was returned. Signature: ${signature.slice(0, 8)}...`,
+          });
+        } else if (tokenAccount.status === MatchStatus.Finished && tokenAccount.winner) {
+          const userIsOnChainWinner = tokenAccount.winner.equals(publicKey);
           if (userIsOnChainWinner || match.isBackendWinner) {
-            signature = await client.confirmPayout(
-              match.pubkey,
-              match.account.winner,
-              match.account.playerA
+            signature = await tokenClient.confirmTokenPayout(
+              match.pubkey, mint, tokenAccount.winner, tokenAccount.playerA
             );
             setResult({
               success: true,
-              message: `🎉 Winnings claimed! Signature: ${signature.slice(0, 8)}...`,
+              message: `🎉 ${match.currency} winnings claimed! Signature: ${signature.slice(0, 8)}...`,
             });
           } else {
-            throw new Error("This match has ended and the winner has been declared on-chain. Only the winner can claim the pot.");
+            throw new Error("Only the winner can claim the pot.");
           }
         } else {
-          throw new Error("Match is finished but no winner was recorded on-chain. Please contact support.");
+          if (!tokenAccount.playerB) throw new Error("No Player B - cannot abandon match");
+          try {
+            signature = await tokenClient.abandonTokenMatch(
+              match.pubkey, mint, tokenAccount.playerA, tokenAccount.playerB
+            );
+          } catch (abandonErr: any) {
+            if (abandonErr?.message?.includes('MatchLockedIn')) {
+              signature = await tokenClient.forceTokenRefund(
+                match.pubkey, mint, tokenAccount.playerA, tokenAccount.playerB
+              );
+            } else {
+              throw abandonErr;
+            }
+          }
+          setResult({
+            success: true,
+            message: `Refund claimed! Both players received their ${match.currency} stake. Signature: ${signature.slice(0, 8)}...`,
+          });
         }
       } else {
-        if (!match.account.playerB) {
-          throw new Error("No Player B - cannot abandon match");
-        }
-        try {
-          signature = await client.abandonMatch(
-            match.pubkey,
-            match.account.playerA,
-            match.account.playerB
+        // ─── SOL MATCH CLAIM FLOW (original) ───
+        const client = new EscrowClient(connection, wallet);
+        const solAccount = match.account as MatchAccount;
+
+        if (match.isWinner && solAccount.winner) {
+          signature = await client.confirmPayout(
+            match.pubkey, solAccount.winner, solAccount.playerA
           );
-        } catch (abandonErr: any) {
-          const errMsg = abandonErr?.message || String(abandonErr);
-          // If abandonMatch fails due to time gate, fall back to forceRefund (both require Active)
-          if (errMsg.includes('MatchLockedIn')) {
-            console.log('abandonMatch time-gated, trying forceRefund...');
-            signature = await client.forceRefund(
-              match.pubkey,
-              match.account.playerA,
-              match.account.playerB!
-            );
+          setResult({
+            success: true,
+            message: `🎉 Winnings claimed! You received the pot. Signature: ${signature.slice(0, 8)}...`,
+          });
+        } else if (match.isBackendWinner && solAccount.status === MatchStatus.Active) {
+          const winnerPubkey = publicKey;
+          await client.submitResult(match.pubkey, winnerPubkey);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          signature = await client.confirmPayout(
+            match.pubkey, winnerPubkey, solAccount.playerA
+          );
+          setResult({
+            success: true,
+            message: `🎉 Winnings claimed! Result submitted and payout received. Signature: ${signature.slice(0, 8)}...`,
+          });
+        } else if (solAccount.status === MatchStatus.Open) {
+          signature = await client.cancelMatch(match.pubkey);
+          setResult({
+            success: true,
+            message: `Refund claimed! Your stake was returned. Signature: ${signature.slice(0, 8)}...`,
+          });
+        } else if (solAccount.status === MatchStatus.Finished) {
+          if (solAccount.winner) {
+            const userIsOnChainWinner = solAccount.winner.equals(publicKey);
+            if (userIsOnChainWinner || match.isBackendWinner) {
+              signature = await client.confirmPayout(
+                match.pubkey, solAccount.winner, solAccount.playerA
+              );
+              setResult({
+                success: true,
+                message: `🎉 Winnings claimed! Signature: ${signature.slice(0, 8)}...`,
+              });
+            } else {
+              throw new Error("This match has ended. Only the winner can claim the pot.");
+            }
           } else {
-            throw abandonErr;
+            throw new Error("Match finished but no winner recorded. Please contact support.");
           }
+        } else {
+          if (!solAccount.playerB) throw new Error("No Player B - cannot abandon match");
+          try {
+            signature = await client.abandonMatch(
+              match.pubkey, solAccount.playerA, solAccount.playerB
+            );
+          } catch (abandonErr: any) {
+            if (abandonErr?.message?.includes('MatchLockedIn')) {
+              signature = await client.forceRefund(
+                match.pubkey, solAccount.playerA, solAccount.playerB!
+              );
+            } else {
+              throw abandonErr;
+            }
+          }
+          setResult({
+            success: true,
+            message: `Refund claimed! Both players received their stake. Signature: ${signature.slice(0, 8)}...`,
+          });
         }
-        
-        setResult({
-          success: true,
-          message: `Refund claimed! Both players received their stake. Signature: ${signature.slice(0, 8)}...`,
-        });
       }
 
       // Refresh the list
@@ -495,9 +596,22 @@ export default function RefundPage() {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {matches.map((match) => {
-                    const tierInfo = getStakeTierInfo(match.account.stakeTier);
                     const isAbandoning = abandoningMatch === match.pubkey.toBase58();
-                    const potAmount = tierInfo.stake * 2; // Both players' stakes
+                    let stakeAmount: number;
+                    let tierLabel: string;
+                    let currencyLabel: string;
+                    if (match.isTokenMatch) {
+                      const tokenTier = getTokenStakeTierInfo(match.currency, match.account.stakeTier);
+                      stakeAmount = tokenTier?.displayAmount ?? 0;
+                      tierLabel = tokenTier?.label ?? `Tier ${match.account.stakeTier}`;
+                      currencyLabel = `$${match.currency}`;
+                    } else {
+                      const solTier = getStakeTierInfo(match.account.stakeTier);
+                      stakeAmount = solTier.stake;
+                      tierLabel = solTier.label;
+                      currencyLabel = 'SOL';
+                    }
+                    const potAmount = stakeAmount * 2;
                     // Special case: on-chain winner who backend says lost (missubmission)
                     // They should still be able to claim since confirmPayout uses on-chain winner
                     const isOnChainWinnerOverride = match.isWinner && match.isBackendLoser;
@@ -630,7 +744,7 @@ export default function RefundPage() {
                             </p>
                             <p style={{ fontSize: '14px', color: '#6b6b80', margin: 0 }}>
                               Stake:{' '}
-                              <span style={{ color: '#e8e8f0', fontWeight: 700 }}>{tierInfo.label}</span>
+                              <span style={{ color: '#e8e8f0', fontWeight: 700 }}>{tierLabel}</span>
                               <span style={{ color: '#3a3a4a', margin: '0 8px' }}>•</span>
                               {isWinnerMatch ? (
                                 <>Prize:{' '}
@@ -638,7 +752,7 @@ export default function RefundPage() {
                                     color: '#22c55e',
                                     fontWeight: 800,
                                     fontFamily: "'Space Mono', monospace",
-                                  }}>{potAmount.toFixed(2)} SOL</span>
+                                  }}>{match.isTokenMatch ? potAmount.toLocaleString() : potAmount.toFixed(2)} {currencyLabel}</span>
                                 </>
                               ) : isLoserMatch ? (
                                 <>Lost:{' '}
@@ -646,11 +760,11 @@ export default function RefundPage() {
                                     color: '#ff5050',
                                     fontWeight: 700,
                                     fontFamily: "'Space Mono', monospace",
-                                  }}>-{tierInfo.stake} SOL</span>
+                                  }}>-{match.isTokenMatch ? stakeAmount.toLocaleString() : stakeAmount} {currencyLabel}</span>
                                 </>
                               ) : (
                                 <>Your refund:{' '}
-                                  <span style={{ color: '#e8e8f0', fontWeight: 700 }}>{tierInfo.label}</span>
+                                  <span style={{ color: '#e8e8f0', fontWeight: 700 }}>{tierLabel}</span>
                                 </>
                               )}
                             </p>

@@ -136,6 +136,7 @@ function GameContent() {
   const freePlayCode = searchParams.get("freeplay"); // Join free play via link
   const spectateRoom = searchParams.get("room"); // Spectate wager match by room ID
   const isReconnect = searchParams.get("reconnect") === "true"; // Reconnecting to active game
+  const currencyParam = (searchParams.get("currency") as WagerCurrency) || 'SOL';
 
   // Host setup: if mode=host but no match param, show host setup flow
   const isHostSetup = playMode === "host" && !matchParam;
@@ -1064,6 +1065,7 @@ function GameContent() {
           freePlayJoinCode={freePlayCode || undefined}
           spectateRoomId={spectateRoom || undefined}
           forceReconnect={isReconnect}
+          currency={playMode === "host" ? selectedCurrency : currencyParam}
         />
       </div>
     </div>
