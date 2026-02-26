@@ -54,14 +54,14 @@ export function Navigation() {
           {/* Desktop nav links (hidden on mobile) */}
           <div className="nav-links-desktop">
             <Link
-              href="/arena"
+              href="/quests"
               className="nav-link-new"
               style={{
-                color: pathname === '/arena' ? '#e8e8f0' : undefined,
-                background: pathname === '/arena' ? 'rgba(255,255,255,0.04)' : undefined,
+                color: pathname === '/quests' ? '#e8e8f0' : undefined,
+                background: pathname === '/quests' ? 'rgba(255,255,255,0.04)' : undefined,
               }}
             >
-              Arena
+              Quests
             </Link>
             <Link
               href="/learn"
@@ -120,14 +120,14 @@ export function Navigation() {
       {menuOpen && (
         <div className="nav-mobile-menu">
           <Link
-            href="/arena"
+            href="/quests"
             className="nav-mobile-link"
             style={{
-              color: pathname === '/arena' ? '#e8e8f0' : undefined,
-              background: pathname === '/arena' ? 'rgba(255,255,255,0.04)' : undefined,
+              color: pathname === '/quests' ? '#e8e8f0' : undefined,
+              background: pathname === '/quests' ? 'rgba(255,255,255,0.04)' : undefined,
             }}
           >
-            Arena
+            Quests
           </Link>
           <Link
             href="/learn"
