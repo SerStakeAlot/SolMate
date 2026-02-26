@@ -11,6 +11,11 @@ import {
   SystemProgram,
   LAMPORTS_PER_SOL 
 } from '@solana/web3.js';
+import {
+  TOKEN_PROGRAM_ID,
+  ASSOCIATED_TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddressSync,
+} from '@solana/spl-token';
 
 const PROGRAM_ID = new PublicKey('79mzfYBWp6thaU5pYLJLpNBXCrSoZVVyttTHuWx732cr');
 const LEGACY_PROGRAM_ID = new PublicKey('H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV');
@@ -18,6 +23,18 @@ const ADMIN_PUBKEY = new PublicKey('7BKqimAdco1XsknW88N38qf4PgXGieWN8USPgKxcf87B
 const FEE_VAULT_PDA = new PublicKey('F1KmjaEjWF83yrRyWsPJABDxPNtZ5dJurXSze6d8qdJ9');
 const LEGACY_FEE_VAULT_PDA = new PublicKey('H3y5ST69e5QDVXZsWiNAiDgJfq7eW6GntkvyVxCmq5VX');
 const RPC_URL = process.env.NEXT_PUBLIC_RPC_ENDPOINT || 'https://mainnet.helius-rpc.com/?api-key=REDACTED_HELIUS_API_KEY';
+
+// Token fee vault (separate PDA from SOL fee vault)
+const [TOKEN_FEE_VAULT_PDA] = PublicKey.findProgramAddressSync(
+  [Buffer.from('token_fee_vault')],
+  PROGRAM_ID
+);
+
+// Supported token mints
+const TOKEN_MINTS: { label: string; mint: PublicKey; decimals: number; color: string }[] = [
+  { label: '$MATE', mint: new PublicKey('5CJN2E6dDU9XxDJnz3ZEELxPP8HsGTKPbsNVB2djpump'), decimals: 6, color: '#00ffa3' },
+  { label: '$SKR',  mint: new PublicKey('SKRbvo6Gf7GondiT3BbTfuRDPqLWei4j2Qy2NPGZhW3'),  decimals: 6, color: '#00d4ff' },
+];
 
 // Particle field matching homepage
 function ParticleField() {
@@ -119,6 +136,12 @@ export default function AdminVaultPage() {
   const [rescueUseLegacy, setRescueUseLegacy] = useState(false);
   const [rescueMatchInfo, setRescueMatchInfo] = useState<{ balance: number; escrowBalance: number; status: string } | null>(null);
 
+  // Token fee vault state
+  const [tokenFeeBalances, setTokenFeeBalances] = useState<{ label: string; mint: string; balance: number; color: string }[]>([]);
+  const [tokenWithdrawLoading, setTokenWithdrawLoading] = useState<string | null>(null);
+  const [tokenFeeStatus, setTokenFeeStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+  const [tokenFeeTxSignature, setTokenFeeTxSignature] = useState<string | null>(null);
+
   const fetchVaultData = useCallback(async () => {
     try {
       const connection = new Connection(RPC_URL, 'confirmed');
@@ -143,6 +166,30 @@ export default function AdminVaultPage() {
         const totalCollectedLamports = accountInfo.data.readBigUInt64LE(8);
         setTotalCollected(Number(totalCollectedLamports) / LAMPORTS_PER_SOL);
       }
+
+      // Fetch token fee vault balances
+      const tokenBalances: { label: string; mint: string; balance: number; color: string }[] = [];
+      for (const token of TOKEN_MINTS) {
+        try {
+          const ata = getAssociatedTokenAddressSync(token.mint, TOKEN_FEE_VAULT_PDA, true);
+          const ataInfo = await connection.getTokenAccountBalance(ata);
+          tokenBalances.push({
+            label: token.label,
+            mint: token.mint.toBase58(),
+            balance: ataInfo.value.uiAmount || 0,
+            color: token.color,
+          });
+        } catch {
+          // ATA doesn't exist yet — no fees collected for this token
+          tokenBalances.push({
+            label: token.label,
+            mint: token.mint.toBase58(),
+            balance: 0,
+            color: token.color,
+          });
+        }
+      }
+      setTokenFeeBalances(tokenBalances);
     } catch (error) {
       console.error('Error fetching vault data:', error);
       setStatus({ type: 'error', message: 'Failed to fetch vault data' });
@@ -240,6 +287,89 @@ export default function AdminVaultPage() {
       setStatus({ type: 'error', message: `Withdrawal failed: ${errorMessage}` });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTokenWithdraw = async (mintAddress: string) => {
+    if (!publicKey || !isAdmin) return;
+
+    setTokenWithdrawLoading(mintAddress);
+    setTokenFeeStatus(null);
+    setTokenFeeTxSignature(null);
+
+    try {
+      const connection = new Connection(RPC_URL, 'confirmed');
+      const mint = new PublicKey(mintAddress);
+
+      // Derive accounts
+      const feeVaultAta = getAssociatedTokenAddressSync(mint, TOKEN_FEE_VAULT_PDA, true);
+      const adminAta = getAssociatedTokenAddressSync(mint, publicKey);
+
+      // Check if admin ATA exists; if not, we need to create it
+      const adminAtaInfo = await connection.getAccountInfo(adminAta);
+
+      const transaction = new Transaction();
+
+      // Create admin ATA if it doesn't exist
+      if (!adminAtaInfo) {
+        const createAtaIx = new TransactionInstruction({
+          keys: [
+            { pubkey: publicKey, isSigner: true, isWritable: true },
+            { pubkey: adminAta, isSigner: false, isWritable: true },
+            { pubkey: publicKey, isSigner: false, isWritable: false },
+            { pubkey: mint, isSigner: false, isWritable: false },
+            { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+            { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+          ],
+          programId: ASSOCIATED_TOKEN_PROGRAM_ID,
+          data: Buffer.alloc(0),
+        });
+        transaction.add(createAtaIx);
+      }
+
+      // Build withdraw_token_fees instruction
+      // Discriminator: sha256('global:withdraw_token_fees')[0..8]
+      const discriminator = Buffer.from([148, 11, 90, 7, 99, 98, 153, 104]);
+      // amount = 0 means withdraw all
+      const amountBuffer = Buffer.alloc(8);
+      amountBuffer.writeBigUInt64LE(BigInt(0));
+      const data = Buffer.concat([discriminator, amountBuffer]);
+
+      const instruction = new TransactionInstruction({
+        keys: [
+          { pubkey: mint, isSigner: false, isWritable: false },                        // mint
+          { pubkey: TOKEN_FEE_VAULT_PDA, isSigner: false, isWritable: false },         // fee_vault_authority
+          { pubkey: feeVaultAta, isSigner: false, isWritable: true },                  // fee_vault_token_account
+          { pubkey: adminAta, isSigner: false, isWritable: true },                     // admin_token_account
+          { pubkey: publicKey, isSigner: true, isWritable: true },                     // admin
+          { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },            // token_program
+        ],
+        programId: PROGRAM_ID,
+        data,
+      });
+
+      transaction.add(instruction);
+
+      const { blockhash } = await connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = publicKey;
+
+      const signature = await sendTransaction(transaction, connection);
+      setTokenFeeStatus({ type: 'info', message: 'Transaction sent, confirming...' });
+
+      await connection.confirmTransaction(signature, 'confirmed');
+
+      const tokenLabel = TOKEN_MINTS.find(t => t.mint.toBase58() === mintAddress)?.label || 'tokens';
+      setTokenFeeTxSignature(signature);
+      setTokenFeeStatus({ type: 'success', message: `${tokenLabel} fees withdrawn successfully!` });
+
+      setTimeout(fetchVaultData, 2000);
+    } catch (error: unknown) {
+      console.error('Token fee withdrawal error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setTokenFeeStatus({ type: 'error', message: `Token withdrawal failed: ${errorMessage}` });
+    } finally {
+      setTokenWithdrawLoading(null);
     }
   };
 
@@ -523,6 +653,33 @@ export default function AdminVaultPage() {
           background: rgba(153,69,255,0.12);
           border-color: rgba(153,69,255,0.3);
           color: #9945ff;
+        }
+        .btn-token-withdraw {
+          padding: 10px 20px;
+          background: rgba(0,212,255,0.08);
+          border: 1px solid rgba(0,212,255,0.2);
+          border-radius: 12px;
+          color: #00d4ff;
+          font-size: 13px;
+          font-weight: 700;
+          font-family: 'Outfit', sans-serif;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          white-space: nowrap;
+        }
+        .btn-token-withdraw:hover {
+          background: rgba(0,212,255,0.15);
+          border-color: rgba(0,212,255,0.4);
+          transform: translateY(-1px);
+          box-shadow: 0 6px 20px rgba(0,212,255,0.15);
+        }
+        .btn-token-withdraw:disabled {
+          background: rgba(255,255,255,0.04);
+          border-color: rgba(255,255,255,0.06);
+          color: #6b6b80;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: none;
         }
       `}</style>
 
@@ -850,6 +1007,141 @@ export default function AdminVaultPage() {
 
           {/* Admin Rescue Section */}
           {connected && isAdmin && (
+            <>
+            {/* Token Fee Vault Section */}
+            <div className="vault-card" style={{ marginTop: '20px' }}>
+              <h2
+                style={{
+                  fontSize: '18px',
+                  fontWeight: 700,
+                  marginBottom: '8px',
+                  marginTop: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                }}
+              >
+                <span
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#00d4ff',
+                    boxShadow: '0 0 12px rgba(0,212,255,0.5)',
+                    display: 'inline-block',
+                  }}
+                />
+                Token Fee Vault
+              </h2>
+              <p style={{ fontSize: '12px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", marginTop: '0', marginBottom: '20px' }}>
+                10% fees collected from $MATE and $SKR wager matches
+              </p>
+
+              {/* Token Fee Vault Address */}
+              <div className="vault-stat-box" style={{ textAlign: 'left', marginBottom: '16px' }}>
+                <p style={{ fontSize: '11px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", marginBottom: '6px', marginTop: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                  Token Fee Vault PDA
+                </p>
+                <p
+                  style={{
+                    fontFamily: "'Space Mono', monospace",
+                    fontSize: '12px',
+                    color: '#a0a0b8',
+                    wordBreak: 'break-all',
+                    margin: 0,
+                    lineHeight: 1.7,
+                  }}
+                >
+                  {TOKEN_FEE_VAULT_PDA.toBase58()}
+                </p>
+              </div>
+
+              {/* Token Balances */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {tokenFeeBalances.map((token) => (
+                  <div
+                    key={token.mint}
+                    className="vault-stat-box"
+                    style={{
+                      textAlign: 'left',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '16px 20px',
+                    }}
+                  >
+                    <div>
+                      <p style={{ fontSize: '11px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", marginBottom: '6px', marginTop: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                        {token.label} Fees
+                      </p>
+                      <p style={{ fontSize: '22px', fontWeight: 700, color: token.color, margin: 0, fontFamily: "'Space Mono', monospace" }}>
+                        {token.balance.toLocaleString()}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleTokenWithdraw(token.mint)}
+                      disabled={token.balance === 0 || tokenWithdrawLoading !== null}
+                      className="btn-token-withdraw"
+                    >
+                      {tokenWithdrawLoading === token.mint ? 'Processing...' : `Withdraw All`}
+                    </button>
+                  </div>
+                ))}
+
+                {tokenFeeBalances.length === 0 && (
+                  <p style={{ fontSize: '13px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", textAlign: 'center', margin: '12px 0' }}>
+                    Loading token balances...
+                  </p>
+                )}
+              </div>
+
+              {/* Token Fee Status */}
+              {tokenFeeStatus && (
+                <div
+                  style={{
+                    marginTop: '16px',
+                    padding: '16px 20px',
+                    borderRadius: '14px',
+                    fontSize: '14px',
+                    lineHeight: 1.6,
+                    wordBreak: 'break-all',
+                    ...(tokenFeeStatus.type === 'success'
+                      ? { background: 'rgba(0,255,163,0.06)', border: '1px solid rgba(0,255,163,0.2)', color: '#00ffa3' }
+                      : tokenFeeStatus.type === 'error'
+                      ? { background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }
+                      : { background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.2)', color: '#60a5fa' }),
+                  }}
+                >
+                  {tokenFeeStatus.message}
+                </div>
+              )}
+
+              {/* Token Fee Tx Link */}
+              {tokenFeeTxSignature && (
+                <div className="vault-stat-box" style={{ textAlign: 'left', marginTop: '12px' }}>
+                  <p style={{ fontSize: '11px', color: '#6b6b80', fontFamily: "'Space Mono', monospace", marginBottom: '6px', marginTop: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    Transaction
+                  </p>
+                  <a
+                    href={`https://solscan.io/tx/${tokenFeeTxSignature}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: '#00d4ff',
+                      fontSize: '12px',
+                      fontFamily: "'Space Mono', monospace",
+                      wordBreak: 'break-all',
+                      textDecoration: 'none',
+                      transition: 'color 0.2s',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#66e0ff')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = '#00d4ff')}
+                  >
+                    {tokenFeeTxSignature}
+                  </a>
+                </div>
+              )}
+            </div>
             <div className="vault-card" style={{ marginTop: '20px' }}>
               <h2
                 style={{
@@ -1018,6 +1310,7 @@ export default function AdminVaultPage() {
                 </div>
               )}
             </div>
+          </>
           )}
 
           {/* Footer */}
