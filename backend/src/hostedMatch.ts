@@ -191,7 +191,8 @@ class HostedMatchManager {
       match.stakeTier,
       { wallet: whiteWallet, socketId: whiteSocketId },
       { wallet: blackWallet, socketId: blackSocketId },
-      io
+      io,
+      match.currency
     );
 
     console.log(`Match ${matchCode} started! Room: ${roomId}, Host color: ${match.hostColor}`);

@@ -246,8 +246,11 @@ class GameRoomManager {
         0: 0.5,
         1: 1.0,
       };
-      
-      const stakeAmount = typeof tierValue === 'string' ? 0 : 
+
+      // Token matches don't count as SOL wagered
+      const isTokenMatch = room.currency && room.currency !== 'SOL';
+      const stakeAmount = isTokenMatch ? 0 :
+                          typeof tierValue === 'string' ? 0 : 
                           (TIER_TO_SOL[tierValue] || 0);
       
       const result = winner === 'w' ? 'white' : winner === 'b' ? 'black' : 'draw';
@@ -270,6 +273,7 @@ class GameRoomManager {
         totalMoves: room.moves.length,
         whiteUsername: whiteUsername || undefined,
         blackUsername: blackUsername || undefined,
+        currency: room.currency || 'SOL',
       });
     } catch (error) {
       console.error('Failed to record game stats:', error);
@@ -280,8 +284,8 @@ class GameRoomManager {
       const winnerId = winner === 'w' ? room.playerWhite.id : room.playerBlack.id;
       const loserId = winner === 'w' ? room.playerBlack.id : room.playerWhite.id;
       
-      playerStore.recordGameResult(winnerId, true, room.stakeTier);
-      playerStore.recordGameResult(loserId, false, room.stakeTier);
+      playerStore.recordGameResult(winnerId, true, room.stakeTier, room.currency);
+      playerStore.recordGameResult(loserId, false, room.stakeTier, room.currency);
     } else {
       // Draw - no profit/loss, just record games played
       playerStore.recordGameResult(room.playerWhite.id, false);
@@ -532,13 +536,15 @@ class GameRoomManager {
     stakeTier: number,
     white: { wallet: string; socketId: string },
     black: { wallet: string; socketId: string },
-    io: SocketServer
+    io: SocketServer,
+    currency?: string
   ): GameRoom {
     const room: GameRoom = {
       id: roomId,
       matchCode,
       matchPubkey,
       stakeTier,
+      currency: currency || 'SOL',
       playerWhite: {
         id: white.wallet,
         walletAddress: white.wallet,

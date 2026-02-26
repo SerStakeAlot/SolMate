@@ -88,6 +88,7 @@ export interface GameRoom {
   matchCode?: string; // Link to hosted match
   matchPubkey?: string; // On-chain match address
   stakeTier: number;
+  currency?: string; // 'SOL' | 'MATE' | 'SKR' — defaults to SOL
   playerWhite: Player;
   playerBlack: Player;
   whiteTimeMs: number;

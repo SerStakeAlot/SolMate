@@ -87,6 +87,14 @@ try {
   db.exec('ALTER TABLE platform_stats ADD COLUMN unique_players INTEGER DEFAULT 0');
 }
 
+// Migration: Add currency column to game_history if it doesn't exist
+try {
+  db.prepare('SELECT currency FROM game_history LIMIT 1').get();
+} catch (e) {
+  console.log('Adding currency column to game_history...');
+  db.exec("ALTER TABLE game_history ADD COLUMN currency TEXT DEFAULT 'SOL'");
+}
+
 // Prepared statements for performance
 const statements = {
   // Platform stats
@@ -186,10 +194,10 @@ const statements = {
   insertGame: db.prepare(`
     INSERT INTO game_history (
       game_id, white_wallet, black_wallet, winner_wallet, result,
-      stake_amount, is_wager_game, match_pubkey, game_duration_seconds, total_moves
+      stake_amount, is_wager_game, match_pubkey, game_duration_seconds, total_moves, currency
     ) VALUES (
       @gameId, @whiteWallet, @blackWallet, @winnerWallet, @result,
-      @stakeAmount, @isWagerGame, @matchPubkey, @durationSeconds, @totalMoves
+      @stakeAmount, @isWagerGame, @matchPubkey, @durationSeconds, @totalMoves, @currency
     )
   `),
   
@@ -350,6 +358,7 @@ class StatsStore {
     totalMoves: number;
     whiteUsername?: string;
     blackUsername?: string;
+    currency?: string;
   }): void {
     const isWagerGame = params.stakeAmount > 0;
     const totalPot = params.stakeAmount * 2;
@@ -373,6 +382,7 @@ class StatsStore {
         matchPubkey: params.matchPubkey || null,
         durationSeconds: params.durationSeconds,
         totalMoves: params.totalMoves,
+        currency: params.currency || 'SOL',
       });
     } catch (e: any) {
       // Ignore duplicate game_id errors
@@ -435,7 +445,7 @@ class StatsStore {
       }
     }
 
-    console.log(`📊 Recorded game: ${params.gameId} | Result: ${params.result} | Stake: ${params.stakeAmount} SOL`);
+    console.log(`📊 Recorded game: ${params.gameId} | Result: ${params.result} | Stake: ${params.stakeAmount} | Currency: ${params.currency || 'SOL'}`);
   }
 
   // Get leaderboard
@@ -527,13 +537,13 @@ class StatsStore {
   resetPlatformStats(): { before: any; after: PlatformStats } {
     const before = statements.getPlatformStats.get();
     
-    // Recalculate from game_history
+    // Recalculate from game_history (only count SOL matches for SOL wagered)
     const gameStats = db.prepare(`
       SELECT 
         COUNT(*) as total_games,
         SUM(CASE WHEN is_wager_game = 1 THEN 1 ELSE 0 END) as total_wager_games,
         SUM(CASE WHEN is_wager_game = 0 THEN 1 ELSE 0 END) as total_free_games,
-        SUM(CASE WHEN is_wager_game = 1 THEN stake_amount * 2 ELSE 0 END) as total_sol_wagered
+        SUM(CASE WHEN is_wager_game = 1 AND (currency IS NULL OR currency = 'SOL') THEN stake_amount * 2 ELSE 0 END) as total_sol_wagered
       FROM game_history
     `).get() as any;
     
@@ -599,13 +609,13 @@ class StatsStore {
     // Also recalculate platform stats after fixing
     this.resetPlatformStats();
 
-    // Also recalculate payout stats
+    // Also recalculate payout stats (only SOL matches)
     const payoutStats = db.prepare(`
       SELECT 
         SUM(stake_amount * 2 * 0.9) as total_paid,
         SUM(stake_amount * 2 * 0.1) as total_fees
       FROM game_history
-      WHERE is_wager_game = 1 AND result IN ('white', 'black')
+      WHERE is_wager_game = 1 AND result IN ('white', 'black') AND (currency IS NULL OR currency = 'SOL')
     `).get() as any;
 
     db.prepare(`
@@ -623,6 +633,20 @@ class StatsStore {
       fixed,
       games: badGames,
     };
+  }
+
+  // Fix a game's currency (for correcting token matches that were wrongly recorded as SOL)
+  fixGameCurrency(gameId: string, currency: string): boolean {
+    const result = db.prepare(`
+      UPDATE game_history SET currency = ?, stake_amount = 0, is_wager_game = 0
+      WHERE game_id = ?
+    `).run(currency, gameId);
+    return result.changes > 0;
+  }
+
+  // List all game history (for admin debugging)
+  getAllGames(): any[] {
+    return db.prepare('SELECT * FROM game_history ORDER BY ended_at DESC').all();
   }
 
   // Sync usernames from userStore to player_stats
@@ -694,9 +718,11 @@ class StatsStore {
     for (const game of games) {
       const isWager = game.is_wager_game === 1;
       const stakeAmount = game.stake_amount || 0;
-      const totalPot = stakeAmount * 2;
-      const winnings = isWager ? totalPot * 0.9 : 0; // 90% to winner
-      const fee = isWager ? totalPot * 0.1 : 0; // 10% fee
+      const currency = game.currency || 'SOL';
+      const isSolMatch = currency === 'SOL';
+      const totalPot = isSolMatch ? stakeAmount * 2 : 0; // Only count SOL for wagered/payout stats
+      const winnings = (isWager && isSolMatch) ? stakeAmount * 2 * 0.9 : 0;
+      const fee = (isWager && isSolMatch) ? stakeAmount * 2 * 0.1 : 0;
 
       // Track unique players
       if (game.white_wallet && !game.white_wallet.startsWith('guest_')) {
@@ -720,7 +746,7 @@ class StatsStore {
       `).run({
         isWager: isWager ? 1 : 0,
         isFree: isWager ? 0 : 1,
-        wagered: stakeAmount * 2, // Both players wagered
+        wagered: totalPot, // 0 for token matches
         paidOut: (game.result === 'white' || game.result === 'black') ? winnings : 0,
         fees: (game.result === 'white' || game.result === 'black') ? fee : 0,
       });

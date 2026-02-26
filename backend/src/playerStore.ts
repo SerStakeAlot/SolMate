@@ -63,7 +63,7 @@ class PlayerStore {
     }
   }
 
-  recordGameResult(playerId: string, won: boolean, stakeTier?: number): void {
+  recordGameResult(playerId: string, won: boolean, stakeTier?: number, currency?: string): void {
     const player = this.players.get(playerId);
     if (player) {
       player.gamesPlayed++;
@@ -71,8 +71,9 @@ class PlayerStore {
         player.gamesWon++;
       }
       
-      // Update SOL profit if stake tier provided
-      if (stakeTier !== undefined) {
+      // Update SOL profit only for SOL matches (skip token matches)
+      const isSolMatch = !currency || currency === 'SOL';
+      if (stakeTier !== undefined && isSolMatch) {
         const stakeAmount = TIER_TO_SOL[stakeTier] || 0;
         player.totalWagered += stakeAmount;
         
@@ -85,6 +86,8 @@ class PlayerStore {
         }
         
         console.log(`Player ${playerId} ${won ? 'won' : 'lost'}. SOL Profit: ${player.solProfit.toFixed(2)}, Skill Tier: ${getSkillTier(player)}`);
+      } else if (stakeTier !== undefined && !isSolMatch) {
+        console.log(`Player ${playerId} ${won ? 'won' : 'lost'} ${currency} match (tier ${stakeTier}). No SOL profit change.`);
       }
     }
   }

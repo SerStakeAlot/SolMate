@@ -468,6 +468,53 @@ app.post('/api/admin/recalculate-stats', (req, res) => {
   }
 });
 
+// Admin endpoint to fix a game's currency (e.g. token match wrongly recorded as SOL)
+app.post('/api/admin/fix-game-currency', (req, res) => {
+  try {
+    const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
+    const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
+    
+    if (adminKey !== expectedKey) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    const { gameId, currency } = req.body;
+    if (!gameId || !currency) {
+      return res.status(400).json({ error: 'gameId and currency required' });
+    }
+    
+    const fixed = statsStore.fixGameCurrency(gameId, currency);
+    if (fixed) {
+      // Recalculate stats after fixing
+      const result = statsStore.recalculateAllStats();
+      res.json({ success: true, message: `Fixed game ${gameId} to ${currency}, recalculated stats`, ...result });
+    } else {
+      res.json({ success: false, message: `Game ${gameId} not found` });
+    }
+  } catch (error) {
+    console.error('Error fixing game currency:', error);
+    res.status(500).json({ error: 'Failed to fix game currency' });
+  }
+});
+
+// Admin endpoint to list all games (for debugging)
+app.get('/api/admin/games', (req, res) => {
+  try {
+    const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
+    const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
+    
+    if (adminKey !== expectedKey) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    const games = statsStore.getAllGames();
+    res.json({ games, count: games.length });
+  } catch (error) {
+    console.error('Error listing games:', error);
+    res.status(500).json({ error: 'Failed to list games' });
+  }
+});
+
 // ============= Holder Arena API Endpoints =============
 
 // Admin endpoint to manually adjust arena player stats
