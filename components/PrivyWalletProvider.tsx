@@ -76,7 +76,7 @@ export const PrivyWalletProvider: FC<{ children: ReactNode }> = ({ children }) =
             network: 'mainnet-beta',
             nativeCurrency: { name: 'SOL', symbol: 'SOL', decimals: 9 },
             rpcUrls: {
-              default: { http: ['https://mainnet.helius-rpc.com/?api-key=REDACTED_HELIUS_API_KEY'] },
+              default: { http: [process.env.NEXT_PUBLIC_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com'] },
             },
           } as any,
         ],

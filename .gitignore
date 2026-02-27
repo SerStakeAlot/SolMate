@@ -25,6 +25,7 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env.production
 
 # vercel
 .vercel
@@ -38,6 +39,12 @@ next-env.d.ts
 target/
 **/*.rs.bk
 test-ledger/
+
+# Keypairs & secrets - NEVER commit these
+*-keypair.json
+*.keypair
+id.json
+**/deploy/*.json
 
 # Local Netlify folder
 .netlify

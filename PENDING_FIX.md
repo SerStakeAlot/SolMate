@@ -123,7 +123,7 @@ transfer(
 
 - **Program ID:** `H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV`
 - **Network:** Mainnet-beta
-- **RPC:** Helius (`https://mainnet.helius-rpc.com/?api-key=REDACTED_HELIUS_API_KEY_2`)
+- **RPC:** Helius (set via `NEXT_PUBLIC_RPC_ENDPOINT` env var)
 
 ---
 

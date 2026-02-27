@@ -1,7 +1,8 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 
 const PROGRAM_ID = new PublicKey('H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2knrKV');
-const connection = new Connection('https://mainnet.helius-rpc.com/?api-key=REDACTED_HELIUS_API_KEY');
+const RPC_URL = process.env.RPC_URL || process.env.NEXT_PUBLIC_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
+const connection = new Connection(RPC_URL);
 
 async function findAllMatches() {
   console.log('Searching ALL program accounts...');

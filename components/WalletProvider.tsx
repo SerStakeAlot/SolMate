@@ -26,7 +26,7 @@ export const WalletProvider: FC<{ children: ReactNode }> = ({ children }) => {
     if (process.env.NEXT_PUBLIC_RPC_ENDPOINT) {
       return process.env.NEXT_PUBLIC_RPC_ENDPOINT;
     }
-    return 'https://mainnet.helius-rpc.com/?api-key=REDACTED_HELIUS_API_KEY';
+    return 'https://api.mainnet-beta.solana.com';
   }, []);
 
   const wallets = useMemo((): Adapter[] => {

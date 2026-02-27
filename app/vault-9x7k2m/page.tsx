@@ -23,7 +23,7 @@ const LEGACY_PROGRAM_ID = new PublicKey('H1Sn4JQvsZFx7HreZaQn4Poa3hkoS9iGnTwrtN2
 const ADMIN_PUBKEY = new PublicKey('7BKqimAdco1XsknW88N38qf4PgXGieWN8USPgKxcf87B');
 const FEE_VAULT_PDA = new PublicKey('F1KmjaEjWF83yrRyWsPJABDxPNtZ5dJurXSze6d8qdJ9');
 const LEGACY_FEE_VAULT_PDA = new PublicKey('H3y5ST69e5QDVXZsWiNAiDgJfq7eW6GntkvyVxCmq5VX');
-const RPC_URL = process.env.NEXT_PUBLIC_RPC_ENDPOINT || 'https://mainnet.helius-rpc.com/?api-key=REDACTED_HELIUS_API_KEY';
+const RPC_URL = process.env.NEXT_PUBLIC_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
 
 // Token fee vault (separate PDA from SOL fee vault)
 const [TOKEN_FEE_VAULT_PDA] = PublicKey.findProgramAddressSync(

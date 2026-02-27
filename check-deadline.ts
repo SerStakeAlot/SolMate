@@ -1,7 +1,8 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 
 const MATCH_PDA = new PublicKey('9sGh52Wgbw5wx3dwoyLcWUkyTzAesFUge9BiWnVJrhMh');
-const connection = new Connection('https://mainnet.helius-rpc.com/?api-key=REDACTED_HELIUS_API_KEY');
+const RPC_URL = process.env.RPC_URL || process.env.NEXT_PUBLIC_RPC_ENDPOINT || 'https://api.mainnet-beta.solana.com';
+const connection = new Connection(RPC_URL);
 
 async function checkDeadline() {
   const account = await connection.getAccountInfo(MATCH_PDA);

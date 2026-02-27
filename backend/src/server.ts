@@ -373,9 +373,9 @@ app.get('/api/stats/player/:walletAddress/games', (req, res) => {
 app.post('/api/admin/reset-stats', (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
-    const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
+    const expectedKey = process.env.ADMIN_SECRET;
     
-    if (adminKey !== expectedKey) {
+    if (!expectedKey || adminKey !== expectedKey) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
     
@@ -397,9 +397,9 @@ app.post('/api/admin/reset-stats', (req, res) => {
 app.post('/api/admin/fix-stakes', (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
-    const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
+    const expectedKey = process.env.ADMIN_SECRET;
     
-    if (adminKey !== expectedKey) {
+    if (!expectedKey || adminKey !== expectedKey) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
     
@@ -422,9 +422,9 @@ app.post('/api/admin/fix-stakes', (req, res) => {
 app.post('/api/admin/sync-usernames', (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
-    const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
+    const expectedKey = process.env.ADMIN_SECRET;
     
-    if (adminKey !== expectedKey) {
+    if (!expectedKey || adminKey !== expectedKey) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
     
@@ -445,9 +445,9 @@ app.post('/api/admin/sync-usernames', (req, res) => {
 app.post('/api/admin/recalculate-stats', (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
-    const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
+    const expectedKey = process.env.ADMIN_SECRET;
     
-    if (adminKey !== expectedKey) {
+    if (!expectedKey || adminKey !== expectedKey) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
     
@@ -472,9 +472,9 @@ app.post('/api/admin/recalculate-stats', (req, res) => {
 app.post('/api/admin/fix-game-currency', (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
-    const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
+    const expectedKey = process.env.ADMIN_SECRET;
     
-    if (adminKey !== expectedKey) {
+    if (!expectedKey || adminKey !== expectedKey) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
     
@@ -501,9 +501,9 @@ app.post('/api/admin/fix-game-currency', (req, res) => {
 app.get('/api/admin/games', (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
-    const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
+    const expectedKey = process.env.ADMIN_SECRET;
     
-    if (adminKey !== expectedKey) {
+    if (!expectedKey || adminKey !== expectedKey) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
     
@@ -519,9 +519,9 @@ app.get('/api/admin/games', (req, res) => {
 app.post('/api/admin/fix-game-winner', (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
-    const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
+    const expectedKey = process.env.ADMIN_SECRET;
     
-    if (adminKey !== expectedKey) {
+    if (!expectedKey || adminKey !== expectedKey) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
     
@@ -555,9 +555,9 @@ app.post('/api/admin/fix-game-winner', (req, res) => {
 app.post('/api/admin/arena/adjust-stats', (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
-    const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
+    const expectedKey = process.env.ADMIN_SECRET;
 
-    if (adminKey !== expectedKey) {
+    if (!expectedKey || adminKey !== expectedKey) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
@@ -588,9 +588,9 @@ app.post('/api/admin/arena/adjust-stats', (req, res) => {
 app.post('/api/admin/arena/grant-bonus-games', (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
-    const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
+    const expectedKey = process.env.ADMIN_SECRET;
 
-    if (adminKey !== expectedKey) {
+    if (!expectedKey || adminKey !== expectedKey) {
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
