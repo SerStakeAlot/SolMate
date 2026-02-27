@@ -6,6 +6,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import { ChevronRight, Sparkles, Users, Gamepad2, Coins, HelpCircle, X } from "lucide-react";
 import { UsernameSetting } from "@/components/UsernameSetting";
+import SkrPopup from "@/components/SkrPopup";
 import { useState, useEffect, useRef } from "react";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://solmate-production.up.railway.app';
@@ -197,6 +198,7 @@ export default function Home() {
 
   return (
     <>
+      <SkrPopup />
       <link
         href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap"
         rel="stylesheet"
