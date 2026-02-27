@@ -515,6 +515,40 @@ app.get('/api/admin/games', (req, res) => {
   }
 });
 
+// Admin endpoint to fix a game's winner (e.g. timeout bug caused wrong result)
+app.post('/api/admin/fix-game-winner', (req, res) => {
+  try {
+    const adminKey = req.headers['x-admin-key'] || req.query.adminKey;
+    const expectedKey = process.env.ADMIN_SECRET || 'REDACTED_ADMIN_SECRET';
+    
+    if (adminKey !== expectedKey) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+    
+    const { gameId, newWinnerWallet } = req.body;
+    if (!gameId || !newWinnerWallet) {
+      return res.status(400).json({ error: 'gameId and newWinnerWallet required' });
+    }
+    
+    const fixed = statsStore.fixGameWinner(gameId, newWinnerWallet);
+    if (fixed.success) {
+      // Recalculate all stats from corrected game history
+      const result = statsStore.recalculateAllStats();
+      const synced = statsStore.syncUsernames(userStore);
+      res.json({ 
+        ...fixed, 
+        recalculated: result,
+        usernamesSynced: synced,
+      });
+    } else {
+      res.json(fixed);
+    }
+  } catch (error) {
+    console.error('Error fixing game winner:', error);
+    res.status(500).json({ error: 'Failed to fix game winner' });
+  }
+});
+
 // ============= Holder Arena API Endpoints =============
 
 // Admin endpoint to manually adjust arena player stats

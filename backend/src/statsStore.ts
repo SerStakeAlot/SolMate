@@ -644,6 +644,31 @@ class StatsStore {
     return result.changes > 0;
   }
 
+  // Fix a game's winner (swap winner due to timeout bug, etc.)
+  fixGameWinner(gameId: string, newWinnerWallet: string): { success: boolean; message: string; game?: any } {
+    const game = db.prepare('SELECT * FROM game_history WHERE game_id = ?').get(gameId) as any;
+    if (!game) {
+      return { success: false, message: `Game ${gameId} not found` };
+    }
+
+    // Determine new result based on which side the new winner plays
+    let newResult: string;
+    if (newWinnerWallet === game.white_wallet) {
+      newResult = 'white';
+    } else if (newWinnerWallet === game.black_wallet) {
+      newResult = 'black';
+    } else {
+      return { success: false, message: `Wallet ${newWinnerWallet} is not a player in game ${gameId}` };
+    }
+
+    db.prepare(`
+      UPDATE game_history SET winner_wallet = ?, result = ? WHERE game_id = ?
+    `).run(newWinnerWallet, newResult, gameId);
+
+    const updated = db.prepare('SELECT * FROM game_history WHERE game_id = ?').get(gameId);
+    return { success: true, message: `Game ${gameId} winner changed to ${newWinnerWallet} (${newResult})`, game: updated };
+  }
+
   // List all game history (for admin debugging)
   getAllGames(): any[] {
     return db.prepare('SELECT * FROM game_history ORDER BY ended_at DESC').all();
