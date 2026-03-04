@@ -207,7 +207,7 @@ export default function RefundPage() {
 
       if (match.isTokenMatch) {
         // ─── TOKEN MATCH CLAIM FLOW ───
-        const tokenClient = new TokenEscrowClient(connection, wallet);
+        const tokenClient = new TokenEscrowClient(connection, wallet, match.programId);
         const tokenAccount = match.account as TokenMatchAccount;
         const mint = tokenAccount.mint;
 
@@ -221,9 +221,8 @@ export default function RefundPage() {
           });
         } else if (match.isBackendWinner && tokenAccount.status === MatchStatus.Active) {
           const winnerPubkey = publicKey;
-          await tokenClient.submitTokenResult(match.pubkey, winnerPubkey);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          signature = await tokenClient.confirmTokenPayout(
+          // Single TX: submit result + confirm payout (avoids MWA session drops)
+          signature = await tokenClient.submitResultAndPayout(
             match.pubkey, mint, winnerPubkey, tokenAccount.playerA
           );
           setResult({
@@ -271,7 +270,7 @@ export default function RefundPage() {
         }
       } else {
         // ─── SOL MATCH CLAIM FLOW (original) ───
-        const client = new EscrowClient(connection, wallet);
+        const client = new EscrowClient(connection, wallet, match.programId);
         const solAccount = match.account as MatchAccount;
 
         if (match.isWinner && solAccount.winner) {
@@ -284,9 +283,8 @@ export default function RefundPage() {
           });
         } else if (match.isBackendWinner && solAccount.status === MatchStatus.Active) {
           const winnerPubkey = publicKey;
-          await client.submitResult(match.pubkey, winnerPubkey);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          signature = await client.confirmPayout(
+          // Single TX: submit result + confirm payout (avoids MWA session drops)
+          signature = await client.submitResultAndPayout(
             match.pubkey, winnerPubkey, solAccount.playerA
           );
           setResult({

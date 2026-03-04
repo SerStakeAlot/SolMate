@@ -165,10 +165,15 @@ export function parseMatchStatus(statusObj: any): MatchStatus {
 
 // Escrow client class
 export class EscrowClient {
+  private programId: PublicKey;
+
   constructor(
     private connection: Connection,
-    private wallet: WalletContextState
-  ) {}
+    private wallet: WalletContextState,
+    programId?: PublicKey
+  ) {
+    this.programId = programId ?? PROGRAM_ID;
+  }
 
   /**
    * Normalize a transaction signature to base58 encoding.
@@ -303,8 +308,8 @@ export class EscrowClient {
 
     // Use a random seed for PDA derivation
     const seed = new BN(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER));
-    const [matchPDA] = deriveMatchPDA(this.wallet.publicKey, seed);
-    const [escrowPDA] = deriveEscrowPDA(matchPDA);
+    const [matchPDA] = deriveMatchPDA(this.wallet.publicKey, seed, this.programId);
+    const [escrowPDA] = deriveEscrowPDA(matchPDA, this.programId);
 
     const joinDeadline = new BN(
       Math.floor(Date.now() / 1000) + joinDeadlineMinutes * 60
@@ -317,7 +322,7 @@ export class EscrowClient {
     console.log('Connected Wallet (signer):', this.wallet.publicKey.toBase58());
     console.log('Match PDA:', matchPDA.toBase58());
     console.log('Escrow PDA:', escrowPDA.toBase58());
-    console.log('Program ID:', PROGRAM_ID.toBase58());
+    console.log('Program ID:', this.programId.toBase58());
 
     // Build instruction data manually
     const instructionData = Buffer.alloc(25); // 8 (discriminator) + 1 (stake_tier) + 8 (seed) + 8 (join_deadline)
@@ -344,7 +349,7 @@ export class EscrowClient {
 
     const instruction = new TransactionInstruction({
       keys,
-      programId: PROGRAM_ID,
+      programId: this.programId,
       data: instructionData,
     });
 
@@ -433,7 +438,7 @@ export class EscrowClient {
     }
 
     const walletPubkey = this.wallet.publicKey;
-    const [escrowPDA] = deriveEscrowPDA(matchPubkey);
+    const [escrowPDA] = deriveEscrowPDA(matchPubkey, this.programId);
 
     console.log('=== JOIN MATCH DEBUG ===');
     console.log('Wallet publicKey:', walletPubkey.toBase58());
@@ -467,7 +472,7 @@ export class EscrowClient {
 
     const instruction = new TransactionInstruction({
       keys,
-      programId: PROGRAM_ID,
+      programId: this.programId,
       data: instructionData,
     });
 
@@ -541,7 +546,7 @@ export class EscrowClient {
 
     const instruction = new TransactionInstruction({
       keys,
-      programId: PROGRAM_ID,
+      programId: this.programId,
       data: instructionData,
     });
 
@@ -573,8 +578,8 @@ export class EscrowClient {
       throw new Error('Wallet does not support transaction signing');
     }
 
-    const [escrowPDA] = deriveEscrowPDA(matchPubkey);
-    const [feeVaultPDA] = deriveFeeVaultPDA();
+    const [escrowPDA] = deriveEscrowPDA(matchPubkey, this.programId);
+    const [feeVaultPDA] = deriveFeeVaultPDA(this.programId);
 
     // Build instruction data manually
     const instructionData = Buffer.alloc(8);
@@ -596,7 +601,7 @@ export class EscrowClient {
 
     const instruction = new TransactionInstruction({
       keys,
-      programId: PROGRAM_ID,
+      programId: this.programId,
       data: instructionData,
     });
 
@@ -640,13 +645,13 @@ export class EscrowClient {
         { pubkey: matchPubkey, isSigner: false, isWritable: true },
         { pubkey: walletPubkey, isSigner: true, isWritable: false },
       ],
-      programId: PROGRAM_ID,
+      programId: this.programId,
       data: submitData,
     });
 
     // Instruction 2: confirm_payout
-    const [escrowPDA] = deriveEscrowPDA(matchPubkey);
-    const [feeVaultPDA] = deriveFeeVaultPDA();
+    const [escrowPDA] = deriveEscrowPDA(matchPubkey, this.programId);
+    const [feeVaultPDA] = deriveFeeVaultPDA(this.programId);
     const payoutData = Buffer.alloc(8);
     Buffer.from([0x94, 0x61, 0x91, 0x02, 0x55, 0x8b, 0x04, 0x8c]).copy(payoutData, 0);
     const payoutIx = new TransactionInstruction({
@@ -659,7 +664,7 @@ export class EscrowClient {
         { pubkey: walletPubkey, isSigner: true, isWritable: true },
         { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       ],
-      programId: PROGRAM_ID,
+      programId: this.programId,
       data: payoutData,
     });
 
@@ -682,7 +687,7 @@ export class EscrowClient {
       throw new Error('Wallet does not support transaction signing');
     }
 
-    const [escrowPDA] = deriveEscrowPDA(matchPubkey);
+    const [escrowPDA] = deriveEscrowPDA(matchPubkey, this.programId);
 
     // Build instruction data manually
     const instructionData = Buffer.alloc(8);
@@ -701,7 +706,7 @@ export class EscrowClient {
 
     const instruction = new TransactionInstruction({
       keys,
-      programId: PROGRAM_ID,
+      programId: this.programId,
       data: instructionData,
     });
 
@@ -731,7 +736,7 @@ export class EscrowClient {
     }
 
     const walletPubkey = this.wallet.publicKey;
-    const [escrowPDA] = deriveEscrowPDA(matchPubkey);
+    const [escrowPDA] = deriveEscrowPDA(matchPubkey, this.programId);
 
     // Build instruction data manually
     const instructionData = Buffer.alloc(8);
@@ -750,7 +755,7 @@ export class EscrowClient {
 
     const instruction = new TransactionInstruction({
       keys,
-      programId: PROGRAM_ID,
+      programId: this.programId,
       data: instructionData,
     });
 
@@ -779,7 +784,7 @@ export class EscrowClient {
       throw new Error('Wallet does not support transaction signing');
     }
 
-    const [escrowPDA] = deriveEscrowPDA(matchPubkey);
+    const [escrowPDA] = deriveEscrowPDA(matchPubkey, this.programId);
 
     // Build instruction data manually
     const instructionData = Buffer.alloc(8);
@@ -798,7 +803,7 @@ export class EscrowClient {
 
     const instruction = new TransactionInstruction({
       keys,
-      programId: PROGRAM_ID,
+      programId: this.programId,
       data: instructionData,
     });
 

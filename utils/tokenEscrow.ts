@@ -191,10 +191,15 @@ const DISC = {
 // Token Escrow Client
 // ═══════════════════════════════════════════════════════
 export class TokenEscrowClient {
+  private programId: PublicKey;
+
   constructor(
     private connection: Connection,
-    private wallet: WalletContextState
-  ) {}
+    private wallet: WalletContextState,
+    programId?: PublicKey
+  ) {
+    this.programId = programId ?? PROGRAM_ID;
+  }
 
   // ── helpers ─────────────────────────────────────────
   private normalizeSignature(sig: string): string {
@@ -283,8 +288,8 @@ export class TokenEscrowClient {
     const walletPubkey = this.requireWallet();
 
     const seed = new BN(Math.floor(Math.random() * Number.MAX_SAFE_INTEGER));
-    const [matchPDA] = deriveTokenMatchPDA(walletPubkey, seed);
-    const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPDA);
+    const [matchPDA] = deriveTokenMatchPDA(walletPubkey, seed, this.programId);
+    const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPDA, this.programId);
     const tokenProgramId = getTokenProgramForMint(mint);
     const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true, tokenProgramId);
     const playerATA = getAssociatedTokenAddressSync(mint, walletPubkey, false, tokenProgramId);
@@ -316,7 +321,7 @@ export class TokenEscrowClient {
       { pubkey: SystemProgram.programId,        isSigner: false, isWritable: false },
     ];
 
-    const instruction = new TransactionInstruction({ keys, programId: PROGRAM_ID, data });
+    const instruction = new TransactionInstruction({ keys, programId: this.programId, data });
 
     let retries = 3;
     let lastError: any;
@@ -348,7 +353,7 @@ export class TokenEscrowClient {
     const walletPubkey = this.requireWallet();
 
     const tokenProgramId = getTokenProgramForMint(mint);
-    const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPubkey);
+    const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPubkey, this.programId);
     const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true, tokenProgramId);
     const playerBATA = getAssociatedTokenAddressSync(mint, walletPubkey, false, tokenProgramId);
 
@@ -366,7 +371,7 @@ export class TokenEscrowClient {
       { pubkey: SystemProgram.programId,        isSigner: false, isWritable: false },
     ];
 
-    const instruction = new TransactionInstruction({ keys, programId: PROGRAM_ID, data });
+    const instruction = new TransactionInstruction({ keys, programId: this.programId, data });
     const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('finalized');
     const signature = await this.buildSignAndSend(instruction, blockhash, lastValidBlockHeight, 'joinTokenMatch');
     const confirmation = await this.connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
@@ -389,7 +394,7 @@ export class TokenEscrowClient {
       { pubkey: walletPubkey, isSigner: true,  isWritable: false },
     ];
 
-    const instruction = new TransactionInstruction({ keys, programId: PROGRAM_ID, data });
+    const instruction = new TransactionInstruction({ keys, programId: this.programId, data });
     const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('finalized');
     const signature = await this.buildSignAndSend(instruction, blockhash, lastValidBlockHeight, 'submitTokenResult');
     const confirmation = await this.connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
@@ -409,9 +414,9 @@ export class TokenEscrowClient {
     const walletPubkey = this.requireWallet();
 
     const tokenProgramId = getTokenProgramForMint(mint);
-    const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPubkey);
+    const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPubkey, this.programId);
     const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true, tokenProgramId);
-    const [feeVaultAuthority] = deriveTokenFeeVaultAuthorityPDA();
+    const [feeVaultAuthority] = deriveTokenFeeVaultAuthorityPDA(this.programId);
     const feeVaultATA = getAssociatedTokenAddressSync(mint, feeVaultAuthority, true, tokenProgramId);
     const winnerATA = getAssociatedTokenAddressSync(mint, winner, false, tokenProgramId);
 
@@ -434,7 +439,7 @@ export class TokenEscrowClient {
       { pubkey: SystemProgram.programId,        isSigner: false, isWritable: false },
     ];
 
-    const instruction = new TransactionInstruction({ keys, programId: PROGRAM_ID, data });
+    const instruction = new TransactionInstruction({ keys, programId: this.programId, data });
     const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('finalized');
     const signature = await this.buildSignAndSend(instruction, blockhash, lastValidBlockHeight, 'confirmTokenPayout');
     const confirmation = await this.connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
@@ -463,15 +468,15 @@ export class TokenEscrowClient {
         { pubkey: matchPubkey,  isSigner: false, isWritable: true  },
         { pubkey: walletPubkey, isSigner: true,  isWritable: false },
       ],
-      programId: PROGRAM_ID,
+      programId: this.programId,
       data: submitData,
     });
 
     // Instruction 2: confirm_token_payout
     const tokenProgramId = getTokenProgramForMint(mint);
-    const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPubkey);
+    const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPubkey, this.programId);
     const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true, tokenProgramId);
-    const [feeVaultAuthority] = deriveTokenFeeVaultAuthorityPDA();
+    const [feeVaultAuthority] = deriveTokenFeeVaultAuthorityPDA(this.programId);
     const feeVaultATA = getAssociatedTokenAddressSync(mint, feeVaultAuthority, true, tokenProgramId);
     const winnerATA = getAssociatedTokenAddressSync(mint, winner, false, tokenProgramId);
 
@@ -493,7 +498,7 @@ export class TokenEscrowClient {
         { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID,    isSigner: false, isWritable: false },
         { pubkey: SystemProgram.programId,        isSigner: false, isWritable: false },
       ],
-      programId: PROGRAM_ID,
+      programId: this.programId,
       data: payoutData,
     });
 
@@ -511,7 +516,7 @@ export class TokenEscrowClient {
     const walletPubkey = this.requireWallet();
 
     const tokenProgramId = getTokenProgramForMint(mint);
-    const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPubkey);
+    const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPubkey, this.programId);
     const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true, tokenProgramId);
     const playerAATA = getAssociatedTokenAddressSync(mint, walletPubkey, false, tokenProgramId);
 
@@ -529,7 +534,7 @@ export class TokenEscrowClient {
       { pubkey: SystemProgram.programId,        isSigner: false, isWritable: false },
     ];
 
-    const instruction = new TransactionInstruction({ keys, programId: PROGRAM_ID, data });
+    const instruction = new TransactionInstruction({ keys, programId: this.programId, data });
     const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('finalized');
     const signature = await this.buildSignAndSend(instruction, blockhash, lastValidBlockHeight, 'cancelTokenMatch');
     await this.connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
@@ -548,7 +553,7 @@ export class TokenEscrowClient {
     const walletPubkey = this.requireWallet();
 
     const tokenProgramId = getTokenProgramForMint(mint);
-    const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPubkey);
+    const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPubkey, this.programId);
     const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true, tokenProgramId);
     const playerAATA = getAssociatedTokenAddressSync(mint, playerA, false, tokenProgramId);
     const playerBATA = getAssociatedTokenAddressSync(mint, playerB, false, tokenProgramId);
@@ -570,7 +575,7 @@ export class TokenEscrowClient {
       { pubkey: SystemProgram.programId,        isSigner: false, isWritable: false },
     ];
 
-    const instruction = new TransactionInstruction({ keys, programId: PROGRAM_ID, data });
+    const instruction = new TransactionInstruction({ keys, programId: this.programId, data });
     const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('finalized');
     const signature = await this.buildSignAndSend(instruction, blockhash, lastValidBlockHeight, 'abandonTokenMatch');
     await this.connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
@@ -589,7 +594,7 @@ export class TokenEscrowClient {
     const walletPubkey = this.requireWallet();
 
     const tokenProgramId = getTokenProgramForMint(mint);
-    const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPubkey);
+    const [escrowAuthority] = deriveTokenEscrowAuthorityPDA(matchPubkey, this.programId);
     const escrowATA = getAssociatedTokenAddressSync(mint, escrowAuthority, true, tokenProgramId);
     const playerAATA = getAssociatedTokenAddressSync(mint, playerA, false, tokenProgramId);
     const playerBATA = getAssociatedTokenAddressSync(mint, playerB, false, tokenProgramId);
@@ -611,7 +616,7 @@ export class TokenEscrowClient {
       { pubkey: SystemProgram.programId,        isSigner: false, isWritable: false },
     ];
 
-    const instruction = new TransactionInstruction({ keys, programId: PROGRAM_ID, data });
+    const instruction = new TransactionInstruction({ keys, programId: this.programId, data });
     const { blockhash, lastValidBlockHeight } = await this.connection.getLatestBlockhash('finalized');
     const signature = await this.buildSignAndSend(instruction, blockhash, lastValidBlockHeight, 'forceTokenRefund');
     await this.connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
